@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack)",
+      "Bash(npx --yes create-next-app@latest temp-init --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack)",
+      "Bash(npm install:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node -e \"const z = require\\(''zod''\\); console.log\\(Object.keys\\(z.ZodNumber.prototype\\).filter\\(k => k.includes\\(''non''\\) || k.includes\\(''neg''\\) || k.includes\\(''min''\\)\\)\\)\")",
+      "Bash(node -e \"const z = require\\(''zod''\\); const n = z.number\\(\\); console.log\\(typeof n.nonnegative, typeof n.nonneg, typeof n.min\\)\")",
+      "Bash(npx --yes supabase --version)",
+      "Bash(docker --version)",
+      "Bash(docker info:*)",
+      "Bash(npx tsx:*)",
+      "Bash(node -e \"const{createClient}=require\\(''@supabase/supabase-js''\\);const s=createClient\\(''https://vyycczqhvsgkiqtxxxos.supabase.co'',''sb_publishable_zv6HeLnQhwLItuQW5bl-QA_k451iMEa''\\);s.from\\(''shops''\\).select\\(''id,business_name''\\).limit\\(3\\).then\\(r=>{console.log\\(JSON.stringify\\(r,null,2\\)\\)}\\).catch\\(e=>console.error\\(e\\)\\)\")",
+      "Bash(npx next:*)"
+    ]
+  }
+}
