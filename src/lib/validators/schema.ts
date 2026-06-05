@@ -16,8 +16,8 @@ export const gstRatePercentEnum = z.union([z.literal(0), z.literal(5), z.literal
 export const productUnitEnum = z.enum(['piece', 'kg', 'g', 'litre', 'ml', 'metre', 'set', 'pair', 'box']);
 export const invoiceTypeEnum = z.enum(['regular', 'credit_note', 'debit_note', 'proforma']);
 export const documentTypeEnum = z.enum(['tax_invoice', 'bill_of_supply']);
-export const paymentModeEnum = z.enum(['cash', 'upi', 'card', 'credit', 'split']);
-export const invoiceStatusEnum = z.enum(['draft', 'completed', 'cancelled', 'returned']);
+export const paymentModeEnum = z.enum(['cash', 'upi', 'card', 'credit', 'split', 'online_upi', 'online_khata']);
+export const invoiceStatusEnum = z.enum(['draft', 'completed', 'cancelled', 'returned', 'pending_online']);
 export const loyaltyEntryTypeEnum = z.enum(['earn', 'redeem', 'expire', 'adjust']);
 export const consentPurposeEnum = z.enum(['data_collection', 'whatsapp_marketing', 'data_sharing', 'analytics', 'erasure_request']);
 export const consentStatusEnum = z.enum(['granted', 'withdrawn']);
@@ -144,6 +144,7 @@ export const invoiceCreateSchema = z.object({
   total_paise: paiseSchema,
   payment_mode: paymentModeEnum.default('cash'),
   payment_reference: z.string().nullable().optional(),
+  delivery_address: z.string().nullable().optional(),
   status: invoiceStatusEnum.default('completed'),
   created_by: z.string().uuid().nullable().optional(),
 });

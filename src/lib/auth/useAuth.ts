@@ -67,10 +67,11 @@ export function useAuth() {
     async (phone: string) => {
       setState((s) => ({ ...s, loading: true, error: null, phone }));
 
-      // Normalize to E.164: +91XXXXXXXXXX
-      const normalized = phone.startsWith('+91')
-        ? phone
-        : `+91${phone.replace(/\D/g, '')}`;
+      // Normalize to 91XXXXXXXXXX (no '+' — Supabase test numbers reject '+')
+      const digits = phone.replace(/\D/g, '');
+      const normalized = digits.startsWith('91') && digits.length === 12
+        ? digits
+        : `91${digits}`;
 
       const { error } = await supabase.auth.signInWithOtp({
         phone: normalized,

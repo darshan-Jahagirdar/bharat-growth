@@ -29,7 +29,7 @@ export function validateBillingState(
   financialYear: string,
   invoiceNumber: string,
   invoiceSequence: number,
-  createdBy: string
+  createdBy: string | null
 ): ValidationResult {
   const errors: string[] = [];
 
@@ -86,7 +86,7 @@ export function validateBillingState(
     total_paise: totals.totalPaise,
     payment_mode: state.paymentMode,
     status: 'completed' as const,
-    created_by: createdBy,
+    created_by: createdBy ?? null,
   };
 
   // Validate invoice through Zod

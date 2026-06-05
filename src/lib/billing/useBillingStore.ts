@@ -3,7 +3,7 @@
 // Zero-dependency state for the speed-billing page
 // =============================================================================
 
-import { useReducer, useCallback } from 'react';
+import { useReducer, useCallback, useEffect } from 'react';
 import type { GstType, GstRatePercent, PaymentMode, Customer, Product } from '@/lib/types/database';
 import { calculateTotals, type LineItemInput, type InvoiceTotals } from './calculateTotals';
 
@@ -31,6 +31,8 @@ export interface SelectedCustomer {
   loyaltyPoints: number;
   gstin: string | null;
   segment: string;
+  creditBalancePaise: number;
+  photoUrl: string | null;
 }
 
 // ── Billing State ──
@@ -62,7 +64,9 @@ type BillingAction =
   | { type: 'SET_INTER_STATE'; isInterState: boolean }
   | { type: 'CLEAR_BILL' }
   | { type: 'INCREMENT_QUANTITY'; index: number }
-  | { type: 'DECREMENT_QUANTITY'; index: number };
+  | { type: 'DECREMENT_QUANTITY'; index: number }
+  | { type: 'SET_BUYER_GSTIN'; gstin: string | null }
+  | { type: 'SYNC_SHOP_CONTEXT'; gstType: GstType; shopStateCode: string };
 
 // ── Helpers ──
 
@@ -192,6 +196,23 @@ function billingReducer(state: BillingState, action: BillingAction): BillingStat
     case 'SET_INTER_STATE':
       return recalculate({ ...state, isInterState: action.isInterState });
 
+    case 'SET_BUYER_GSTIN':
+      if (!state.customer) return state;
+      return {
+        ...state,
+        customer: { ...state.customer, gstin: action.gstin },
+      };
+
+    case 'SYNC_SHOP_CONTEXT':
+      if (state.gstType === action.gstType && state.shopStateCode === action.shopStateCode) {
+        return state;
+      }
+      return recalculate({
+        ...state,
+        gstType: action.gstType,
+        shopStateCode: action.shopStateCode,
+      });
+
     case 'CLEAR_BILL':
       return recalculate({
         ...state,
@@ -234,6 +255,10 @@ export function useBillingStore(gstType: GstType, shopStateCode: string) {
   };
 
   const [state, dispatch] = useReducer(billingReducer, initialState);
+
+  useEffect(() => {
+    dispatch({ type: 'SYNC_SHOP_CONTEXT', gstType, shopStateCode });
+  }, [gstType, shopStateCode]);
 
   const actions = {
     setCustomer: useCallback(
@@ -282,6 +307,10 @@ export function useBillingStore(gstType: GstType, shopStateCode: string) {
     ),
     setInterState: useCallback(
       (isInterState: boolean) => dispatch({ type: 'SET_INTER_STATE', isInterState }),
+      []
+    ),
+    setBuyerGstin: useCallback(
+      (gstin: string | null) => dispatch({ type: 'SET_BUYER_GSTIN', gstin }),
       []
     ),
     clearBill: useCallback(() => dispatch({ type: 'CLEAR_BILL' }), []),

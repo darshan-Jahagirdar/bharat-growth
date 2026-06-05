@@ -24,39 +24,50 @@ export async function searchCustomers(
 ): Promise<SelectedCustomer[]> {
   const client = getClient();
 
-  // Search by phone or name (case-insensitive)
+  console.time('searchCustomers');
+
+  // Single query — no loyalty join needed for the search dropdown.
+  // Loyalty points are lazy-loaded when a customer is actually selected.
   const { data, error } = await client
     .from('customers')
-    .select('id, phone_number, name, gstin, segment, total_spent_paise, visit_count')
+    .select('id, phone_number, name, gstin, segment, total_spent_paise, visit_count, credit_balance_paise, photo_url')
     .eq('shop_id', shopId)
-    .or(`phone_number.ilike.%${query}%,name.ilike.%${query}%`)
+    .or(`phone_number.ilike.${query}%,name.ilike.${query}%`)
     .limit(5);
+
+  console.timeEnd('searchCustomers');
 
   if (error || !data) return [];
 
-  // Fetch latest loyalty balance for each customer
-  const results: SelectedCustomer[] = await Promise.all(
-    data.map(async (c) => {
-      const { data: loyaltyData } = await client
-        .from('loyalty_ledger')
-        .select('running_balance')
-        .eq('shop_id', shopId)
-        .eq('customer_id', c.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+  return data.map((c) => ({
+    id: c.id,
+    phoneNumber: c.phone_number,
+    name: c.name,
+    loyaltyPoints: 0, // Lazy-loaded on selection via refreshCustomerWithLoyalty()
+    gstin: c.gstin,
+    segment: c.segment,
+    creditBalancePaise: c.credit_balance_paise ?? 0,
+    photoUrl: c.photo_url ?? null,
+  }));
+}
 
-      return {
-        id: c.id,
-        phoneNumber: c.phone_number,
-        name: c.name,
-        loyaltyPoints: loyaltyData?.[0]?.running_balance ?? 0,
-        gstin: c.gstin,
-        segment: c.segment,
-      };
-    })
-  );
+// ── Fetch loyalty points for a single selected customer ──
 
-  return results;
+export async function fetchCustomerLoyalty(
+  customerId: string,
+  shopId: string
+): Promise<number> {
+  const client = getClient();
+
+  const { data } = await client
+    .from('loyalty_ledger')
+    .select('running_balance')
+    .eq('shop_id', shopId)
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  return data?.[0]?.running_balance ?? 0;
 }
 
 // ── Product Search (by name, SKU, HSN, or barcode) ──
@@ -176,6 +187,211 @@ export async function saveInvoice(
   return { data: data as SaveInvoiceResult, error: null };
 }
 
+// ── Process Credit Repayment ──
+
+export async function processCreditRepayment(
+  shopId: string,
+  customerId: string,
+  amountPaise: number,
+  notes: string | null
+): Promise<{ success: boolean; error: string | null }> {
+  if (amountPaise <= 0) return { success: false, error: 'Amount must be greater than 0' };
+
+  const client = getClient();
+
+  // 1. Insert credit_ledger entry
+  const { error: ledgerErr } = await client
+    .from('credit_ledger')
+    .insert({
+      shop_id: shopId,
+      customer_id: customerId,
+      invoice_id: null,
+      amount_paise: amountPaise,
+      transaction_type: 'payment_received',
+      notes: notes || null,
+    });
+
+  if (ledgerErr) {
+    return { success: false, error: `Ledger insert failed: ${ledgerErr.message}` };
+  }
+
+  // 2. Subtract from customer's credit balance
+  // Use rpc or raw update — we fetch current balance and subtract
+  const { data: customer, error: fetchErr } = await client
+    .from('customers')
+    .select('credit_balance_paise')
+    .eq('id', customerId)
+    .eq('shop_id', shopId)
+    .single();
+
+  if (fetchErr || !customer) {
+    return { success: false, error: 'Failed to fetch customer balance' };
+  }
+
+  const newBalance = Math.max(0, (customer.credit_balance_paise ?? 0) - amountPaise);
+
+  const { error: updateErr } = await client
+    .from('customers')
+    .update({ credit_balance_paise: newBalance })
+    .eq('id', customerId)
+    .eq('shop_id', shopId);
+
+  if (updateErr) {
+    return { success: false, error: `Balance update failed: ${updateErr.message}` };
+  }
+
+  return { success: true, error: null };
+}
+
+// ── Refresh Customer Data (after repayment or photo upload) ──
+
+export async function refreshCustomer(
+  shopId: string,
+  customerId: string
+): Promise<SelectedCustomer | null> {
+  const client = getClient();
+
+  const { data: c, error } = await client
+    .from('customers')
+    .select('id, phone_number, name, gstin, segment, credit_balance_paise, photo_url')
+    .eq('id', customerId)
+    .eq('shop_id', shopId)
+    .single();
+
+  if (error || !c) return null;
+
+  const { data: loyaltyData } = await client
+    .from('loyalty_ledger')
+    .select('running_balance')
+    .eq('shop_id', shopId)
+    .eq('customer_id', c.id)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  return {
+    id: c.id,
+    phoneNumber: c.phone_number,
+    name: c.name,
+    loyaltyPoints: loyaltyData?.[0]?.running_balance ?? 0,
+    gstin: c.gstin,
+    segment: c.segment,
+    creditBalancePaise: c.credit_balance_paise ?? 0,
+    photoUrl: c.photo_url ?? null,
+  };
+}
+
+// ── Upload Customer Photo ──
+
+const CUSTOMER_IMAGE_BUCKET = 'customer-images';
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+function imageExtFromMime(mime: string): string {
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/webp') return 'webp';
+  return 'jpg';
+}
+
+export async function uploadCustomerImage(
+  file: File,
+  shopId: string,
+  customerId: string
+): Promise<{ publicUrl: string | null; error: string | null }> {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { publicUrl: null, error: 'Only JPG, PNG, or WebP images allowed.' };
+  }
+  if (file.size > MAX_IMAGE_SIZE) {
+    return { publicUrl: null, error: 'Image must be under 5 MB.' };
+  }
+
+  const client = getClient();
+  const ext = imageExtFromMime(file.type);
+  const path = `${shopId}/${customerId}.${ext}`;
+
+  const { error: uploadErr } = await client.storage
+    .from(CUSTOMER_IMAGE_BUCKET)
+    .upload(path, file, { cacheControl: '3600', upsert: true, contentType: file.type });
+
+  if (uploadErr) {
+    return { publicUrl: null, error: `Upload failed: ${uploadErr.message}` };
+  }
+
+  const { data } = client.storage.from(CUSTOMER_IMAGE_BUCKET).getPublicUrl(path);
+  const publicUrl = data.publicUrl;
+
+  // Save URL to customer record
+  const { error: updateErr } = await client
+    .from('customers')
+    .update({ photo_url: publicUrl })
+    .eq('id', customerId)
+    .eq('shop_id', shopId);
+
+  if (updateErr) {
+    return { publicUrl: null, error: `DB update failed: ${updateErr.message}` };
+  }
+
+  return { publicUrl, error: null };
+}
+
+// ── Create New Customer ──
+
+export async function createNewCustomer(
+  shopId: string,
+  name: string,
+  phoneNumber: string,
+  photoFile?: File | null
+): Promise<{ customer: SelectedCustomer | null; error: string | null }> {
+  const client = getClient();
+
+  // Upload photo first if provided
+  let photoUrl: string | null = null;
+  const tempId = crypto.randomUUID(); // pre-generate for photo path
+
+  if (photoFile) {
+    const uploadResult = await uploadCustomerImage(photoFile, shopId, tempId);
+    if (uploadResult.error) {
+      // Non-fatal — continue without photo
+      console.warn('[Billing] Photo upload failed:', uploadResult.error);
+    } else {
+      photoUrl = uploadResult.publicUrl;
+    }
+  }
+
+  const { data, error } = await client
+    .from('customers')
+    .insert({
+      id: tempId,
+      shop_id: shopId,
+      name,
+      phone_number: phoneNumber,
+      segment: 'new',
+      total_spent_paise: 0,
+      visit_count: 0,
+      credit_balance_paise: 0,
+      photo_url: photoUrl,
+    })
+    .select('id, phone_number, name, gstin, segment, credit_balance_paise, photo_url')
+    .single();
+
+  if (error) {
+    return { customer: null, error: `Failed to create customer: ${error.message}` };
+  }
+
+  return {
+    customer: {
+      id: data.id,
+      phoneNumber: data.phone_number,
+      name: data.name,
+      loyaltyPoints: 0,
+      gstin: data.gstin,
+      segment: data.segment,
+      creditBalancePaise: data.credit_balance_paise ?? 0,
+      photoUrl: data.photo_url ?? null,
+    },
+    error: null,
+  };
+}
+
 // ── Fetch Shop Context ──
 
 export async function fetchShopContext(shopId: string) {
@@ -183,7 +399,7 @@ export async function fetchShopContext(shopId: string) {
 
   const { data, error } = await client
     .from('shops')
-    .select('id, business_name, gst_type, state_code, business_type, gstin, city')
+    .select('id, business_name, gst_type, state_code, business_type, gstin, city, upi_id')
     .eq('id', shopId)
     .single();
 

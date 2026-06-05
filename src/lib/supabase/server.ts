@@ -4,6 +4,10 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import dns from 'node:dns';
+
+// Force IPv4 DNS — fixes Windows Node.js undici UND_ERR_CONNECT_TIMEOUT
+dns.setDefaultResultOrder('ipv4first');
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();

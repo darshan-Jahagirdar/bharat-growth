@@ -4,6 +4,10 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js';
+import dns from 'node:dns';
+
+// Force IPv4 DNS — fixes Windows Node.js undici UND_ERR_CONNECT_TIMEOUT
+dns.setDefaultResultOrder('ipv4first');
 
 export function createAdminClient() {
   return createClient(

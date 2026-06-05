@@ -12,6 +12,7 @@ export interface UserShopContext {
   role: string;
   gstType: string;
   stateCode: string;
+  phone: string | null;
 }
 
 export async function checkUserOnboarded(
@@ -21,7 +22,7 @@ export async function checkUserOnboarded(
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, shop_id, role, shops!inner(id, business_name, gst_type, state_code)')
+    .select('id, shop_id, role, phone, shops!inner(id, business_name, gst_type, state_code)')
     .eq('id', userId)
     .single();
 
@@ -36,5 +37,6 @@ export async function checkUserOnboarded(
     role: user.role,
     gstType: (shop as { gst_type: string }).gst_type,
     stateCode: (shop as { state_code: string }).state_code,
+    phone: user.phone ?? null,
   };
 }

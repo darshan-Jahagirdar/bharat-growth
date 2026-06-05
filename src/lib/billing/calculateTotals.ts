@@ -63,10 +63,10 @@ function computeLineItem(
       // Inter-state: full IGST
       igstPaise = Math.round(taxableAmountPaise * item.gstRatePercent / 100);
     } else {
-      // Intra-state: split equally into CGST + SGST
-      const halfRate = item.gstRatePercent / 2;
-      cgstPaise = Math.round(taxableAmountPaise * halfRate / 100);
-      sgstPaise = Math.round(taxableAmountPaise * halfRate / 100);
+      // Intra-state: split into CGST + SGST with remainder-based rounding
+      const totalGstPaise = Math.round(taxableAmountPaise * item.gstRatePercent / 100);
+      cgstPaise = Math.round(totalGstPaise / 2);
+      sgstPaise = totalGstPaise - cgstPaise;
     }
   }
 
@@ -84,10 +84,9 @@ function computeLineItem(
 
 // ── Round to nearest rupee (Indian billing practice) ──
 
-function computeRoundOff(totalBeforeRounding: number): number {
-  const rupees = totalBeforeRounding / 100;
-  const rounded = Math.round(rupees);
-  return (rounded * 100) - totalBeforeRounding;
+function computeRoundOff(_totalBeforeRounding: number): number {
+  // No rounding — exact paise amounts required for UPI and Quick Commerce
+  return 0;
 }
 
 // ── Main: Calculate full invoice totals ──

@@ -7,7 +7,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Routes that require authentication
-const PROTECTED_ROUTES = ['/billing', '/dashboard', '/onboarding', '/receipt'];
+const PROTECTED_ROUTES = ['/billing', '/dashboard', '/onboarding'];
 
 // Routes that should redirect to /billing if already authenticated
 const AUTH_ROUTES = ['/login'];
@@ -73,7 +73,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all routes except static files, api routes, and _next
-    '/((?!_next/static|_next/image|favicon.ico|api/).*)',
+    // Match all routes except static files, api routes, store (public), and _next
+    '/((?!_next/static|_next/image|favicon.ico|api/|store/).*)',
   ],
 };

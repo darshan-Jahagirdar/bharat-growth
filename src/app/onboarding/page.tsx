@@ -4,19 +4,79 @@
 // BharatGrowth — Onboarding Page
 // Collects business_name and business_type after first OTP login
 // Creates shops + users records via API route
+// Magic Pincode Autofill: 6-digit pincode → City + State via India Post API
 // =============================================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { BusinessType } from '@/lib/types/database';
 
 const BUSINESS_TYPES: { value: BusinessType; label: string; icon: string; desc: string }[] = [
-  { value: 'tyre_shop', label: 'Tyre Shop', icon: '🛞', desc: 'Brand search, tube inventory, vehicle type' },
-  { value: 'sweet_stall', label: 'Sweet Stall', icon: '🍬', desc: 'Weight billing, batch expiry, perishables' },
-  { value: 'garment_store', label: 'Garment Store', icon: '👗', desc: 'Size-color matrix, fabric, mixed GST' },
-  { value: 'general', label: 'General Store', icon: '🏪', desc: 'Any retail business' },
+  { value: 'tyre_shop', label: 'Tyre Shop', icon: '\u{1F6DE}', desc: 'Brand search, tube inventory, vehicle type' },
+  { value: 'sweet_stall', label: 'Sweet Stall', icon: '\u{1F36C}', desc: 'Weight billing, batch expiry, perishables' },
+  { value: 'garment_store', label: 'Garment Store', icon: '\u{1F457}', desc: 'Size-color matrix, fabric, mixed GST' },
+  { value: 'general', label: 'General Store', icon: '\u{1F3EA}', desc: 'Any retail business' },
 ];
+
+// ── Official GST State Codes (State Name → 2-digit code) ──
+// Maps India Post API state names to GST state codes used in CGST/SGST/IGST calculations
+const STATE_NAME_TO_GST_CODE: Record<string, string> = {
+  'Jammu and Kashmir': '01',
+  'Jammu & Kashmir': '01',
+  'Himachal Pradesh': '02',
+  'Punjab': '03',
+  'Chandigarh': '04',
+  'Uttarakhand': '05',
+  'Uttaranchal': '05',
+  'Haryana': '06',
+  'Delhi': '07',
+  'New Delhi': '07',
+  'Rajasthan': '08',
+  'Uttar Pradesh': '09',
+  'Bihar': '10',
+  'Sikkim': '11',
+  'Arunachal Pradesh': '12',
+  'Nagaland': '13',
+  'Manipur': '14',
+  'Mizoram': '15',
+  'Tripura': '16',
+  'Meghalaya': '17',
+  'Assam': '18',
+  'West Bengal': '19',
+  'Jharkhand': '20',
+  'Odisha': '21',
+  'Orissa': '21',
+  'Chhattisgarh': '22',
+  'Chattisgarh': '22',
+  'Madhya Pradesh': '23',
+  'Gujarat': '24',
+  'Dadra and Nagar Haveli': '26',
+  'Dadra & Nagar Haveli': '26',
+  'Dadra and Nagar Haveli and Daman and Diu': '26',
+  'Dadra & Nagar Haveli and Daman & Diu': '26',
+  'Daman and Diu': '26',
+  'Daman & Diu': '26',
+  'Maharashtra': '27',
+  'Andhra Pradesh': '28',
+  'Karnataka': '29',
+  'Goa': '30',
+  'Lakshadweep': '31',
+  'Kerala': '32',
+  'Tamil Nadu': '33',
+  'Puducherry': '34',
+  'Pondicherry': '34',
+  'Andaman and Nicobar Islands': '35',
+  'Andaman & Nicobar Islands': '35',
+  'Andaman and Nicobar': '35',
+  'Telangana': '36',
+  'Andhra Pradesh (New)': '37',
+  'Ladakh': '38',
+};
+
+// Note: Andhra Pradesh post-bifurcation uses '37', but India Post API may return
+// just "Andhra Pradesh" — we map it to '28' (old unified code) by default.
+// The state dropdown remains available for manual correction if needed.
 
 const INDIAN_STATES: { code: string; name: string }[] = [
   { code: '01', name: 'Jammu & Kashmir' },
@@ -57,6 +117,18 @@ const INDIAN_STATES: { code: string; name: string }[] = [
   { code: '38', name: 'Ladakh' },
 ];
 
+// ── India Post API response types ──
+interface PostOffice {
+  District: string;
+  State: string;
+  Pincode: string;
+}
+
+interface PincodeResponse {
+  Status: string;
+  PostOffice: PostOffice[] | null;
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -65,8 +137,12 @@ export default function OnboardingPage() {
   const [phone, setPhone] = useState<string>('');
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState<BusinessType | ''>('');
+  const [pincode, setPincode] = useState('');
   const [city, setCity] = useState('');
   const [stateCode, setStateCode] = useState('27'); // Default: Maharashtra
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [autoFilled, setAutoFilled] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -81,6 +157,57 @@ export default function OnboardingPage() {
       setPhone(session.user.phone ?? '');
     });
   }, [supabase, router]);
+
+  // ── Magic Pincode Autofill ──
+  const lookupPincode = useCallback(async (pin: string) => {
+    if (pin.length !== 6) return;
+
+    setPincodeLoading(true);
+    setPincodeStatus('idle');
+
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+      const data: PincodeResponse[] = await res.json();
+
+      if (data[0]?.Status === 'Success' && data[0].PostOffice?.length) {
+        const po = data[0].PostOffice[0];
+        setCity(po.District);
+
+        // Map state name → GST code
+        const gstCode = STATE_NAME_TO_GST_CODE[po.State];
+        if (gstCode) {
+          setStateCode(gstCode);
+        }
+
+        setAutoFilled(true);
+        setPincodeStatus('success');
+      } else {
+        setPincodeStatus('error');
+      }
+    } catch {
+      setPincodeStatus('error');
+    }
+
+    setPincodeLoading(false);
+  }, []);
+
+  // ── Trigger lookup when pincode reaches 6 digits ──
+  useEffect(() => {
+    if (pincode.length === 6) {
+      lookupPincode(pincode);
+    } else {
+      setPincodeStatus('idle');
+    }
+  }, [pincode, lookupPincode]);
+
+  // ── Pincode input handler ──
+  const handlePincodeChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 6);
+    setPincode(digits);
+    if (digits.length < 6) {
+      setAutoFilled(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!businessName.trim() || !businessType || !userId) return;
@@ -182,40 +309,102 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          {/* City */}
+          {/* ── Pincode (Magic Autofill) ── */}
           <div>
             <label className="block text-xs text-gray-500 mb-1.5 ml-1">
-              City
+              Pincode
             </label>
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="e.g. Pune"
-              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3
-                         text-gray-100 placeholder:text-gray-600 outline-none
-                         focus:border-orange-600 transition-colors"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={pincode}
+                onChange={(e) => handlePincodeChange(e.target.value)}
+                placeholder="e.g. 411001"
+                maxLength={6}
+                className={`w-full bg-gray-900 border rounded-xl px-4 py-3
+                           text-gray-100 placeholder:text-gray-600 outline-none
+                           transition-colors font-mono tracking-wider
+                           ${pincodeStatus === 'success'
+                             ? 'border-emerald-600'
+                             : pincodeStatus === 'error'
+                               ? 'border-red-600'
+                               : 'border-gray-700 focus:border-orange-600'
+                           }`}
+              />
+              {/* Loading / status indicator */}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                {pincodeLoading && (
+                  <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                )}
+                {pincodeStatus === 'success' && !pincodeLoading && (
+                  <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                {pincodeStatus === 'error' && !pincodeLoading && (
+                  <span className="text-[10px] text-red-400">Invalid</span>
+                )}
+              </div>
+            </div>
+            {pincodeStatus === 'success' && (
+              <p className="text-[10px] text-emerald-500/70 mt-1 ml-1">
+                City & State auto-filled from Pincode
+              </p>
+            )}
           </div>
 
-          {/* State */}
-          <div>
-            <label className="block text-xs text-gray-500 mb-1.5 ml-1">
-              State
-            </label>
-            <select
-              value={stateCode}
-              onChange={(e) => setStateCode(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3
-                         text-gray-100 outline-none focus:border-orange-600 transition-colors
-                         appearance-none"
-            >
-              {INDIAN_STATES.map((s) => (
-                <option key={s.code} value={s.code}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+          {/* ── City & State (side by side) ── */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* City */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1.5 ml-1">
+                City
+              </label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  if (autoFilled) setAutoFilled(false);
+                }}
+                placeholder="e.g. Pune"
+                className={`w-full bg-gray-900 border rounded-xl px-4 py-3
+                           text-gray-100 placeholder:text-gray-600 outline-none
+                           transition-colors text-sm
+                           ${autoFilled
+                             ? 'border-emerald-700/50 bg-emerald-950/20'
+                             : 'border-gray-700 focus:border-orange-600'
+                           }`}
+              />
+            </div>
+
+            {/* State */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1.5 ml-1">
+                State
+              </label>
+              <select
+                value={stateCode}
+                onChange={(e) => {
+                  setStateCode(e.target.value);
+                  if (autoFilled) setAutoFilled(false);
+                }}
+                className={`w-full bg-gray-900 border rounded-xl px-3 py-3
+                           text-gray-100 outline-none transition-colors
+                           appearance-none text-sm
+                           ${autoFilled
+                             ? 'border-emerald-700/50 bg-emerald-950/20'
+                             : 'border-gray-700 focus:border-orange-600'
+                           }`}
+              >
+                {INDIAN_STATES.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Error */}
