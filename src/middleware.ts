@@ -15,6 +15,17 @@ const AUTH_ROUTES = ['/login'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === '/' && request.nextUrl.searchParams.has('code')) {
+    const callbackUrl = new URL('/auth/callback', request.url);
+    request.nextUrl.searchParams.forEach((value, key) => {
+      callbackUrl.searchParams.set(key, value);
+    });
+    if (!callbackUrl.searchParams.has('next')) {
+      callbackUrl.searchParams.set('next', '/billing');
+    }
+    return NextResponse.redirect(callbackUrl);
+  }
+
   // Skip non-protected, non-auth routes
   const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
   const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));

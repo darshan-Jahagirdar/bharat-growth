@@ -109,10 +109,10 @@ export function useAuth() {
         email: normalized,
       }));
 
+      const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
       const origin =
-        typeof window !== 'undefined'
-          ? window.location.origin
-          : process.env.NEXT_PUBLIC_APP_URL ?? '';
+        configuredAppUrl ||
+        (typeof window !== 'undefined' ? window.location.origin : '');
 
       const { error } = await supabase.auth.signInWithOtp({
         email: normalized,
