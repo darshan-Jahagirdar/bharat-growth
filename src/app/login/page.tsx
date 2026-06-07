@@ -1,24 +1,37 @@
 'use client';
 
-// =============================================================================
-// BharatGrowth — Login Page (Mobile OTP)
-// Conversion-optimized: phone → OTP → redirect
-// =============================================================================
-
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/useAuth';
 import { checkUserOnboarded } from '@/lib/auth/checkUserOnboarded';
 
+type LoginMethod = 'phone' | 'email';
+
+const EMPTY_OTP = ['', '', '', '', '', ''];
+
 export default function LoginPage() {
   const router = useRouter();
-  const { step, user, loading, error, sendOtp, verifyOtp, goBack, clearError } = useAuth();
+  const {
+    step,
+    user,
+    loading,
+    error,
+    email: sentEmail,
+    sendOtp,
+    sendEmailLink,
+    verifyOtp,
+    goBack,
+    clearError,
+  } = useAuth();
 
+  const [method, setMethod] = useState<LoginMethod>('phone');
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [emailInput, setEmailInput] = useState('');
+  const [otp, setOtp] = useState(EMPTY_OTP);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // ── Redirect if already authenticated ──
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.trim());
+
   useEffect(() => {
     if (step === 'authenticated' && user) {
       checkUserOnboarded(user.id).then((ctx) => {
@@ -31,11 +44,19 @@ export default function LoginPage() {
     }
   }, [step, user, router]);
 
-  // ── Phone input handler ──
+  const switchMethod = (nextMethod: LoginMethod) => {
+    setMethod(nextMethod);
+    clearError();
+  };
+
   const handlePhoneChange = (value: string) => {
-    // Only digits, max 10
     const digits = value.replace(/\D/g, '').slice(0, 10);
     setPhone(digits);
+    clearError();
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmailInput(value);
     clearError();
   };
 
@@ -44,7 +65,11 @@ export default function LoginPage() {
     await sendOtp(phone);
   };
 
-  // ── OTP input handlers ──
+  const handleSendEmail = async () => {
+    if (!isEmailValid) return;
+    await sendEmailLink(emailInput);
+  };
+
   const handleOtpChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
 
@@ -53,7 +78,6 @@ export default function LoginPage() {
     setOtp(newOtp);
     clearError();
 
-    // Auto-advance to next input
     if (value && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
@@ -69,18 +93,14 @@ export default function LoginPage() {
     }
   };
 
-  const handleOtpPaste = useCallback(
-    (e: React.ClipboardEvent) => {
-      e.preventDefault();
-      const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-      if (pasted.length === 6) {
-        const newOtp = pasted.split('');
-        setOtp(newOtp);
-        otpRefs.current[5]?.focus();
-      }
-    },
-    []
-  );
+  const handleOtpPaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      setOtp(pasted.split(''));
+      otpRefs.current[5]?.focus();
+    }
+  }, []);
 
   const handleVerify = async () => {
     const code = otp.join('');
@@ -89,18 +109,22 @@ export default function LoginPage() {
   };
 
   const handleGoBack = () => {
-    setOtp(['', '', '', '', '', '']);
+    setOtp(EMPTY_OTP);
     goBack();
   };
 
-  // ── Auto-focus first OTP input when step changes ──
+  const handleUseAnotherEmail = () => {
+    setEmailInput('');
+    switchMethod('email');
+    goBack();
+  };
+
   useEffect(() => {
     if (step === 'otp') {
       otpRefs.current[0]?.focus();
     }
   }, [step]);
 
-  // ── If already authenticated, show loading ──
   if (step === 'authenticated') {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -114,9 +138,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
-      {/* ── Top section with branding ── */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        {/* Logo / Brand */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold">
             <span className="text-orange-500">Bharat</span>
@@ -127,7 +149,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* ── Card ── */}
         <div className="w-full max-w-sm">
           {step === 'phone' && (
             <div className="space-y-6">
@@ -136,66 +157,126 @@ export default function LoginPage() {
                   Welcome back
                 </h2>
                 <p className="text-gray-500 text-sm mt-1">
-                  Enter your phone number to continue
+                  Sign in to continue
                 </p>
               </div>
 
-              {/* Phone input */}
-              <div>
-                <label className="block text-xs text-gray-500 mb-1.5 ml-1">
-                  Mobile Number
-                </label>
-                <div className="flex items-center bg-gray-900 border border-gray-700 rounded-xl overflow-hidden focus-within:border-orange-600 transition-colors">
-                  <span className="pl-4 pr-2 text-gray-400 text-sm font-medium select-none">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    autoComplete="tel"
-                    autoFocus
-                    value={phone}
-                    onChange={(e) => handlePhoneChange(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSendOtp();
-                    }}
-                    placeholder="98765 43210"
-                    className="flex-1 bg-transparent py-3.5 pr-4 text-lg text-gray-100 placeholder:text-gray-600
-                               outline-none tracking-wider font-mono"
-                    maxLength={10}
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-1 rounded-xl bg-gray-900 p-1 border border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => switchMethod('phone')}
+                  className={`rounded-lg py-2 text-sm font-medium transition-colors ${
+                    method === 'phone'
+                      ? 'bg-orange-600 text-white'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Phone
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchMethod('email')}
+                  className={`rounded-lg py-2 text-sm font-medium transition-colors ${
+                    method === 'email'
+                      ? 'bg-orange-600 text-white'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Email
+                </button>
               </div>
 
-              {/* Error */}
+              {method === 'phone' && (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1.5 ml-1">
+                    Mobile Number
+                  </label>
+                  <div className="flex items-center bg-gray-900 border border-gray-700 rounded-xl overflow-hidden focus-within:border-orange-600 transition-colors">
+                    <span className="pl-4 pr-2 text-gray-400 text-sm font-medium select-none">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel"
+                      autoFocus
+                      value={phone}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSendOtp();
+                      }}
+                      placeholder="98765 43210"
+                      className="flex-1 bg-transparent py-3.5 pr-4 text-lg text-gray-100 placeholder:text-gray-600 outline-none tracking-wider font-mono"
+                      maxLength={10}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {method === 'email' && (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1.5 ml-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    autoFocus
+                    value={emailInput}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSendEmail();
+                    }}
+                    placeholder="you@example.com"
+                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3.5 text-gray-100 placeholder:text-gray-600 outline-none focus:border-orange-600 transition-colors"
+                  />
+                </div>
+              )}
+
               {error && (
                 <div className="text-red-400 text-xs text-center bg-red-950/50 border border-red-900 rounded-lg px-3 py-2">
                   {error}
                 </div>
               )}
 
-              {/* Send OTP button */}
-              <button
-                onClick={handleSendOtp}
-                disabled={phone.length !== 10 || loading}
-                className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500
-                           disabled:bg-gray-800 disabled:text-gray-600
-                           text-white font-semibold text-sm transition-colors"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Sending OTP...
-                  </span>
-                ) : (
-                  'Send OTP'
-                )}
-              </button>
+              {method === 'phone' ? (
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={phone.length !== 10 || loading}
+                  className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-semibold text-sm transition-colors"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Sending OTP...
+                    </span>
+                  ) : (
+                    'Send OTP'
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSendEmail}
+                  disabled={!isEmailValid || loading}
+                  className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-semibold text-sm transition-colors"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Sending link...
+                    </span>
+                  ) : (
+                    'Send Sign-in Link'
+                  )}
+                </button>
+              )}
 
-              {/* Dev login shortcut */}
               {process.env.NODE_ENV !== 'production' && (
                 <div className="text-center">
                   <button
+                    type="button"
                     onClick={async () => {
                       const { createClient } = await import('@/lib/supabase/client');
                       const supabase = createClient();
@@ -214,6 +295,47 @@ export default function LoginPage() {
             </div>
           )}
 
+          {step === 'email_sent' && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-semibold text-gray-200">
+                  Check your email
+                </h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  Open the sign-in link sent to
+                </p>
+                <p className="text-orange-400 text-sm font-mono mt-0.5 break-all">
+                  {sentEmail}
+                </p>
+              </div>
+
+              {error && (
+                <div className="text-red-400 text-xs text-center bg-red-950/50 border border-red-900 rounded-lg px-3 py-2">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleUseAnotherEmail}
+                className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors"
+              >
+                Use Another Email
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  switchMethod('phone');
+                  goBack();
+                }}
+                className="w-full py-3 rounded-xl border border-gray-700 text-gray-300 hover:border-gray-600 hover:text-gray-100 text-sm transition-colors"
+              >
+                Use Phone Instead
+              </button>
+            </div>
+          )}
+
           {step === 'otp' && (
             <div className="space-y-6">
               <div className="text-center">
@@ -228,41 +350,35 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              {/* OTP input boxes */}
               <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
                 {otp.map((digit, i) => (
                   <input
                     key={i}
-                    ref={(el) => { otpRefs.current[i] = el; }}
+                    ref={(el) => {
+                      otpRefs.current[i] = el;
+                    }}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                    className="w-11 h-13 text-center text-xl font-mono font-bold
-                               bg-gray-900 border border-gray-700 rounded-lg
-                               text-gray-100 outline-none
-                               focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30
-                               transition-colors"
+                    className="w-11 h-12 text-center text-xl font-mono font-bold bg-gray-900 border border-gray-700 rounded-lg text-gray-100 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-colors"
                   />
                 ))}
               </div>
 
-              {/* Error */}
               {error && (
                 <div className="text-red-400 text-xs text-center bg-red-950/50 border border-red-900 rounded-lg px-3 py-2">
                   {error}
                 </div>
               )}
 
-              {/* Verify button */}
               <button
+                type="button"
                 onClick={handleVerify}
                 disabled={otp.join('').length !== 6 || loading}
-                className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500
-                           disabled:bg-gray-800 disabled:text-gray-600
-                           text-white font-semibold text-sm transition-colors"
+                className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-semibold text-sm transition-colors"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -274,15 +390,16 @@ export default function LoginPage() {
                 )}
               </button>
 
-              {/* Back / Resend */}
               <div className="flex items-center justify-between text-xs">
                 <button
+                  type="button"
                   onClick={handleGoBack}
                   className="text-gray-500 hover:text-gray-300 transition-colors"
                 >
                   Change number
                 </button>
                 <button
+                  type="button"
                   onClick={() => sendOtp(phone.replace(/\D/g, ''))}
                   disabled={loading}
                   className="text-orange-500 hover:text-orange-400 disabled:text-gray-600 transition-colors"
@@ -295,7 +412,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Bottom tagline ── */}
       <div className="text-center pb-6 text-[10px] text-gray-700">
         By continuing, you agree to our Terms of Service &amp; Privacy Policy
       </div>

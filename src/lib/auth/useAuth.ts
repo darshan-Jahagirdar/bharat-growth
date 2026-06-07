@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
-export type AuthStep = 'phone' | 'otp' | 'authenticated';
+export type AuthStep = 'phone' | 'otp' | 'email_sent' | 'authenticated';
 
 export interface AuthState {
   step: AuthStep;
@@ -18,6 +18,7 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
   phone: string;
+  email: string;
 }
 
 export function useAuth() {
@@ -28,6 +29,7 @@ export function useAuth() {
     loading: true,
     error: null,
     phone: '',
+    email: '',
   });
 
   const supabase = createClient();
@@ -97,6 +99,47 @@ export function useAuth() {
     [supabase]
   );
 
+  const sendEmailLink = useCallback(
+    async (email: string) => {
+      const normalized = email.trim().toLowerCase();
+      setState((s) => ({
+        ...s,
+        loading: true,
+        error: null,
+        email: normalized,
+      }));
+
+      const origin =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_APP_URL ?? '';
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email: normalized,
+        options: {
+          emailRedirectTo: `${origin}/auth/callback?next=/billing`,
+        },
+      });
+
+      if (error) {
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: error.message,
+        }));
+        return false;
+      }
+
+      setState((s) => ({
+        ...s,
+        step: 'email_sent',
+        loading: false,
+      }));
+      return true;
+    },
+    [supabase]
+  );
+
   // ── Verify OTP ──
   const verifyOtp = useCallback(
     async (otp: string) => {
@@ -139,6 +182,7 @@ export function useAuth() {
       loading: false,
       error: null,
       phone: '',
+      email: '',
     });
   }, [supabase]);
 
@@ -159,6 +203,7 @@ export function useAuth() {
   return {
     ...state,
     sendOtp,
+    sendEmailLink,
     verifyOtp,
     signOut,
     goBack,

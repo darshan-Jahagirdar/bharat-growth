@@ -10,16 +10,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface OnboardingBody {
-  user_id: string;
-  phone: string;
-  business_name: string;
-  business_type: string;
-  city: string | null;
-  state_code: string;
+  business_name?: unknown;
+  business_type?: unknown;
+  city?: unknown;
+  state_code?: unknown;
 }
+
+const VALID_BUSINESS_TYPES = new Set(['tyre_shop', 'sweet_stall', 'garment_store', 'general']);
 
 // ─── Retry helper with exponential backoff ──────────────────────────────────
 
@@ -112,21 +113,49 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { user_id, phone, business_name, business_type, city, state_code } = body;
+  const business_name = typeof body.business_name === 'string' ? body.business_name.trim() : '';
+  const business_type = typeof body.business_type === 'string' ? body.business_type : '';
+  const city = typeof body.city === 'string' && body.city.trim() ? body.city.trim() : null;
+  const state_code =
+    typeof body.state_code === 'string' && /^\d{2}$/.test(body.state_code)
+      ? body.state_code
+      : '27';
 
-  if (!user_id || !business_name || !business_type) {
+  if (!business_name || !VALID_BUSINESS_TYPES.has(business_type)) {
     return NextResponse.json(
-      { error: 'Missing required fields: user_id, business_name, business_type' },
+      { error: 'Missing or invalid required fields: business_name, business_type' },
       { status: 400 }
     );
   }
+
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser();
+
+  if (authErr || !user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
+  const userId = user.id;
+  const authPhone = user.phone || null;
+  const authEmail = user.email || null;
+  const metadataFullName = user.user_metadata.full_name;
+  const fullName =
+    typeof metadataFullName === 'string' && metadataFullName.trim()
+      ? metadataFullName.trim()
+      : business_name;
 
   const admin = createAdminClient();
 
   // ── Check if user already has a shop (with retry) ──
   const { data: existingUser } = await withRetry<{ id: string }>(
     async () => {
-      const result = await admin.from('users').select('id').eq('id', user_id).single();
+      const result = await admin.from('users').select('id').eq('id', userId).maybeSingle();
       return result;
     },
     'Check existing user'
@@ -149,6 +178,8 @@ export async function POST(request: NextRequest) {
           business_type,
           city: city || null,
           state_code: state_code || '27',
+          phone: authPhone,
+          email: authEmail,
           gst_type: 'composition',
           subscription_plan: 'free',
           e_invoicing_enabled: false,
@@ -174,10 +205,10 @@ export async function POST(request: NextRequest) {
       const result = await admin
         .from('users')
         .insert({
-          id: user_id,
+          id: userId,
           shop_id: shop.id,
-          full_name: business_name,
-          phone: phone || null,
+          full_name: fullName,
+          phone: authPhone,
           role: 'owner',
           is_active: true,
         })

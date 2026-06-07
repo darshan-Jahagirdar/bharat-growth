@@ -134,7 +134,6 @@ export default function OnboardingPage() {
   const supabase = createClient();
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [phone, setPhone] = useState<string>('');
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState<BusinessType | ''>('');
   const [pincode, setPincode] = useState('');
@@ -154,7 +153,6 @@ export default function OnboardingPage() {
         return;
       }
       setUserId(session.user.id);
-      setPhone(session.user.phone ?? '');
     });
   }, [supabase, router]);
 
@@ -220,8 +218,6 @@ export default function OnboardingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: userId,
-          phone,
           business_name: businessName.trim(),
           business_type: businessType,
           city: city.trim() || null,
