@@ -1,44 +1,61 @@
-// =============================================================================
-// BharatGrowth — WhatsApp System Alert API Route (Phase 26)
-// POST /api/whatsapp/send-system-alert
-// Sends low-stock / reorder alert to the shop owner using bg_reorder_v1 template
-// =============================================================================
-
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { requireShopUser } from '@/lib/api/requireShopUser';
 import { sendLowStockAlert } from '@/lib/whatsapp/service';
 
-interface SystemAlertBody {
-  owner_phone: string;
-  owner_name: string;
-  shop_name: string;
-  product_name: string;
+const bodySchema = z.object({
+  product_id: z.string().uuid(),
+});
+
+interface ProductRow {
+  id: string;
+  shop_id: string;
+  name: string;
+}
+
+function errorResponse(error: string, status: number) {
+  return NextResponse.json({ success: false, error }, { status });
 }
 
 export async function POST(request: NextRequest) {
-  let body: SystemAlertBody;
+  const auth = await requireShopUser();
+  if (!auth.ok) return auth.response;
+
+  let rawBody: unknown;
   try {
-    body = await request.json();
+    rawBody = await request.json();
   } catch {
-    return NextResponse.json(
-      { success: false, error: 'Invalid JSON body' },
-      { status: 400 }
-    );
+    return errorResponse('Invalid JSON body', 400);
   }
 
-  const { owner_phone, owner_name, shop_name, product_name } = body;
+  const parsed = bodySchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return errorResponse(parsed.error.issues[0]?.message ?? 'Invalid alert payload', 400);
+  }
 
-  if (!owner_phone || !product_name) {
-    return NextResponse.json(
-      { success: false, error: 'Missing required fields: owner_phone, product_name' },
-      { status: 400 }
-    );
+  const { data, error } = await auth.supabase
+    .from('products')
+    .select('id, shop_id, name')
+    .eq('id', parsed.data.product_id)
+    .eq('shop_id', auth.shopId)
+    .maybeSingle();
+
+  const product = data as ProductRow | null;
+
+  if (error || !product) {
+    return errorResponse('Product not found for this shop', 404);
+  }
+
+  const ownerPhone = auth.shopPhone ?? auth.userPhone;
+  if (!ownerPhone) {
+    return errorResponse('Shop owner phone number is missing', 400);
   }
 
   const result = await sendLowStockAlert(
-    owner_phone,
-    owner_name ?? 'Owner',
-    shop_name ?? 'BharatGrowth Store',
-    product_name
+    ownerPhone,
+    auth.fullName || 'Owner',
+    auth.shopName,
+    product.name
   );
 
   return NextResponse.json({

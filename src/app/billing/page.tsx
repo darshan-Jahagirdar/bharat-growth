@@ -406,11 +406,7 @@ export default function BillingPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            phone_number: state.customer.phoneNumber,
-            customer_name: state.customer.name ?? 'Customer',
             invoice_id: invoiceId,
-            invoice_total: state.totals.totalPaise,
-            shop_name: shopName,
           }),
         }).catch(() => {});
       }
@@ -431,10 +427,7 @@ export default function BillingPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              owner_phone: shopCtx?.phone ?? '',
-              owner_name: 'Owner',
-              shop_name: shopName,
-              product_name: meta.name,
+              product_id: lineItem.productId,
             }),
           }).catch(() => {});
         }
@@ -463,11 +456,7 @@ export default function BillingPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            phone_number: state.customer.phoneNumber,
-            customer_name: state.customer.name ?? 'Customer',
             invoice_id: mockId,
-            invoice_total: state.totals.totalPaise,
-            shop_name: shopName,
           }),
         }).catch(() => {});
       }
@@ -481,7 +470,7 @@ export default function BillingPage() {
       setValidationErrors(['Supabase is not configured. Enable demo mode explicitly to use mock billing.']);
       setTimeout(() => setValidationErrors([]), 5000);
     }
-  }, [state, shopId, actions, shopName]);
+  }, [state, shopId, actions]);
 
   // ── Split-path checkout handler ──
   // UPI + shop has upi_id → show QR modal first, save on confirm
@@ -1335,7 +1324,6 @@ export default function BillingPage() {
         isOpen={showOnlineOrders}
         onClose={() => setShowOnlineOrders(false)}
         shopId={shopId}
-        shopName={shopName}
         onAccepted={(invoiceId) => {
           // Trigger print via hidden iframe
           if (printFrameRef.current) {

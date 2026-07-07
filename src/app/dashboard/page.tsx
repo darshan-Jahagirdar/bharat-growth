@@ -859,11 +859,7 @@ export default function DashboardPage() {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        phone_number: reminderTarget.phone_number,
-                        customer_name: reminderTarget.name ?? 'Customer',
-                        shop_name: shopNameState,
-                        balance_paise: reminderTarget.credit_balance_paise,
-                        upi_id: shopUpiId,
+                        customer_id: reminderTarget.id,
                       }),
                     });
                     const result = await res.json();

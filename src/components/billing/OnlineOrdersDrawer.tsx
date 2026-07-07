@@ -42,7 +42,6 @@ interface OnlineOrdersDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   shopId: string;
-  shopName: string;
   onAccepted: (invoiceId: string) => void;
   onCountChange: (count: number) => void;
 }
@@ -53,7 +52,6 @@ export function OnlineOrdersDrawer({
   isOpen,
   onClose,
   shopId,
-  shopName,
   onAccepted,
   onCountChange,
 }: OnlineOrdersDrawerProps) {
@@ -156,11 +154,7 @@ export function OnlineOrdersDrawer({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone_number: order.customer_phone,
-          customer_name: order.customer_name ?? 'Customer',
           invoice_id: order.id,
-          invoice_total: order.total_paise,
-          shop_name: shopName,
         }),
       }).catch(() => {});
     }
