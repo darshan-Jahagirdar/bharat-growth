@@ -7,8 +7,7 @@
 // =============================================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireShopUser } from '@/lib/api/requireShopUser';
 
 interface ScannedItem {
   raw_name: string;
@@ -16,33 +15,24 @@ interface ScannedItem {
   price_paise: number;
 }
 
+const MAX_IMAGE_BASE64_CHARS = 7_000_000;
+const SUPPORTED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
 export async function POST(req: NextRequest) {
   // ── 1. Auth check ──
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireShopUser();
+  if (!auth.ok) return auth.response;
 
   // ── 2. Get shop context + quota ──
-  const { data: user } = await supabase
-    .from('users')
-    .select('shop_id')
-    .eq('id', session.user.id)
-    .single();
-
-  if (!user?.shop_id) {
-    return NextResponse.json({ error: 'Shop not found' }, { status: 404 });
-  }
-
-  const admin = createAdminClient();
-  const { data: shop } = await admin
+  const { data: shop } = await auth.supabase
     .from('shops')
     .select('monthly_ai_scans')
-    .eq('id', user.shop_id)
+    .eq('id', auth.shopId)
     .single();
 
   if (!shop || (shop.monthly_ai_scans ?? 0) <= 0) {
@@ -54,10 +44,21 @@ export async function POST(req: NextRequest) {
 
   // ── 3. Parse request body ──
   let imageBase64: string;
+  let imageMimeType: string;
   try {
     const body = await req.json();
     imageBase64 = body.image_base64;
-    if (!imageBase64) throw new Error('missing');
+    imageMimeType = body.image_mime_type;
+    if (typeof imageBase64 !== 'string' || !imageBase64) throw new Error('missing');
+    if (typeof imageMimeType !== 'string' || !SUPPORTED_IMAGE_TYPES.has(imageMimeType)) {
+      return NextResponse.json({ error: 'Unsupported image type' }, { status: 415 });
+    }
+    if (imageBase64.length > MAX_IMAGE_BASE64_CHARS) {
+      return NextResponse.json({ error: 'Image is too large (maximum 5 MB)' }, { status: 413 });
+    }
+    if (!/^[A-Za-z0-9+/=\r\n]+$/.test(imageBase64)) {
+      return NextResponse.json({ error: 'Invalid base64 image data' }, { status: 400 });
+    }
   } catch {
     return NextResponse.json(
       { error: 'Request must include image_base64 field' },
@@ -107,8 +108,8 @@ Return ONLY the JSON array. Example: [{"raw_name":"MRF ZLX 155/80 R13","quantity
                   type: 'image',
                   source: {
                     type: 'base64',
-                    media_type: 'image/jpeg',
-                    data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
+                    media_type: imageMimeType,
+                    data: imageBase64,
                   },
                 },
                 { type: 'text', text: 'Extract all line items from this supplier bill.' },
@@ -159,7 +160,7 @@ Return ONLY the JSON array. Example: [{"raw_name":"MRF ZLX 155/80 R13","quantity
                   image_url: {
                     url: imageBase64.startsWith('data:')
                       ? imageBase64
-                      : `data:image/jpeg;base64,${imageBase64}`,
+                      : `data:${imageMimeType};base64,${imageBase64}`,
                   },
                 },
                 {
@@ -212,18 +213,18 @@ Return ONLY the JSON array. Example: [{"raw_name":"MRF ZLX 155/80 R13","quantity
     price_paise: Math.max(0, Math.round(Number(item.price_paise) || 0)),
   }));
 
-  // ── 6. Decrement quota ──
-  await admin
-    .from('shops')
-    .update({ monthly_ai_scans: (shop.monthly_ai_scans ?? 1) - 1 })
-    .eq('id', user.shop_id);
-
-  console.log(
-    `[VisionScan] Success — shop=${user.shop_id}, items=${sanitized.length}, remaining_scans=${(shop.monthly_ai_scans ?? 1) - 1}`
+  // ── 6. Atomically consume quota (prevents concurrent scans going negative) ──
+  const { data: scansRemaining, error: quotaError } = await auth.supabase.rpc(
+    'consume_ai_scan',
+    { p_shop_id: auth.shopId }
   );
+
+  if (quotaError) {
+    return NextResponse.json({ error: 'Scan quota exceeded. Resets on the 1st of next month.' }, { status: 403 });
+  }
 
   return NextResponse.json({
     items: sanitized,
-    scans_remaining: (shop.monthly_ai_scans ?? 1) - 1,
+    scans_remaining: Number(scansRemaining),
   });
 }

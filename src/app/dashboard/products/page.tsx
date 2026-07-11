@@ -20,6 +20,7 @@ import { checkUserOnboarded } from '@/lib/auth/checkUserOnboarded';
 import BulkUploadModal from '@/components/dashboard/BulkUploadModal';
 import AdjustStockModal from '@/components/dashboard/AdjustStockModal';
 import { Upload } from 'lucide-react';
+import Image from 'next/image';
 
 // ── Constants ──
 
@@ -35,6 +36,7 @@ interface ProductForm {
   sku: string;
   hsn_code: string;
   category: string;
+  tag_id: string | null;      // Bring-Back campaign tag
   unit: ProductUnit;
   unit_price_paise: string;   // stored as rupee string for easy editing
   selling_price_paise: string;
@@ -49,6 +51,7 @@ const EMPTY_FORM: ProductForm = {
   sku: '',
   hsn_code: '',
   category: '',
+  tag_id: null,
   unit: 'piece',
   unit_price_paise: '',
   selling_price_paise: '',
@@ -57,6 +60,14 @@ const EMPTY_FORM: ProductForm = {
   is_active: true,
   is_stock_tracked: false,
 };
+
+// Sentinel value for the tag <select>'s "create new tag" option
+const NEW_TAG_SENTINEL = '__new__';
+
+interface CampaignTag {
+  id: string;
+  name: string;
+}
 
 // ── Helpers ──
 
@@ -94,6 +105,12 @@ export default function ProductsPage() {
 
   // ── Search ──
   const [search, setSearch] = useState('');
+
+  // ── Bring-Back tags ──
+  const [tags, setTags] = useState<CampaignTag[]>([]);
+  const [showNewTagInput, setShowNewTagInput] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [creatingTag, setCreatingTag] = useState(false);
 
   // ── Bulk upload modal ──
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -150,10 +167,50 @@ export default function ProductsPage() {
     }
   }, [supabase, SHOP_ID]);
 
+  // ── Fetch Bring-Back tags ──
+  const fetchTags = useCallback(async () => {
+    if (!SHOP_ID) return;
+    const { data } = await supabase
+      .from('tags')
+      .select('id, name')
+      .eq('shop_id', SHOP_ID)
+      .order('name');
+    setTags((data ?? []) as CampaignTag[]);
+  }, [supabase, SHOP_ID]);
+
   useEffect(() => {
     fetchProducts();
     fetchStock();
-  }, [fetchProducts, fetchStock]);
+    fetchTags();
+  }, [fetchProducts, fetchStock, fetchTags]);
+
+  // ── Create a new tag inline from the product form ──
+  async function handleCreateTag() {
+    const name = newTagName.trim();
+    if (!name || creatingTag) return;
+    setCreatingTag(true);
+    try {
+      const { data, error: tagErr } = await supabase
+        .from('tags')
+        .upsert({ shop_id: SHOP_ID, name }, { onConflict: 'shop_id,name' })
+        .select('id, name')
+        .single();
+
+      if (tagErr || !data) {
+        setError(`Failed to create tag: ${tagErr?.message ?? 'unknown error'}`);
+        return;
+      }
+
+      setTags((prev) =>
+        prev.some((t) => t.id === data.id) ? prev : [...prev, data as CampaignTag].sort((a, b) => a.name.localeCompare(b.name))
+      );
+      setField('tag_id', data.id);
+      setShowNewTagInput(false);
+      setNewTagName('');
+    } finally {
+      setCreatingTag(false);
+    }
+  }
 
   // ── Clear flash messages after 4s ──
   useEffect(() => {
@@ -206,6 +263,7 @@ export default function ProductsPage() {
       sku: product.sku ?? '',
       hsn_code: product.hsn_code,
       category: product.category ?? '',
+      tag_id: product.tag_id ?? null,
       unit: product.unit,
       unit_price_paise: paiseToRupeeStr(product.unit_price_paise),
       selling_price_paise: paiseToRupeeStr(product.selling_price_paise),
@@ -258,6 +316,7 @@ export default function ProductsPage() {
             sku: form.sku.trim() || null,
             hsn_code: form.hsn_code.trim(),
             category: form.category.trim() || null,
+            tag_id: form.tag_id,
             unit: form.unit,
             unit_price_paise: costPaise,
             selling_price_paise: sellingPaise,
@@ -282,6 +341,7 @@ export default function ProductsPage() {
             sku: form.sku.trim() || null,
             hsn_code: form.hsn_code.trim(),
             category: form.category.trim() || null,
+            tag_id: form.tag_id,
             unit: form.unit,
             unit_price_paise: costPaise,
             selling_price_paise: sellingPaise,
@@ -454,6 +514,74 @@ export default function ProductsPage() {
                 </div>
               </div>
 
+              {/* Row 1b: Bring-Back tag */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    Bring-Back Tag
+                    <span className="text-gray-600 ml-1">(drives WhatsApp reminders)</span>
+                  </label>
+                  <select
+                    value={form.tag_id ?? ''}
+                    onChange={(e) => {
+                      if (e.target.value === NEW_TAG_SENTINEL) {
+                        setShowNewTagInput(true);
+                        setNewTagName('');
+                      } else {
+                        setField('tag_id', e.target.value || null);
+                      }
+                    }}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5
+                               text-sm text-gray-100 focus:border-orange-500 focus:outline-none"
+                  >
+                    <option value="">— No tag —</option>
+                    {tags.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                    <option value={NEW_TAG_SENTINEL}>+ New tag…</option>
+                  </select>
+                </div>
+                {showNewTagInput && (
+                  <div className="md:col-span-2 flex items-end gap-2">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">New Tag Name</label>
+                      <input
+                        type="text"
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleCreateTag();
+                          }
+                        }}
+                        autoFocus
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5
+                                   text-sm text-gray-100 focus:border-orange-500 focus:outline-none"
+                        placeholder="e.g. Tyres, Gift Boxes"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCreateTag}
+                      disabled={creatingTag || !newTagName.trim()}
+                      className="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-50
+                                 text-white text-sm font-semibold rounded-lg transition-colors"
+                    >
+                      {creatingTag ? 'Adding…' : 'Add'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowNewTagInput(false); setNewTagName(''); }}
+                      className="px-3 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400
+                                 text-sm rounded-lg transition-colors border border-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Row 2: HSN + SKU + Barcode */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -564,18 +692,24 @@ export default function ProductsPage() {
                 </label>
                 <div className="flex items-start gap-4">
                   {/* Preview */}
-                  <div className="w-28 h-28 rounded-lg border border-gray-700 bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                  <div className="relative w-28 h-28 rounded-lg border border-gray-700 bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
                     {imagePreview ? (
-                      <img
+                      <Image
                         src={imagePreview}
                         alt="Preview"
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="112px"
+                        unoptimized
+                        className="object-cover"
                       />
                     ) : existingImageUrl ? (
-                      <img
+                      <Image
                         src={existingImageUrl}
                         alt="Current"
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="112px"
+                        unoptimized
+                        className="object-cover"
                       />
                     ) : (
                       <span className="text-gray-600 text-3xl">
@@ -739,12 +873,15 @@ export default function ProductsPage() {
                     >
                       {/* Thumbnail */}
                       <td className="px-4 py-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 flex items-center justify-center">
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 flex items-center justify-center">
                           {p.image_url ? (
-                            <img
+                            <Image
                               src={p.image_url}
                               alt={p.name}
-                              className="w-full h-full object-cover"
+                              fill
+                              sizes="40px"
+                              unoptimized
+                              className="object-cover"
                             />
                           ) : (
                             <span className="text-gray-600 text-sm font-bold">
@@ -753,12 +890,19 @@ export default function ProductsPage() {
                           )}
                         </div>
                       </td>
-                      {/* Name + category */}
+                      {/* Name + category + Bring-Back tag */}
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-200">{p.name}</div>
-                        {p.category && (
-                          <div className="text-[11px] text-gray-500">{p.category}</div>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {p.category && (
+                            <span className="text-[11px] text-gray-500">{p.category}</span>
+                          )}
+                          {p.tag_id && (
+                            <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-[10px]">
+                              {tags.find((t) => t.id === p.tag_id)?.name ?? 'Tagged'}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       {/* HSN */}
                       <td className="px-4 py-3 font-mono text-gray-400 hidden md:table-cell">

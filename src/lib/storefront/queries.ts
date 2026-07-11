@@ -61,16 +61,12 @@ export async function getStorefrontShop(
   }
   if (!shop) return null;
 
-  // Fetch owner phone for WhatsApp CTA — separate query, NOT a join
-  // Use .maybeSingle() instead of .single() so 0 rows returns null, not an error
-  const { data: owner, error: ownerErr } = await client
-    .from('users')
-    .select('phone')
-    .eq('shop_id', shopId)
-    .eq('role', 'owner')
-    .eq('is_active', true)
-    .limit(1)
-    .maybeSingle();
+  // Security-definer RPC exposes one safe field without granting anonymous
+  // users blanket SELECT access to the users table.
+  const { data: ownerPhone, error: ownerErr } = await client.rpc(
+    'get_storefront_owner_phone',
+    { p_shop_id: shopId }
+  );
 
   if (ownerErr) {
     console.warn('[Storefront] Owner phone query failed (non-fatal):', ownerErr.message);
@@ -85,7 +81,7 @@ export async function getStorefrontShop(
     logo_url: shop.logo_url ?? null,
     theme_preference: (shop.theme_preference ?? 'modern') as ThemePreference,
     primary_color: shop.primary_color ?? '#2563EB',
-    owner_phone: owner?.phone ?? null,
+    owner_phone: typeof ownerPhone === 'string' ? ownerPhone : null,
   };
 }
 

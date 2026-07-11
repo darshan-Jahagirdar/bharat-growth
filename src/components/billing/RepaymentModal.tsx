@@ -5,7 +5,7 @@
 // Quick credit repayment flow — defaults to full balance, optional notes
 // =============================================================================
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatINR } from '@/lib/types/database';
 
 interface RepaymentModalProps {
@@ -28,10 +28,12 @@ export function RepaymentModal({
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Reset form when modal opens with new balance
-  if (isOpen && amountStr === '0.00' && creditBalancePaise > 0) {
+  useEffect(() => {
+    if (!isOpen) return;
     setAmountStr(fullBalanceRupees);
-  }
+    setNotes('');
+    setError(null);
+  }, [isOpen, fullBalanceRupees]);
 
   if (!isOpen) return null;
 
@@ -53,14 +55,26 @@ export function RepaymentModal({
     setNotes('');
   }
 
+  function handleCancel() {
+    setAmountStr(fullBalanceRupees);
+    setNotes('');
+    setError(null);
+    onCancel();
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
+      <button
+        type="button"
+        aria-label="Close repayment dialog"
+        className="absolute inset-0 bg-black/60"
+        onClick={handleCancel}
+      />
 
       {/* Modal */}
-      <div className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-sm p-6">
-        <h3 className="text-base font-bold text-gray-200 mb-1">Settle Udhaar</h3>
+      <div role="dialog" aria-modal="true" aria-labelledby="repayment-title" className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-sm p-6">
+        <h3 id="repayment-title" className="text-base font-bold text-gray-200 mb-1">Settle Udhaar</h3>
         <p className="text-xs text-gray-500 mb-4">
           {customerName} owes{' '}
           <span className="text-red-400 font-semibold">{formatINR(creditBalancePaise)}</span>
@@ -134,7 +148,7 @@ export function RepaymentModal({
             Confirm Payment
           </button>
           <button
-            onClick={onCancel}
+            onClick={handleCancel}
             className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400
                        text-sm rounded-lg transition-colors border border-gray-700"
           >

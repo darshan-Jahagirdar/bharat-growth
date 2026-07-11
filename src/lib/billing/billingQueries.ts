@@ -16,6 +16,16 @@ function getClient() {
   return supabase;
 }
 
+// PostgREST `.or()` expressions are a query language, so raw punctuation from
+// user input must not be interpolated into the expression.
+function sanitizeSearchTerm(query: string): string {
+  return query
+    .replace(/[,()%"\\]/g, ' ')
+    .replace(/[%_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // ── Customer Search (by phone number or name) ──
 
 export async function searchCustomers(
@@ -23,8 +33,9 @@ export async function searchCustomers(
   shopId: string
 ): Promise<SelectedCustomer[]> {
   const client = getClient();
+  const searchTerm = sanitizeSearchTerm(query);
 
-  console.time('searchCustomers');
+  if (!searchTerm) return [];
 
   // Single query — no loyalty join needed for the search dropdown.
   // Loyalty points are lazy-loaded when a customer is actually selected.
@@ -32,10 +43,8 @@ export async function searchCustomers(
     .from('customers')
     .select('id, phone_number, name, gstin, segment, total_spent_paise, visit_count, credit_balance_paise, photo_url')
     .eq('shop_id', shopId)
-    .or(`phone_number.ilike.${query}%,name.ilike.${query}%`)
+    .or(`phone_number.ilike.${searchTerm}%,name.ilike.${searchTerm}%`)
     .limit(5);
-
-  console.timeEnd('searchCustomers');
 
   if (error || !data) return [];
 
@@ -77,13 +86,16 @@ export async function searchProducts(
   shopId: string
 ): Promise<Product[]> {
   const client = getClient();
+  const searchTerm = sanitizeSearchTerm(query);
+
+  if (!searchTerm) return [];
 
   const { data, error } = await client
     .from('products')
     .select('*')
     .eq('shop_id', shopId)
     .eq('is_active', true)
-    .or(`name.ilike.%${query}%,sku.ilike.%${query}%,hsn_code.ilike.%${query}%,barcode.eq.${query}`)
+    .or(`name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,hsn_code.ilike.%${searchTerm}%,barcode.eq.${searchTerm}`)
     .order('name')
     .limit(8);
 
@@ -199,46 +211,14 @@ export async function processCreditRepayment(
 
   const client = getClient();
 
-  // 1. Insert credit_ledger entry
-  const { error: ledgerErr } = await client
-    .from('credit_ledger')
-    .insert({
-      shop_id: shopId,
-      customer_id: customerId,
-      invoice_id: null,
-      amount_paise: amountPaise,
-      transaction_type: 'payment_received',
-      notes: notes || null,
-    });
+  const { error } = await client.rpc('record_credit_repayment', {
+    p_shop_id: shopId,
+    p_customer_id: customerId,
+    p_amount_paise: amountPaise,
+    p_notes: notes,
+  });
 
-  if (ledgerErr) {
-    return { success: false, error: `Ledger insert failed: ${ledgerErr.message}` };
-  }
-
-  // 2. Subtract from customer's credit balance
-  // Use rpc or raw update — we fetch current balance and subtract
-  const { data: customer, error: fetchErr } = await client
-    .from('customers')
-    .select('credit_balance_paise')
-    .eq('id', customerId)
-    .eq('shop_id', shopId)
-    .single();
-
-  if (fetchErr || !customer) {
-    return { success: false, error: 'Failed to fetch customer balance' };
-  }
-
-  const newBalance = Math.max(0, (customer.credit_balance_paise ?? 0) - amountPaise);
-
-  const { error: updateErr } = await client
-    .from('customers')
-    .update({ credit_balance_paise: newBalance })
-    .eq('id', customerId)
-    .eq('shop_id', shopId);
-
-  if (updateErr) {
-    return { success: false, error: `Balance update failed: ${updateErr.message}` };
-  }
+  if (error) return { success: false, error: error.message };
 
   return { success: true, error: null };
 }
@@ -339,7 +319,8 @@ export async function createNewCustomer(
   shopId: string,
   name: string,
   phoneNumber: string,
-  photoFile?: File | null
+  photoFile?: File | null,
+  marketingConsent: boolean = false
 ): Promise<{ customer: SelectedCustomer | null; error: string | null }> {
   const client = getClient();
 
@@ -369,12 +350,31 @@ export async function createNewCustomer(
       visit_count: 0,
       credit_balance_paise: 0,
       photo_url: photoUrl,
+      dpdp_marketing_consent: marketingConsent,
+      consent_collected_at: marketingConsent ? new Date().toISOString() : null,
     })
     .select('id, phone_number, name, gstin, segment, credit_balance_paise, photo_url')
     .single();
 
   if (error) {
     return { customer: null, error: `Failed to create customer: ${error.message}` };
+  }
+
+  // DPDP audit trail — non-fatal so the billing flow is never blocked
+  if (marketingConsent) {
+    const { data: auth } = await client.auth.getUser();
+    const { error: consentErr } = await client.from('consent_logs').insert({
+      shop_id: shopId,
+      customer_id: data.id,
+      purpose: 'whatsapp_marketing',
+      status: 'granted',
+      consent_method: 'verbal_recorded',
+      collected_by: auth.user?.id ?? null,
+      metadata: { source: 'pos_create_customer' },
+    });
+    if (consentErr) {
+      console.warn('[Billing] Consent log insert failed:', consentErr.message);
+    }
   }
 
   return {

@@ -12,6 +12,7 @@ import { formatINR } from '@/lib/types/database';
 import type { Product } from '@/lib/types/database';
 import TopNav from '@/components/layout/TopNav';
 import { savePurchaseOrder } from '@/lib/orders/orderQueries';
+import { getIndiaDate } from '@/lib/utils/indiaDate';
 
 // ── Types ──
 
@@ -50,7 +51,7 @@ export default function NewPurchaseBillPage() {
   // ── Bill header state ──
   const [supplierName, setSupplierName] = useState('');
   const [billNumber, setBillNumber] = useState('');
-  const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]);
+  const [billDate, setBillDate] = useState(getIndiaDate);
 
   // ── Grid state ──
   const [rows, setRows] = useState<GridRow[]>([emptyRow()]);
@@ -276,6 +277,18 @@ export default function NewPurchaseBillPage() {
     setScanError('');
 
     try {
+      const supportedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+      if (!supportedTypes.has(file.type)) {
+        setScanError('Choose a JPEG, PNG, WebP, or GIF image.');
+        setIsScanning(false);
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setScanError('Image is too large. Maximum size is 5 MB.');
+        setIsScanning(false);
+        return;
+      }
+
       // Convert to base64
       const buffer = await file.arrayBuffer();
       const bytes = new Uint8Array(buffer);
@@ -286,7 +299,7 @@ export default function NewPurchaseBillPage() {
       const res = await fetch('/api/vision/scan-bill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: base64 }),
+        body: JSON.stringify({ image_base64: base64, image_mime_type: file.type }),
       });
 
       if (!res.ok) {

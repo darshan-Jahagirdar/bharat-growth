@@ -56,7 +56,7 @@ export default function AdjustStockModal({
     const change = direction === 'in' ? numQty : -numQty;
     const supabase = createClient();
 
-    const { data, error: rpcErr } = await supabase.rpc('adjust_stock', {
+    const { error: rpcErr } = await supabase.rpc('adjust_stock', {
       p_shop_id: shopId,
       p_product_id: productId,
       p_quantity_change: change,

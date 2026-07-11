@@ -52,6 +52,18 @@ interface ReceiptData {
   items: ReceiptItem[];
 }
 
+function isReceiptData(value: unknown): value is ReceiptData {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<ReceiptData>;
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.invoice_number === 'string' &&
+    !!candidate.shop &&
+    typeof candidate.shop.business_name === 'string' &&
+    Array.isArray(candidate.items)
+  );
+}
+
 type LoadState = 'loading' | 'loaded' | 'not_found' | 'error';
 
 function formatINR(paise: number): string {
@@ -110,45 +122,29 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
     async function fetchReceipt() {
       const supabase = createClient();
 
-      // Fetch invoice
-      const { data: invoice, error: invoiceErr } = await supabase
-        .from('invoices')
-        .select(`
-          id, invoice_number, invoice_date, document_type,
-          customer_name, customer_phone, customer_gstin,
-          subtotal_paise, cgst_total_paise, sgst_total_paise, igst_total_paise,
-          discount_paise, round_off_paise, total_paise,
-          payment_mode, is_inter_state, created_at,
-          shop:shops!inner(business_name, gstin, gst_type, address_line_1, city, state_code, phone)
-        `)
-        .eq('id', invoiceId)
-        .single();
+      const { data, error } = await supabase.rpc('get_public_receipt', {
+        p_invoice_id: invoiceId,
+      });
 
       if (cancelled) return;
 
-      if (invoiceErr || !invoice) {
-        setLoadState(invoiceErr?.code === 'PGRST116' ? 'not_found' : 'error');
+      if (error) {
+        setLoadState('error');
         return;
       }
 
-      // Fetch line items
-      const { data: items } = await supabase
-        .from('invoice_items')
-        .select('product_name, hsn_code, quantity, unit, unit_price_paise, gst_rate_percent, cgst_paise, sgst_paise, igst_paise, total_paise')
-        .eq('invoice_id', invoiceId)
-        .order('created_at');
+      if (!data) {
+        setLoadState('not_found');
+        return;
+      }
 
-      if (cancelled) return;
+      if (!isReceiptData(data)) {
+        setLoadState('error');
+        return;
+      }
 
-      const shop = Array.isArray(invoice.shop) ? invoice.shop[0] : invoice.shop;
-
-      document.title = `Receipt ${invoice.invoice_number} | ${shop.business_name}`;
-
-      setReceipt({
-        ...invoice,
-        shop,
-        items: (items ?? []) as ReceiptItem[],
-      } as ReceiptData);
+      document.title = `Receipt ${data.invoice_number} | ${data.shop.business_name}`;
+      setReceipt(data);
       setLoadState('loaded');
     }
 

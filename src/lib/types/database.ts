@@ -102,6 +102,8 @@ export interface Product {
   selling_price_paise: number;
   unit: ProductUnit;
   category: string | null;
+  /** Bring-Back campaign tag (tags.id) — drives repurchase-cycle reminders */
+  tag_id: string | null;
   is_active: boolean;
   barcode: string | null;
   vertical_attrs: VerticalAttrs;

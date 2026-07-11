@@ -43,18 +43,20 @@ export function PaymentModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
-      <div
+      <button
+        type="button"
+        aria-label="Close payment dialog"
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onCancel}
       />
 
       {/* Modal */}
-      <div className="relative bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-labelledby="upi-payment-title" className="relative bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         {/* Header */}
         <div className="bg-purple-900/40 border-b border-purple-800/50 px-6 py-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="text-2xl">📱</span>
-            <h2 className="text-lg font-bold text-white">UPI Payment</h2>
+            <h2 id="upi-payment-title" className="text-lg font-bold text-white">UPI Payment</h2>
           </div>
           <p className="text-purple-300 text-xs">
             Customer scans QR to pay — amount is locked

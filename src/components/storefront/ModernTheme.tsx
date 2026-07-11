@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { StorefrontShop, StorefrontProduct } from '@/lib/storefront/queries';
+import Image from 'next/image';
 
 interface ModernThemeProps {
   shop: StorefrontShop;
@@ -78,6 +79,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
   const [checkoutAddress, setCheckoutAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'khata'>('upi');
   const [dataConsent, setDataConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [stockToast, setStockToast] = useState('');
@@ -198,6 +200,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
       delivery_address: checkoutAddress.trim() || null,
       payment_method: paymentMethod,
       data_consent: dataConsent,
+      marketing_consent: marketingConsent,
       idempotency_key: idempotencyKeyRef.current,
       items: cartItems.map((ci) => ({
         product_id: ci.product.id,
@@ -275,9 +278,12 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
         <div className="px-4 pt-3 pb-2">
           <div className="flex items-center gap-3 mb-2.5">
             {shop.logo_url ? (
-              <img
+              <Image
                 src={shop.logo_url}
                 alt={shop.business_name}
+                width={32}
+                height={32}
+                unoptimized
                 className="w-8 h-8 rounded-lg object-cover shrink-0"
               />
             ) : (
@@ -374,11 +380,13 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
                   {/* Product Image / Placeholder */}
                   {product.image_url ? (
                     <div className="relative aspect-square bg-gray-50">
-                      <img
+                      <Image
                         src={product.image_url}
                         alt={product.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
+                        fill
+                        sizes="(max-width: 640px) 50vw, 320px"
+                        unoptimized
+                        className="object-cover"
                       />
                     </div>
                   ) : (
@@ -626,7 +634,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
                 </div>
               </div>
 
-              <label className="mb-5 flex items-start gap-3 rounded-xl bg-gray-50 px-4 py-3 text-left">
+              <label className="mb-3 flex items-start gap-3 rounded-xl bg-gray-50 px-4 py-3 text-left">
                 <input
                   type="checkbox"
                   checked={dataConsent}
@@ -635,6 +643,19 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
                 />
                 <span className="text-xs leading-5 text-gray-600">
                   I agree to share my name, phone, address, and order details with this shop for fulfilling this order.
+                </span>
+              </label>
+
+              {/* Optional marketing opt-in — never gates the order (DPDP) */}
+              <label className="mb-5 flex items-start gap-3 rounded-xl bg-gray-50 px-4 py-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(e) => setMarketingConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                <span className="text-xs leading-5 text-gray-600">
+                  Send me offers &amp; reminders on WhatsApp <span className="text-gray-400">(optional)</span>
                 </span>
               </label>
 
@@ -683,7 +704,6 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
         </div>
       )}
 
-      {/* eslint-disable-next-line react/no-unknown-property */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes slideUp {
           from { transform: translateY(100%); }

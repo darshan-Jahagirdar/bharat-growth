@@ -84,7 +84,7 @@ function computeLineItem(
 
 // ── Round to nearest rupee (Indian billing practice) ──
 
-function computeRoundOff(_totalBeforeRounding: number): number {
+function computeRoundOff(): number {
   // No rounding — exact paise amounts required for UPI and Quick Commerce
   return 0;
 }
@@ -107,7 +107,7 @@ export function calculateTotals(
   const totalBeforeRounding =
     subtotalPaise + cgstTotalPaise + sgstTotalPaise + igstTotalPaise - invoiceLevelDiscountPaise;
 
-  const roundOffPaise = computeRoundOff(totalBeforeRounding);
+  const roundOffPaise = computeRoundOff();
   const totalPaise = totalBeforeRounding + roundOffPaise;
 
   return {

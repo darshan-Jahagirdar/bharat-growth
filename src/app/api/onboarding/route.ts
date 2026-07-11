@@ -11,6 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { seedDefaultCampaigns } from '@/lib/campaigns/seedDefaults';
+import type { BusinessType } from '@/lib/types/database';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface OnboardingBody {
@@ -226,6 +228,15 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to create user profile' },
       { status: 500 }
     );
+  }
+
+  // ── Seed default Bring-Back campaigns for the vertical (non-fatal) ──
+  // Shop + user creation is already committed; never fail onboarding over
+  // seed data. Missing defaults can be recreated from /dashboard/campaigns.
+  try {
+    await seedDefaultCampaigns(admin, shop.id, business_type as BusinessType);
+  } catch (err) {
+    console.error('[Onboarding] Default campaign seeding failed:', err);
   }
 
   return NextResponse.json({

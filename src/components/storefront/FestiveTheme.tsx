@@ -7,6 +7,7 @@
 
 import type { StorefrontShop, StorefrontProduct } from '@/lib/storefront/queries';
 import { WhatsAppButton } from './WhatsAppButton';
+import Image from 'next/image';
 
 interface FestiveThemeProps {
   shop: StorefrontShop;
@@ -57,9 +58,12 @@ export function FestiveTheme({ shop, products }: FestiveThemeProps) {
         </div>
         <div className="relative max-w-5xl mx-auto px-4 py-8 sm:px-6 text-center text-white">
           {shop.logo_url && (
-            <img
+            <Image
               src={shop.logo_url}
               alt={shop.business_name}
+              width={80}
+              height={80}
+              unoptimized
               className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-white/30 shadow-lg"
             />
           )}
@@ -101,9 +105,12 @@ export function FestiveTheme({ shop, products }: FestiveThemeProps) {
                 >
                   {/* Product image */}
                   {product.image_url ? (
-                    <img
+                    <Image
                       src={product.image_url}
                       alt={product.name}
+                      width={640}
+                      height={360}
+                      unoptimized
                       className="w-full h-32 sm:h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (

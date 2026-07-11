@@ -10,7 +10,7 @@ import {
   phoneSchema,
 } from '@/lib/validators/schema';
 import type { BillingState } from './useBillingStore';
-import type { InvoiceTotals } from './calculateTotals';
+import { getIndiaDate } from '@/lib/utils/indiaDate';
 
 // ── Validation result ──
 
@@ -68,7 +68,7 @@ export function validateBillingState(
     invoice_number: invoiceNumber,
     invoice_sequence: invoiceSequence,
     financial_year: financialYear,
-    invoice_date: new Date().toISOString().split('T')[0],
+    invoice_date: getIndiaDate(),
     invoice_type: 'regular' as const,
     document_type: totals.documentType,
     customer_id: state.customer?.id ?? null,

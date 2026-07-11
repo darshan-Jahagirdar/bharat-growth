@@ -18,7 +18,9 @@ import {
 } from '@/lib/dashboard/dashboardQueries';
 import { downloadCSV } from '@/lib/utils/csvExport';
 import TopNav from '@/components/layout/TopNav';
+import { RetentionRoiCard } from '@/components/dashboard/RetentionRoiCard';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ExternalLink,
   IndianRupee,
@@ -76,26 +78,11 @@ function ChartTooltip({ active, payload, label }: {
   );
 }
 
-// ── Custom donut center label ──
-function DonutCenter({ cx, cy, total }: { cx: number; cy: number; total: string }) {
-  return (
-    <>
-      <text x={cx} y={cy - 8} textAnchor="middle" className="fill-gray-400 text-[10px]">
-        This Month
-      </text>
-      <text x={cx} y={cy + 12} textAnchor="middle" className="fill-gray-100 text-sm font-bold">
-        {total}
-      </text>
-    </>
-  );
-}
-
 export default function DashboardPage() {
   const [shopId, setShopId] = useState<string>('');
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [shopNameState, setShopNameState] = useState('My Shop');
-  const [shopUpiId, setShopUpiId] = useState<string | null>(null);
 
   // ── Khata reminder state ──
   const [reminderTarget, setReminderTarget] = useState<CreditCustomer | null>(null);
@@ -173,12 +160,11 @@ export default function DashboardPage() {
       const supabase = createClient();
       const { data: shop } = await supabase
         .from('shops')
-        .select('business_name, upi_id')
+        .select('business_name')
         .eq('id', shopId)
         .single();
       if (shop) {
         setShopNameState(shop.business_name);
-        setShopUpiId(shop.upi_id ?? null);
       }
     }
     loadShop();
@@ -350,6 +336,11 @@ export default function DashboardPage() {
 
         {data && (
           <>
+            {/* ═══════════════════════════════════════════════════════════════
+                ROW 0: BRING-BACK — Retention ROI hero card
+            ═══════════════════════════════════════════════════════════════ */}
+            <RetentionRoiCard stats={data.retentionStats} />
+
             {/* ═══════════════════════════════════════════════════════════════
                 ROW 1: THE PULSE — 4 KPI Cards
             ═══════════════════════════════════════════════════════════════ */}
@@ -685,12 +676,15 @@ export default function DashboardPage() {
                                    flex items-center justify-between hover:border-gray-700/60 transition-colors"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                          <div className="relative w-8 h-8 rounded-full bg-gray-800 border border-gray-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
                             {c.photo_url ? (
-                              <img
+                              <Image
                                 src={c.photo_url}
                                 alt={c.name ?? 'Customer'}
-                                className="w-full h-full object-cover"
+                                fill
+                                sizes="32px"
+                                unoptimized
+                                className="object-cover"
                               />
                             ) : (
                               <span className="text-gray-500 text-xs font-bold">

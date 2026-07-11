@@ -21,6 +21,7 @@ export interface WhatsAppResult {
   sent: boolean;
   simulated: boolean;
   error?: string;
+  failureKind?: 'rejected' | 'network';
 }
 
 // ─── Utility helpers ────────────────────────────────────────────────────────
@@ -41,6 +42,12 @@ function normalizePhone(phone: string): string {
   return `+${digits}`;
 }
 
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (digits.length <= 4) return '****';
+  return `****${digits.slice(-4)}`;
+}
+
 // ─── Simulation helper ──────────────────────────────────────────────────────
 
 function simulateTemplate(
@@ -58,7 +65,7 @@ function simulateTemplate(
   console.log(`│  📱 WhatsApp ${label} (SIMULATION MODE)`);
   console.log('├─────────────────────────────────────────────────────────────┤');
   console.log(`│  Template:  ${templateName}`);
-  console.log(`│  To:        ${phone}`);
+  console.log(`│  To:        ${maskPhone(phone)}`);
   console.log(`│  Variables:`);
   console.log(varsDisplay);
   console.log('├─────────────────────────────────────────────────────────────┤');
@@ -120,17 +127,17 @@ async function sendTemplate(
     if (!response.ok) {
       const errMsg = result.error?.message ?? 'WhatsApp API error';
       console.error(`[WhatsApp] ${templateName} API error:`, errMsg);
-      return { sent: false, simulated: false, error: errMsg };
+      return { sent: false, simulated: false, error: errMsg, failureKind: 'rejected' };
     }
 
     console.log(
-      `[WhatsApp] ${templateName} sent to ${normalizedPhone} — msg_id: ${result.messages?.[0]?.id}`
+      `[WhatsApp] ${templateName} sent to ${maskPhone(normalizedPhone)} — msg_id: ${result.messages?.[0]?.id}`
     );
     return { sent: true, simulated: false };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Network error';
     console.error(`[WhatsApp] ${templateName} network error:`, message);
-    return { sent: false, simulated: false, error: message };
+    return { sent: false, simulated: false, error: message, failureKind: 'network' };
   }
 }
 

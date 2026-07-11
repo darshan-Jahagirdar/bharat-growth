@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   FileStack,
+  Megaphone,
 } from 'lucide-react';
 
 interface NavLink {
@@ -56,6 +57,12 @@ const NAV_LINKS: NavLink[] = [
     label: 'Orders',
     href: '/dashboard/orders',
     icon: <FileStack className="w-4 h-4" />,
+    exact: true,
+  },
+  {
+    label: 'Campaigns',
+    href: '/dashboard/campaigns',
+    icon: <Megaphone className="w-4 h-4" />,
     exact: true,
   },
   {

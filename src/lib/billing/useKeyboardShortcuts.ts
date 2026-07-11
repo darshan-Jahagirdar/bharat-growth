@@ -39,10 +39,13 @@ export interface KeyboardShortcutHandlers {
 
 export function useKeyboardShortcuts(
   refs: KeyboardShortcutRefs,
-  handlers: KeyboardShortcutHandlers
+  handlers: KeyboardShortcutHandlers,
+  disabled: boolean = false
 ) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if (disabled) return;
+
       const target = e.target as HTMLElement;
       const tagName = target.tagName.toLowerCase();
       const isInInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
@@ -120,7 +123,7 @@ export function useKeyboardShortcuts(
         (target as HTMLInputElement).blur();
       }
     },
-    [refs, handlers]
+    [refs, handlers, disabled]
   );
 
   useEffect(() => {

@@ -4,7 +4,7 @@
 // =============================================================================
 
 import { useReducer, useCallback, useEffect } from 'react';
-import type { GstType, GstRatePercent, PaymentMode, Customer, Product } from '@/lib/types/database';
+import type { GstType, GstRatePercent, PaymentMode, Product } from '@/lib/types/database';
 import { calculateTotals, type LineItemInput, type InvoiceTotals } from './calculateTotals';
 
 // ── Billing Line Item (UI state) ──

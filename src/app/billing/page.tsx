@@ -26,6 +26,8 @@ import TopNav from '@/components/layout/TopNav';
 import { checkUserOnboarded, type UserShopContext } from '@/lib/auth/checkUserOnboarded';
 import { createClient } from '@/lib/supabase/client';
 import { saveSalesOrder } from '@/lib/orders/orderQueries';
+import { getIndiaDate, getIndianFinancialYear } from '@/lib/utils/indiaDate';
+import Image from 'next/image';
 
 // ── Check if Supabase is configured ──
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
@@ -71,6 +73,7 @@ export default function BillingPage() {
 
   // ── UPI Payment Modal state ──
   const [showUpiModal, setShowUpiModal] = useState(false);
+  const [pendingUpiTotalPaise, setPendingUpiTotalPaise] = useState<number | null>(null);
   const [shopUpiId, setShopUpiId] = useState<string | null>(null);
   const [shopName, setShopName] = useState('');
   const pendingSaveRef = useRef<(() => Promise<void>) | null>(null);
@@ -78,6 +81,10 @@ export default function BillingPage() {
   // ── Repayment modal state ──
   const [showRepaymentModal, setShowRepaymentModal] = useState(false);
   const [repaymentProcessing, setRepaymentProcessing] = useState(false);
+
+  // Prevent a slow lookup for customer A from overwriting customer B.
+  const loyaltyRequestRef = useRef(0);
+  const [loyaltyLoadingCustomerId, setLoyaltyLoadingCustomerId] = useState<string | null>(null);
 
   // ── B2B GSTIN input state ──
   const [showGstinInput, setShowGstinInput] = useState(false);
@@ -172,24 +179,30 @@ export default function BillingPage() {
       return;
     }
 
+    let cancelled = false;
     const timer = setTimeout(async () => {
       if (SUPABASE_CONFIGURED && shopId) {
         const results = await searchCustomers(customerQuery, shopId);
-        setFilteredCustomers(results);
+        if (!cancelled) setFilteredCustomers(results);
       } else if (DEMO_MODE) {
         // Fallback to mock data
         const q = customerQuery.toLowerCase();
-        setFilteredCustomers(
-          MOCK_CUSTOMERS.filter(
-            (c) => c.phoneNumber.includes(q) || (c.name && c.name.toLowerCase().includes(q))
-          )
-        );
+        if (!cancelled) {
+          setFilteredCustomers(
+            MOCK_CUSTOMERS.filter(
+              (c) => c.phoneNumber.includes(q) || (c.name && c.name.toLowerCase().includes(q))
+            )
+          );
+        }
       } else {
-        setFilteredCustomers([]);
+        if (!cancelled) setFilteredCustomers([]);
       }
     }, 350);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [customerQuery, shopId]);
 
   // ── Product search with debounce ──
@@ -199,31 +212,39 @@ export default function BillingPage() {
       return;
     }
 
+    let cancelled = false;
     const timer = setTimeout(async () => {
       if (SUPABASE_CONFIGURED && shopId) {
         const results = await searchProducts(productQuery, shopId);
-        setFilteredProducts(results);
+        if (!cancelled) setFilteredProducts(results);
       } else if (DEMO_MODE) {
         const q = productQuery.toLowerCase();
-        setFilteredProducts(
-          MOCK_PRODUCTS.filter(
-            (p) =>
-              p.name.toLowerCase().includes(q) ||
-              (p.sku && p.sku.toLowerCase().includes(q)) ||
-              p.hsn_code.includes(q)
-          )
-        );
+        if (!cancelled) {
+          setFilteredProducts(
+            MOCK_PRODUCTS.filter(
+              (p) =>
+                p.name.toLowerCase().includes(q) ||
+                (p.sku && p.sku.toLowerCase().includes(q)) ||
+                p.hsn_code.includes(q)
+            )
+          );
+        }
       } else {
-        setFilteredProducts([]);
+        if (!cancelled) setFilteredProducts([]);
       }
     }, 100);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [productQuery, shopId]);
 
   // ── Handlers ──
   const handleSelectCustomer = useCallback(
     (customer: SelectedCustomer) => {
+      const requestId = ++loyaltyRequestRef.current;
+
       // Set customer immediately with loyaltyPoints=0 for instant UI response
       actions.setCustomer(customer);
       setCustomerQuery(customer.phoneNumber);
@@ -234,11 +255,19 @@ export default function BillingPage() {
 
       // Lazy-load loyalty points in the background (non-blocking)
       if (SUPABASE_CONFIGURED && shopId) {
-        fetchCustomerLoyalty(customer.id, shopId).then((points) => {
-          if (points > 0) {
+        setLoyaltyLoadingCustomerId(customer.id);
+        fetchCustomerLoyalty(customer.id, shopId)
+          .then((points) => {
+            if (loyaltyRequestRef.current !== requestId) return;
             actions.setCustomer({ ...customer, loyaltyPoints: points });
-          }
-        });
+          })
+          .finally(() => {
+            if (loyaltyRequestRef.current === requestId) {
+              setLoyaltyLoadingCustomerId(null);
+            }
+          });
+      } else {
+        setLoyaltyLoadingCustomerId(null);
       }
     },
     [actions, shopId]
@@ -314,6 +343,13 @@ export default function BillingPage() {
     setIsSaving(true);
     setValidationErrors([]);
 
+    if (state.customer && loyaltyLoadingCustomerId === state.customer.id) {
+      setIsSaving(false);
+      setValidationErrors(['Customer loyalty balance is still loading. Please try again in a moment.']);
+      setTimeout(() => setValidationErrors([]), 4000);
+      return;
+    }
+
     if (SUPABASE_CONFIGURED && !shopId) {
       setIsSaving(false);
       setValidationErrors(['Shop context not loaded. Please sign in again.']);
@@ -324,7 +360,7 @@ export default function BillingPage() {
     // ── Build RPC payload ──
     const invoicePayload = {
       shop_id: shopId,
-      invoice_date: new Date().toISOString().split('T')[0],
+      invoice_date: getIndiaDate(),
       invoice_type: 'regular',
       document_type: state.totals.documentType,
       customer_id: state.customer?.id ?? null,
@@ -470,7 +506,7 @@ export default function BillingPage() {
       setValidationErrors(['Supabase is not configured. Enable demo mode explicitly to use mock billing.']);
       setTimeout(() => setValidationErrors([]), 5000);
     }
-  }, [state, shopId, actions]);
+  }, [state, shopId, actions, loyaltyLoadingCustomerId]);
 
   // ── Split-path checkout handler ──
   // UPI + shop has upi_id → show QR modal first, save on confirm
@@ -485,9 +521,26 @@ export default function BillingPage() {
       return;
     }
 
+    if (state.customer && loyaltyLoadingCustomerId === state.customer.id) {
+      setValidationErrors(['Customer loyalty balance is still loading. Please try again in a moment.']);
+      setSaveSuccess(false);
+      setTimeout(() => setValidationErrors([]), 4000);
+      return;
+    }
+
     // Validate first (same for all paths)
+    const indiaDate = getIndiaDate();
+    const financialYear = getIndianFinancialYear(indiaDate);
+    const validationShopId = DEMO_MODE
+      ? '00000000-0000-0000-0000-000000000000'
+      : shopId;
     const result = validateBillingState(
-      state, shopId, '2025-26', 'BG/2025-26/00001', 1, null
+      state,
+      validationShopId,
+      financialYear,
+      `BG/${financialYear}/00001`,
+      1,
+      null
     );
     if (!result.valid) {
       setValidationErrors(result.errors);
@@ -499,13 +552,14 @@ export default function BillingPage() {
     // ── UPI path: show QR modal, defer save ──
     if (state.paymentMode === 'upi' && shopUpiId) {
       pendingSaveRef.current = executeSave;
+      setPendingUpiTotalPaise(state.totals.totalPaise);
       setShowUpiModal(true);
       return;
     }
 
     // ── All other modes: save instantly ──
     await executeSave();
-  }, [state, shopId, isSaving, shopUpiId, executeSave]);
+  }, [state, shopId, isSaving, shopUpiId, executeSave, loyaltyLoadingCustomerId]);
 
   // ── Reserve as Sales Order ──
   const handleReserveSO = useCallback(async () => {
@@ -572,11 +626,13 @@ export default function BillingPage() {
       await pendingSaveRef.current();
       pendingSaveRef.current = null;
     }
+    setPendingUpiTotalPaise(null);
   }, []);
 
   const handleUpiCancel = useCallback(() => {
     setShowUpiModal(false);
     pendingSaveRef.current = null;
+    setPendingUpiTotalPaise(null);
   }, []);
 
   const handleNavigateUp = useCallback(() => {
@@ -609,6 +665,15 @@ export default function BillingPage() {
     }
   }, [state.activeLineIndex, state.lineItems.length, actions]);
 
+  const billingInteractionLocked =
+    showUpiModal ||
+    showRepaymentModal ||
+    showCreateCustomer ||
+    showOnlineOrders ||
+    isSaving ||
+    isReserving ||
+    repaymentProcessing;
+
   // ── Register keyboard shortcuts ──
   useKeyboardShortcuts(
     { customerSearchRef, productSearchRef, barcodeInputRef },
@@ -622,7 +687,8 @@ export default function BillingPage() {
       onIncrementQty: handleIncrementQty,
       onDecrementQty: handleDecrementQty,
       lineItemCount: state.lineItems.length,
-    }
+    },
+    billingInteractionLocked
   );
 
   const { handleKeyPress: handleBarcodeKeyPress } = useBarcodeScanner(handleBarcodeScan);
@@ -716,9 +782,9 @@ export default function BillingPage() {
                   className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
                 >
                   {/* Mini avatar */}
-                  <div className="w-6 h-6 rounded-full bg-gray-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                  <div className="relative w-6 h-6 rounded-full bg-gray-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
                     {c.photoUrl ? (
-                      <img src={c.photoUrl} alt="" className="w-full h-full object-cover" />
+                      <Image src={c.photoUrl} alt="" fill sizes="24px" unoptimized className="object-cover" />
                     ) : (
                       <span className="text-gray-500 text-[10px] font-bold">
                         {(c.name ?? c.phoneNumber).charAt(0).toUpperCase()}
@@ -769,15 +835,17 @@ export default function BillingPage() {
         {state.customer && (
           <div className="flex items-center gap-3">
             {/* Avatar — photo or initials */}
-            <div
-              className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 overflow-hidden
+            <button
+              type="button"
+              aria-label="Upload customer photo"
+              className="relative w-8 h-8 rounded-full bg-gray-800 border border-gray-700 overflow-hidden
                          flex-shrink-0 flex items-center justify-center cursor-pointer
                          hover:border-orange-500 transition-colors"
               title="Click to upload photo (optional)"
               onClick={() => customerPhotoRef.current?.click()}
             >
               {state.customer.photoUrl ? (
-                <img src={state.customer.photoUrl} alt="" className="w-full h-full object-cover" />
+                <Image src={state.customer.photoUrl} alt="" fill sizes="32px" unoptimized className="object-cover" />
               ) : (
                 <span className="text-gray-500 text-xs font-bold">
                   {(state.customer.name ?? state.customer.phoneNumber)
@@ -788,7 +856,7 @@ export default function BillingPage() {
                     .toUpperCase()}
                 </span>
               )}
-            </div>
+            </button>
             {/* Hidden file input for optional photo upload */}
             <input
               ref={customerPhotoRef}
@@ -921,6 +989,8 @@ export default function BillingPage() {
 
             <button
               onClick={() => {
+                loyaltyRequestRef.current += 1;
+                setLoyaltyLoadingCustomerId(null);
                 actions.setCustomer(null);
                 setCustomerQuery('');
                 setGstinDraft('');
@@ -1247,7 +1317,7 @@ export default function BillingPage() {
       {/* ── UPI Payment Modal ── */}
       <PaymentModal
         isOpen={showUpiModal}
-        totalPaise={state.totals.totalPaise}
+        totalPaise={pendingUpiTotalPaise ?? state.totals.totalPaise}
         shopName={shopName}
         shopUpiId={shopUpiId ?? ''}
         onConfirm={handleUpiConfirm}
@@ -1292,13 +1362,14 @@ export default function BillingPage() {
         isOpen={showCreateCustomer}
         prefillPhone={customerQuery.replace(/\D/g, '')}
         isSaving={isCreatingCustomer}
-        onSave={async (name, phone, photoFile) => {
+        onSave={async (name, phone, photoFile, marketingConsent) => {
           setIsCreatingCustomer(true);
           const { customer, error: createErr } = await createNewCustomer(
             shopId,
             name,
             phone,
-            photoFile
+            photoFile,
+            marketingConsent
           );
           setIsCreatingCustomer(false);
 
@@ -1310,6 +1381,8 @@ export default function BillingPage() {
 
           // Close modal + set as active customer
           setShowCreateCustomer(false);
+          loyaltyRequestRef.current += 1;
+          setLoyaltyLoadingCustomerId(null);
           actions.setCustomer(customer);
           setCustomerQuery(customer.phoneNumber);
           setSaveSuccess(`Customer "${customer.name}" created!`);

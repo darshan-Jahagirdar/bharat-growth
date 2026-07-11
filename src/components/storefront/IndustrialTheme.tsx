@@ -7,6 +7,7 @@
 
 import type { StorefrontShop, StorefrontProduct } from '@/lib/storefront/queries';
 import { WhatsAppButton } from './WhatsAppButton';
+import Image from 'next/image';
 
 interface IndustrialThemeProps {
   shop: StorefrontShop;
@@ -46,9 +47,12 @@ export function IndustrialTheme({ shop, products }: IndustrialThemeProps) {
         <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6">
           <div className="flex items-center gap-4">
             {shop.logo_url && (
-              <img
+              <Image
                 src={shop.logo_url}
                 alt={shop.business_name}
+                width={64}
+                height={64}
+                unoptimized
                 className="w-16 h-16 rounded-lg object-cover border-2 border-zinc-700"
               />
             )}
@@ -92,9 +96,12 @@ export function IndustrialTheme({ shop, products }: IndustrialThemeProps) {
                 >
                   {/* Product image */}
                   {product.image_url ? (
-                    <img
+                    <Image
                       src={product.image_url}
                       alt={product.name}
+                      width={640}
+                      height={360}
+                      unoptimized
                       className="w-full h-40 object-cover rounded-md mb-3 bg-zinc-800"
                     />
                   ) : (
