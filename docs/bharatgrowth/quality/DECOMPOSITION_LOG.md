@@ -105,6 +105,49 @@
   to `main` in one controlled pre-launch rollout.
 - The next action is Wave 1: Billing/POS characterization and ownership mapping.
 
+## Wave 1 in progress — 2026-07-12 — Billing/POS
+
+- Branch: `codex/decompose-billing-pos`, created from verified integration commit
+  `0ad2fb6`. Production `main`, production Supabase, and production Vercel remain
+  untouched.
+- Before ownership and LOC: `src/app/billing/page.tsx` owned shop loading,
+  realtime pending-order polling, both debounced searches, persistence payload
+  construction, payment/save/SO orchestration, customer actions, keyboard
+  wiring, and the complete 1,412-line view.
+- Current ownership and LOC: the page is 739 lines and remains the business
+  workflow controller. Five focused view components own the existing header,
+  customer strip, product search, line-item grid, and totals/actions footer.
+  Tested pure builders own invoice/loyalty/SO payloads; dedicated hooks own
+  debounced search and shop/realtime context. Payment cycle labels are shared in
+  one constant module.
+- Behavior contracts exercised: integer-paise invoice and item payloads,
+  customer snapshots, loyalty earn/running-balance rules, walk-in behavior,
+  valid-product SO filtering, current payment cycle, global function keys,
+  modal interaction lock, input-safe row shortcuts, barcode minimum length,
+  customer/product debounce timing, stale-response rejection, view action
+  wiring, totals, document type, and pending-order control.
+- Automated checks: 34 focused Billing/POS tests pass. The full repository has
+  51 passing tests across 11 files; strict TypeScript and ESLint pass with zero
+  warnings. The optimized Next.js build passes and generates all 25 routes,
+  including `/billing`.
+- Safety checks: `git diff --check` passes. A targeted secret scan found only
+  expected configuration names/placeholders and SQL role grants; no credential
+  value was introduced. Untracked design packages remain excluded.
+- Manual checks: pending staging preview. Cash/UPI/card/credit, barcode/focus,
+  print, stock, khata/repayment, loyalty, SO reserve, and modal blocking have not
+  yet been claimed as manually passed.
+- Visual comparison: pending. Local server binding was sandbox-denied, and the
+  required port escalation was unavailable because the Codex allowance was
+  exhausted. No bypass was attempted.
+- Commit / PR / preview: pending. The wave must not merge until local or preview
+  browser verification, CI, Vercel staging preview, visual comparison, and the
+  targeted manual smoke pass.
+- Production result: no production change.
+- Rollback point: integration commit `0ad2fb6`; production fallback remains
+  `pre-hardening-8c38909`.
+- Known follow-ups kept out of scope: all feature changes, schema changes,
+  opportunistic bug fixes, contract migration 049, and launch-feature work.
+
 ## Wave entry template
 
 ```text
