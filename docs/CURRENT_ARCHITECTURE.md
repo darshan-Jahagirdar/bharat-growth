@@ -1,5 +1,8 @@
 # BharatGrowth Current Architecture
 
+> Historical architecture detail. The maintained overview is
+> [`docs/bharatgrowth/architecture/CURRENT_ARCHITECTURE.md`](bharatgrowth/architecture/CURRENT_ARCHITECTURE.md).
+
 Last verified from local code: July 7, 2026.
 
 ## Runtime Stack

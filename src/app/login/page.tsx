@@ -273,25 +273,6 @@ export default function LoginPage() {
                 </button>
               )}
 
-              {process.env.NODE_ENV !== 'production' && (
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const { createClient } = await import('@/lib/supabase/client');
-                      const supabase = createClient();
-                      const { error: devErr } = await supabase.auth.signInWithPassword({
-                        email: 'dev@bharatgrowth.in',
-                        password: 'devpass123',
-                      });
-                      if (!devErr) window.location.href = '/billing';
-                    }}
-                    className="text-xs text-yellow-600 hover:text-yellow-500 underline"
-                  >
-                    Dev: Login as Ganesh Tyres
-                  </button>
-                </div>
-              )}
             </div>
           )}
 

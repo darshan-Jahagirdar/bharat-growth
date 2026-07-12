@@ -16,6 +16,7 @@ interface ScannedItem {
 }
 
 const MAX_IMAGE_BASE64_CHARS = 7_000_000;
+const ANTHROPIC_VISION_MODEL = 'claude-sonnet-5';
 const SUPPORTED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -97,7 +98,7 @@ Return ONLY the JSON array. Example: [{"raw_name":"MRF ZLX 155/80 R13","quantity
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: ANTHROPIC_VISION_MODEL,
           max_tokens: 2048,
           system: systemPrompt,
           messages: [
@@ -120,8 +121,7 @@ Return ONLY the JSON array. Example: [{"raw_name":"MRF ZLX 155/80 R13","quantity
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        console.error('[VisionScan] Anthropic API error:', res.status, errText);
+        console.error('[VisionScan] Anthropic API error:', res.status);
         return NextResponse.json(
           { error: `AI service error (${res.status})` },
           { status: 502 }
@@ -174,8 +174,7 @@ Return ONLY the JSON array. Example: [{"raw_name":"MRF ZLX 155/80 R13","quantity
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        console.error('[VisionScan] OpenAI API error:', res.status, errText);
+        console.error('[VisionScan] OpenAI API error:', res.status);
         return NextResponse.json(
           { error: `AI service error (${res.status})` },
           { status: 502 }

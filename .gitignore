@@ -10,16 +10,23 @@ __pycache__
 
 # production
 /build
+/coverage/
+/playwright-report/
+/test-results/
 
 # misc
 .DS_Store
 *.pem
+.claude/settings.local.json
 
 # debug
 npm-debug.log*
 
 # env files (secrets)
 .env*.local
+
+# local Supabase CLI link/cache
+/supabase/.temp/
 
 # vercel
 .vercel

@@ -32,7 +32,7 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: user does not belong to shop %', p_shop_id;
   END IF;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
 
 REVOKE EXECUTE ON FUNCTION assert_authenticated_shop(uuid) FROM PUBLIC;
 

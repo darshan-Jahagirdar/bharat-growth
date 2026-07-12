@@ -322,17 +322,18 @@ INSERT INTO tags (id, shop_id, name) VALUES
 ('f0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'Sweets'),
 ('f0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003', 'Garments');
 
--- Campaign rules (ACTIVE in dev seed so the cron matches out of the box)
+-- Campaign rules stay INACTIVE in shared staging. Test code may activate one
+-- rule deliberately after confirming messaging is in simulation mode.
 INSERT INTO campaign_rules (id, shop_id, tag_id, name, trigger_days, template_key, custom_variable, is_active, message_template) VALUES
 ('f1000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001',
  'f0000000-0000-0000-0000-000000000001',
- 'Free alignment check · 6 months', 180, 'RESTOCK', 'a free wheel alignment & rotation check', true, NULL),
+ 'Free alignment check · 6 months', 180, 'RESTOCK', 'a free wheel alignment & rotation check', false, NULL),
 ('f1000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002',
  'f0000000-0000-0000-0000-000000000002',
- 'Fresh sweets nudge · 25 days', 25, 'RESTOCK', 'fresh sweets, made today', true, NULL),
+ 'Fresh sweets nudge · 25 days', 25, 'RESTOCK', 'fresh sweets, made today', false, NULL),
 ('f1000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003',
  'f0000000-0000-0000-0000-000000000003',
- 'New season collection · 6 months', 170, 'NEW_ARRIVAL', 'the new season collection', true, NULL);
+ 'New season collection · 6 months', 170, 'NEW_ARRIVAL', 'the new season collection', false, NULL);
 
 -- Tag the relevant products
 UPDATE products SET tag_id = 'f0000000-0000-0000-0000-000000000001'

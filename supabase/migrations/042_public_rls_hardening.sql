@@ -1,21 +1,10 @@
 -- =========================================================================
--- Migration 042: Public RLS hardening
+-- Migration 042: Additive public-access RPCs
 --
--- Anonymous clients must never receive blanket table-level SELECT access to
--- private financial, identity, or margin data. Public pages now use narrowly
--- scoped column grants and SECURITY DEFINER RPCs.
+-- EXPAND PHASE ONLY. The existing anonymous grants and policies intentionally
+-- remain compatible until the application using these RPCs is deployed and
+-- verified. A later contract migration will remove obsolete table access.
 -- =========================================================================
-
--- -------------------------------------------------------------------------
--- Public receipts: treat the invoice UUID as the bearer secret, but return
--- only the single receipt requested instead of exposing both source tables.
--- -------------------------------------------------------------------------
-
-DROP POLICY IF EXISTS "Public read invoice by id" ON invoices;
-DROP POLICY IF EXISTS "Public read invoice items by invoice_id" ON invoice_items;
-
-REVOKE SELECT ON TABLE invoices FROM anon;
-REVOKE SELECT ON TABLE invoice_items FROM anon;
 
 CREATE OR REPLACE FUNCTION get_public_receipt(p_invoice_id uuid)
 RETURNS jsonb AS $$
@@ -74,64 +63,6 @@ $$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
 
 REVOKE ALL ON FUNCTION get_public_receipt(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION get_public_receipt(uuid) TO anon, authenticated;
-
--- -------------------------------------------------------------------------
--- Storefront shop profile: preserve public rows, restrict visible columns.
--- Sensitive GST, PAN, contact, UPI, subscription, settings, and quota fields
--- stay inaccessible to anonymous REST callers.
--- -------------------------------------------------------------------------
-
-REVOKE SELECT ON TABLE shops FROM anon;
-GRANT SELECT (
-  id,
-  business_name,
-  business_type,
-  city,
-  state_code,
-  logo_url,
-  theme_preference,
-  primary_color
-) ON TABLE shops TO anon;
-
--- -------------------------------------------------------------------------
--- Public catalog: selling data is public; purchase price and internal tagging
--- are not. The existing active-product RLS policy still limits visible rows.
--- -------------------------------------------------------------------------
-
-REVOKE SELECT ON TABLE products FROM anon;
-GRANT SELECT (
-  id,
-  shop_id,
-  name,
-  sku,
-  hsn_code,
-  gst_rate_percent,
-  selling_price_paise,
-  unit,
-  category,
-  is_active,
-  barcode,
-  vertical_attrs,
-  image_url,
-  is_stock_tracked
-) ON TABLE products TO anon;
-
--- Public pages need only the current quantity for stock-tracked catalog items.
-REVOKE SELECT ON TABLE inventory FROM anon;
-GRANT SELECT (
-  id,
-  shop_id,
-  product_id,
-  quantity_in_stock
-) ON TABLE inventory TO anon;
-
--- -------------------------------------------------------------------------
--- Storefront owner phone: expose one value for one requested shop instead of
--- granting anonymous access to every users row and column.
--- -------------------------------------------------------------------------
-
-DROP POLICY IF EXISTS "Public read owner phone" ON users;
-REVOKE SELECT ON TABLE users FROM anon;
 
 CREATE OR REPLACE FUNCTION get_storefront_owner_phone(p_shop_id uuid)
 RETURNS text AS $$

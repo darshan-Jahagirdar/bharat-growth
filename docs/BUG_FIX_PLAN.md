@@ -1,5 +1,8 @@
 # BharatGrowth — Bug Fix Plan
 
+> Historical detailed audit. Canonical current status and rollout evidence live
+> in [`docs/bharatgrowth/quality/BUG_FIX_PLAN.md`](bharatgrowth/quality/BUG_FIX_PLAN.md).
+
 Source: deep code audit (commit `8c38909` + Bring-Back branch), verified against all 41 migrations.
 Scope note: three audit items were resolved as **not bugs** by product decision —
 discounts (design pending), SO-conversion loyalty/attribution (not required), and

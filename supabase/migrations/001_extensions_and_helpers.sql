@@ -28,13 +28,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- ── Resolve current user's shop_id ──
--- Wraps auth.uid() in (SELECT ...) for initplan optimization
-CREATE OR REPLACE FUNCTION get_current_shop_id()
-RETURNS uuid AS $$
-  SELECT shop_id FROM public.users WHERE id = (SELECT auth.uid());
-$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
-
 -- ── Consent log immutability enforcer (DPDP Act 2026) ──
 CREATE OR REPLACE FUNCTION prevent_consent_log_mutation()
 RETURNS trigger AS $$

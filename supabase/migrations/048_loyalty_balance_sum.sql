@@ -1,9 +1,9 @@
 -- =========================================================================
--- Migration 045: Loyalty running-balance integrity
+-- Migration 048: Make loyalty balance derivation order-independent
 --
--- The ledger balance is derived in the database under a per-customer lock.
--- Client-provided running_balance values are ignored, preventing stale UI
--- state or concurrent invoices from corrupting the loyalty ledger.
+-- Multiple ledger rows can share a timestamp and UUID order is not insertion
+-- order. Derive the new balance from the sum of prior points while holding the
+-- existing per-customer advisory lock.
 -- =========================================================================
 
 CREATE OR REPLACE FUNCTION set_loyalty_running_balance()
@@ -33,9 +33,3 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 REVOKE ALL ON FUNCTION set_loyalty_running_balance() FROM PUBLIC;
-
-DROP TRIGGER IF EXISTS enforce_loyalty_running_balance ON loyalty_ledger;
-CREATE TRIGGER enforce_loyalty_running_balance
-  BEFORE INSERT ON loyalty_ledger
-  FOR EACH ROW
-  EXECUTE FUNCTION set_loyalty_running_balance();

@@ -1,5 +1,8 @@
 # BharatGrowth — Fix Checklist
 
+> Historical review checklist. Canonical current release gates live in
+> [`docs/bharatgrowth/quality/FIX_CHECKLIST.md`](bharatgrowth/quality/FIX_CHECKLIST.md).
+
 Prioritized action list from the July 7, 2026 code review. Ordered by risk: P0 items are
 security/compliance/broken-feature blockers, P3 items gate the paid/public launch.
 Check items off as they land; each item lists how to verify it's actually fixed.
