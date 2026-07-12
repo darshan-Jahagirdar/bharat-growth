@@ -19,11 +19,13 @@
 ### Current baseline preview evidence — 2026-07-12
 
 - Draft PR: [#1](https://github.com/darshan-Jahagirdar/bharat-growth/pull/1)
-- Commit: `73786aff108c144fd2f074c301bb62766e3d4539`
-- Vercel deployment: `dpl_AropTWZdDSNN7ZJ7pLnuVDr84vKj` (`READY`)
+- Verified commit: `eb28f6d6ccc0af74ea688f819f85488695bc3292`
+- Vercel deployment: `dpl_5L6bJqEB2aHQaifK1KE8WoAQHyqT` (`READY`)
 - Supabase target: staging `qokaaggeqahayxsybgds`
 - Public bundle scan: staging ref present; production ref absent.
 - Login page: expected controls rendered with no Next.js error overlay.
+- GitHub checks: `quality` and `public-smoke` passed.
+- Runtime logs: no error or fatal entries for the verified deployment.
 
 ## Production gate
 

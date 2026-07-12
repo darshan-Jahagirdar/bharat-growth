@@ -12,6 +12,16 @@ Production project ref: `vyycczqhvsgkiqtxxxos`.
   unexpected policy/grant removal, or an unreviewed target.
 - Never test destructive behavior with production customer data.
 
+## Pre-launch production identity gate
+
+- Before the production application/database rollout, delete
+  `dev@bharatgrowth.in` from production `auth.users` and delete its matching
+  `public.users` row.
+- Resolve and verify the exact production user ID before either deletion; do not
+  identify the row by a guessed ID.
+- Verify that neither table contains the account after deletion and record the
+  evidence in the decomposition log. Do not print credentials or tokens.
+
 ## Staging preparation
 
 1. The owner selects which non-production Free Plan project to pause.

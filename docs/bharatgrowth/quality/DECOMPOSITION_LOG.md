@@ -57,6 +57,42 @@
   25-route production build, and the Playwright public smoke test all pass.
   Linked schema lint has no errors and retains two documented historical
   unused-variable warnings.
+- Follow-up commit `eb28f6d` passed both GitHub jobs (`quality` and
+  `public-smoke`). Vercel deployment `dpl_5L6bJqEB2aHQaifK1KE8WoAQHyqT` is
+  `READY`, reported no error/fatal runtime logs, rendered the login controls
+  without a framework overlay, and again exposed only the staging project ref
+  in its public bundle.
+
+## Context re-established — 2026-07-12
+
+- Re-read the canonical repository brief, plan, log, migration runbook, and bug
+  status. Live evidence below replaces remembered state.
+- Git: branch `codex/production-hardening-baseline` at `eb28f6d`; `main`,
+  `origin/main`, and fallback tag `pre-hardening-8c38909` all resolve to
+  `8c38909`.
+- GitHub: draft PR
+  [#1](https://github.com/darshan-Jahagirdar/bharat-growth/pull/1) targets
+  `main`, is cleanly mergeable, and has successful `quality`, `public-smoke`,
+  and Vercel checks.
+- Vercel: preview `dpl_5L6bJqEB2aHQaifK1KE8WoAQHyqT` is `READY` for
+  `eb28f6d`, uses branch-scoped staging Supabase variables, and has no recorded
+  error/fatal runtime logs. Production remains `dpl_9dTAW9EXiKNpreMT6WKL2JyYryxc`
+  at `8c38909`.
+- Supabase: the local link is staging `qokaaggeqahayxsybgds`; local and remote
+  migration ledgers match exactly for 001-048. Linked lint has no errors and the
+  same two historical unused-variable warnings.
+- Workspace: retained the two verified evidence-doc edits and the authoritative
+  `CODEX_BRIEF.md` for this documentation checkpoint. Untracked design packages
+  under `designs/`, `designs_mobile/`, and `docs/bharatgrowth/design/` are
+  preserved but excluded from the checkpoint and decomposition scope.
+- Drive: the shared-folder `AGENTS.md` and `PROJECT_HANDOFF.md` currently describe
+  the separate Taste project, so they were not used as BharatGrowth instructions
+  and will not be overwritten. A BharatGrowth-specific status artifact is needed.
+- Current phase: baseline documentation checkpoint before decomposition.
+- Planned next wave: Billing/POS. Start is blocked until Darshan resolves whether
+  each wave is production-deployed before the next, as required by the current
+  per-wave gate, or all waves merge to the hardening integration branch with
+  staging smoke before the single pre-launch production rollout in the brief.
 
 ## Wave entry template
 

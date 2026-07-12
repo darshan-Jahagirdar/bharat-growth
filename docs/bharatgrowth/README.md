@@ -28,6 +28,7 @@ CSS under `src/`, plus 7,938 lines of SQL under `supabase/`.
 - [Deployment and rollback](operations/DEPLOYMENT_AND_ROLLBACK.md)
 - [Manual regression checklist](testing/MANUAL_REGRESSION_CHECKLIST.md)
 - [Mac setup checklist](setup/MAC_MIGRATION_CHECKLIST.md)
+- [Codex context and process brief](CODEX_BRIEF.md)
 
 The older files in `docs/` are retained as audit inputs. If they disagree with
 this directory, update this directory and record the evidence in the
