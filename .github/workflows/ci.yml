@@ -22,7 +22,13 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
-      - run: npm run build
+      - name: Build
+        run: npm run build
+        env:
+          # Build-time placeholders only. CI must never depend on a live
+          # Supabase project or store deployment credentials.
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-placeholder
 
   public-smoke:
     runs-on: ubuntu-latest

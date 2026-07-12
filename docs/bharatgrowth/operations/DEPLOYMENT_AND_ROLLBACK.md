@@ -16,6 +16,15 @@
 4. Run browser, API, and database smoke tests.
 5. Inspect build/runtime errors before approving the PR.
 
+### Current baseline preview evidence — 2026-07-12
+
+- Draft PR: [#1](https://github.com/darshan-Jahagirdar/bharat-growth/pull/1)
+- Commit: `73786aff108c144fd2f074c301bb62766e3d4539`
+- Vercel deployment: `dpl_AropTWZdDSNN7ZJ7pLnuVDr84vKj` (`READY`)
+- Supabase target: staging `qokaaggeqahayxsybgds`
+- Public bundle scan: staging ref present; production ref absent.
+- Login page: expected controls rendered with no Next.js error overlay.
+
 ## Production gate
 
 1. Apply compatible database expansion first and verify it.

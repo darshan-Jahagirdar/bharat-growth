@@ -24,6 +24,9 @@ npm-debug.log*
 
 # env files (secrets)
 .env*.local
+.env
+.env.*
+!.env.example
 
 # local Supabase CLI link/cache
 /supabase/.temp/

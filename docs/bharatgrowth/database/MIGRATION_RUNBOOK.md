@@ -21,6 +21,17 @@ Production project ref: `vyycczqhvsgkiqtxxxos`.
 5. Load only synthetic/sanitized fixtures and create dedicated test users.
 6. Verify migration history before testing the new migrations.
 
+### Verified staging baseline — 2026-07-12
+
+- Project ref: `qokaaggeqahayxsybgds`; production was not linked or changed.
+- Migrations 001-048 reproduced successfully from an empty project.
+- Synthetic seed loaded; no production/customer data was copied.
+- The deployed preview uses publishable and secret API keys. Legacy JWT-based
+  API keys are disabled and the previous HS256 signing key is revoked.
+- Read-only verification: legacy service-role access returns HTTP 401, modern
+  secret admin access passes, public receipt RPC passes, and anonymous customer
+  reads remain blocked.
+
 ## Expand / application / contract
 
 1. **Expand:** migration 042 creates constrained public RPCs without removing the
