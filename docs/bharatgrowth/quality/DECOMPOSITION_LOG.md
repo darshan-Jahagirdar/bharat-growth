@@ -105,6 +105,72 @@
   to `main` in one controlled pre-launch rollout.
 - The next action is Wave 1: Billing/POS characterization and ownership mapping.
 
+## Wave 1 verified, pending merge — 2026-07-13 — Billing/POS
+
+- Branch: `codex/decompose-billing-pos`, created from verified integration commit
+  `0ad2fb6`. Production `main`, production Supabase, and production Vercel remain
+  untouched.
+- Before ownership and LOC: `src/app/billing/page.tsx` owned shop loading,
+  realtime pending-order polling, both debounced searches, persistence payload
+  construction, payment/save/SO orchestration, customer actions, keyboard
+  wiring, and the complete 1,412-line view.
+- Current ownership and LOC: the page is 739 lines and remains the business
+  workflow controller. Five focused view components own the existing header,
+  customer strip, product search, line-item grid, and totals/actions footer.
+  Tested pure builders own invoice/loyalty/SO payloads; dedicated hooks own
+  debounced search and shop/realtime context. Payment cycle labels are shared in
+  one constant module.
+- Behavior contracts exercised: integer-paise invoice and item payloads,
+  customer snapshots, loyalty earn/running-balance rules, walk-in behavior,
+  valid-product SO filtering, current payment cycle, global function keys,
+  modal interaction lock, input-safe row shortcuts, barcode minimum length,
+  customer/product debounce timing, stale-response rejection, view action
+  wiring, totals, document type, and pending-order control.
+- Automated checks: 34 focused Billing/POS tests pass. The full repository has
+  51 passing tests across 11 files; strict TypeScript and ESLint pass with zero
+  warnings. The optimized Next.js build passes and generates all 25 routes,
+  including `/billing`.
+- Safety checks: `git diff --check` passes. A targeted secret scan found only
+  expected configuration names/placeholders and SQL role grants; no credential
+  value was introduced. Untracked design packages remain excluded.
+- Preview isolation gate: the first PR preview
+  `dpl_9EmKXPDG1ybXybefHcAmTtLDEPK7` was stopped before authentication because
+  its client bundle contained production ref `vyycczqhvsgkiqtxxxos` and not
+  staging. Vercel staging variables had been scoped only to the integration
+  branch. The same three staging values were copied as encrypted overrides for
+  `codex/decompose-billing-pos`; no production variable was changed. Rebuilt
+  preview `dpl_7wXKjeFeJAGKSCACR8RHgJ5aqgYW` is `READY`, and all seven loaded
+  application chunks contain staging ref `qokaaggeqahayxsybgds` with no
+  production ref.
+- Staging Auth safety: the stable Wave 1 branch alias was added as the only
+  redirect allowlist entry on project `qokaaggeqahayxsybgds`. Disposable test
+  users were provisioned out of band, linked to synthetic Ganesh Tyres data,
+  and deleted after verification. Temporary key, credential, link, and helper
+  files were deleted. No production authentication was attempted.
+- Targeted manual smoke: Billing rendered Ganesh Tyres in tax-invoice mode with
+  no framework overlay or captured console errors. F2/F3 focus, real staging
+  customer/product search, cart insertion, plus/minus quantity shortcuts, F8
+  payment cycling, F4 reset, customer/loyalty rendering, Sales Order reserve,
+  and a walk-in cash save passed. Database evidence: reserved
+  `SO/2026-27/00001` for 448,000 paise and completed cash invoice
+  `BG/2026-27/00001` for 448,000 paise. CEAT stock correctly remained 24 because
+  that seed product is not stock tracked. Full cash/UPI/card/credit, print,
+  khata/repayment, and tracked-stock regression remains part of the final manual
+  hard-test checklist before sale.
+- Visual comparison: the pre-wave integration Billing page and Wave 1 Billing
+  page matched exactly at the same viewport: 0 changed pixels out of 810,240
+  (0% difference).
+- Commit / PR / preview: commit `d2ca49e` is pushed in draft PR
+  [#2](https://github.com/darshan-Jahagirdar/bharat-growth/pull/2), targeting
+  `codex/production-hardening-baseline`. GitHub `quality`, `public-smoke`,
+  Vercel, and preview-comment checks all pass. The corrected staging preview is
+  `dpl_7wXKjeFeJAGKSCACR8RHgJ5aqgYW`.
+- Production result: no production change.
+- Rollback point: integration commit `0ad2fb6`; production fallback remains
+  `pre-hardening-8c38909`.
+- Known follow-ups kept out of scope: all feature changes, schema changes,
+  opportunistic bug fixes, contract migration 049, and launch-feature work.
+
 ## Wave entry template
 
 ```text
