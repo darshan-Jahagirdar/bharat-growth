@@ -205,7 +205,7 @@
 - Extraction has not started. This checkpoint is the rollback boundary for
   distinguishing the pre-extraction safety net from subsequent file movement.
 
-## Wave 2 implementation verified locally, pending preview — 2026-07-13 — Orders
+## Wave 2 verified, pending merge — 2026-07-13 — Orders
 
 - Branch: `codex/decompose-orders`, based on verified integration commit
   `e6b58e3`; characterization checkpoint commit `531ea11` predates extraction.
@@ -231,8 +231,50 @@
   exports, prop typing, and semantic controls pass the project checklist.
   Pre-existing toast-timer cleanup and title-only icon-button accessibility were
   intentionally not changed inside this decomposition-only wave.
-- Manual staging smoke, visual comparison, PR, and preview isolation remain
-  required before merge. Production remains unchanged.
+- PR and preview: draft PR
+  [#3](https://github.com/darshan-Jahagirdar/bharat-growth/pull/3) targets
+  `codex/production-hardening-baseline`. Code commit `4f13861` follows the
+  pre-extraction test commit `531ea11`.
+- Preview isolation: the first automatic preview
+  `dpl_EjigdLuusohcSWHq1AL9deRikyiA` predated Wave 2 branch overrides and was
+  discarded without app authentication. The next rebuild proved the staging
+  client ref but exposed that Supabase's Management API returns existing secret
+  keys in a non-usable form; that redacted value had been copied only to the
+  Wave 2 Preview branch. No production value was changed.
+- Staging credential repair: a new secret key named
+  `codex_decomposition_previews` was created only in staging, validated with a
+  service-role REST read, stored in macOS Keychain, and scoped to the Wave 2
+  Preview branch. It is intended for later decomposition preview branches and
+  must be revoked after the decomposition waves. Final deployment
+  `dpl_FmhQsYMSWj3gcGip9nEHb3rQRy9p` is READY. All eight loaded client chunks
+  contain staging ref `qokaaggeqahayxsybgds`, contain no production ref, and
+  contain no framework-overlay marker.
+- Visual comparison: the authenticated integration and Wave 2 Orders pages at
+  1440x900 matched exactly: 0 changed pixels out of 1,296,000 (0% difference).
+- Targeted staging smoke: real Ganesh Tyres sales data rendered; sales and
+  purchase tab lazy loading, active counts, row expansion, item math, notes,
+  exact WhatsApp URLs, sales payment choices, credit warning, payment reset,
+  and a dismissed cancellation confirmation all passed. No uncaught page error
+  occurred. An injected Vercel-toolbar Google/FedCM console error was observed
+  and is not emitted by the application.
+- PO conversion evidence: synthetic `PO/2026-27/00001` for 210,000 paise moved
+  from sent to fulfilled, created purchase bill
+  `b62f40cb-5eef-4927-a3ab-2b7de559b49a`, and wrote a +1 purchase movement to
+  quantity 31. The fulfilled row hid Receive and Cancel actions.
+- SO conversion evidence: synthetic walk-in `SO/2026-27/00002` moved from
+  reserved to fulfilled, created completed cash invoice
+  `BG/2026-27/00002` for 268,800 paise, and wrote a -1 sale movement to quantity
+  30. No customer, credit, loyalty, or receipt-delivery side effect was added.
+- Pagination note: current staging data does not reach the 50-row Load More
+  threshold, so browser pagination was not manufactured by flooding staging.
+  The pre-extraction characterization test verifies both SO and PO append calls
+  use the current list length and preserve returned rows/has-more state.
+- Auth and artifact cleanup: the disposable Wave 2 auth user was deleted; zero
+  matching auth users and zero matching `public.users` rows remain. All temporary
+  credentials, bypass-cookie jars, env pulls, and screenshots were deleted and
+  the isolated browser session was cleared and closed.
+- Production result: no production database, deployment, environment, or
+  `main` change. Rollback point remains integration commit `e6b58e3`.
 
 ## Wave entry template
 
