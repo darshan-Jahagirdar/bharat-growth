@@ -94,6 +94,17 @@
   per-wave gate, or all waves merge to the hardening integration branch with
   staging smoke before the single pre-launch production rollout in the brief.
 
+## Process decision — 2026-07-12
+
+- Darshan approved the integration/staging branch model.
+- Each wave gets an independently revertible PR into
+  `codex/production-hardening-baseline`, followed by CI, staging preview, visual
+  comparison, and targeted manual smoke before merge.
+- Production `main` remains unchanged until all seven waves and all approved
+  launch features are staging-verified. The final integration result then merges
+  to `main` in one controlled pre-launch rollout.
+- The next action is Wave 1: Billing/POS characterization and ownership mapping.
+
 ## Wave entry template
 
 ```text

@@ -11,6 +11,18 @@
   under 300 lines and focused components under 250 lines after completion.
 - Do not refactor generated/general UI primitives without evidence of a defect.
 
+## Integration strategy
+
+- `codex/production-hardening-baseline` is the integration/staging branch and
+  remains the head of draft PR #1 to `main`.
+- Each wave uses a short-lived `codex/decompose-*` branch and an independently
+  revertible PR targeting the integration branch.
+- A wave merges into the integration branch only after CI, staging preview,
+  visual comparison, targeted manual smoke, and its log entry pass.
+- Production remains unchanged until all seven waves and every approved launch
+  feature are staging-verified. The reviewed integration result then merges to
+  `main` for the single controlled pre-launch rollout.
+
 ## Waves
 
 1. **Billing/POS:** data loading, customer/product search, sale actions, SO/UPI
@@ -34,4 +46,5 @@
 - Relevant browser flows and visual baselines match.
 - Payloads and exported interfaces are unchanged.
 - Decomposition log contains commit, PR, preview, checks, and rollback point.
-- Previous wave is merged and production-smoked before the next wave begins.
+- Previous wave is merged into the integration branch and staging-smoked before
+  the next wave begins.

@@ -3,7 +3,10 @@
 ## Branch flow
 
 - `main` is production and is never an editing branch.
-- Work occurs on `codex/*` branches and is merged through reviewed PRs.
+- `codex/production-hardening-baseline` is the integration/staging branch and
+  remains the head of the final PR to `main`.
+- Each decomposition wave uses a short-lived `codex/decompose-*` branch and a
+  reviewed PR targeting the integration branch.
 - GitHub CI must pass before merge.
 - Vercel Git integration creates branch previews; direct `vercel --prod` is not
   the normal release path.

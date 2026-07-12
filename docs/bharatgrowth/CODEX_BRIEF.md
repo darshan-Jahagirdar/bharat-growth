@@ -97,3 +97,11 @@ Once decomposition + prod rollout are done and verified, Darshan's sequence is:
 
 — End of brief. Acknowledge by logging a context-re-established entry in
 `DECOMPOSITION_LOG.md` and posting your first Slack status update.
+
+## Decision addendum — 2026-07-12
+
+Darshan approved `codex/production-hardening-baseline` as the integration/staging
+branch. Each decomposition wave merges through its own PR into that branch and
+is staging-smoked before the next wave. Production `main` remains unchanged
+until all seven waves and approved launch features pass staging, followed by the
+single controlled pre-launch production rollout.
