@@ -205,6 +205,35 @@
 - Extraction has not started. This checkpoint is the rollback boundary for
   distinguishing the pre-extraction safety net from subsequent file movement.
 
+## Wave 2 implementation verified locally, pending preview — 2026-07-13 — Orders
+
+- Branch: `codex/decompose-orders`, based on verified integration commit
+  `e6b58e3`; characterization checkpoint commit `531ea11` predates extraction.
+- Current ownership and LOC: the Orders route fell from 1,127 to 82 lines and
+  now composes focused views. A 207-line controller hook owns the unchanged auth,
+  eager/lazy loading, pagination, conversion, cancellation, and toast workflows.
+  Shared presentation helpers own status configuration, payment choices, dates,
+  actionable-state rules, phone normalization, and WhatsApp URL construction.
+  Focused components own the header/tabs, sales panel, purchase panel, shared
+  item expansion, status badge, pagination button, conversion dialog, and toast.
+  The largest focused component is 248 lines. The 431-line query module remains
+  unchanged for the later data-access wave.
+- Behavior contracts exercised: sales-first and one-time purchase lazy loading,
+  list-length pagination offsets, shop-scoped cancellation calls and confirmation
+  text, status/action visibility, expanded item math and notes, exact WhatsApp
+  message content and phone normalization, payment selection, conversion RPC
+  arguments, reloads, and success output.
+- Automated checks: 9 Orders-focused tests pass. The full repository has 60
+  passing tests across 13 files; strict TypeScript and repository-wide ESLint
+  pass with zero warnings. The optimized Next.js build passes all 25 routes,
+  including `/dashboard/orders`.
+- React review: component boundaries, hook dependencies, stable keys, named
+  exports, prop typing, and semantic controls pass the project checklist.
+  Pre-existing toast-timer cleanup and title-only icon-button accessibility were
+  intentionally not changed inside this decomposition-only wave.
+- Manual staging smoke, visual comparison, PR, and preview isolation remain
+  required before merge. Production remains unchanged.
+
 ## Wave entry template
 
 ```text
