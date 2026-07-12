@@ -171,6 +171,40 @@
 - Known follow-ups kept out of scope: all feature changes, schema changes,
   opportunistic bug fixes, contract migration 049, and launch-feature work.
 
+## Context re-established — 2026-07-13 — before Wave 2 Orders
+
+- Re-read `CODEX_BRIEF.md`, the behavior contracts, the decomposition plan, and
+  the current decomposition log before changing Orders code.
+- Git: `codex/decompose-orders` was created from verified integration commit
+  `e6b58e3`. Remote `main` remains `8c38909`; fallback tag
+  `pre-hardening-8c38909` dereferences to the same commit.
+- Supabase: the local project link is staging `qokaaggeqahayxsybgds`. The
+  Supabase CLI 2.109.0 connected but did not render migration-list rows, so the
+  official read-only Management API was used instead. It returned exactly 48
+  continuous ledger versions, `001` through `048`, with `048` named
+  `loyalty_balance_sum`.
+- Workspace: untracked `designs/`, `designs_mobile/`, and
+  `docs/bharatgrowth/design/` remain preserved and excluded.
+- Current phase: Wave 2 Orders characterization and ownership mapping. No
+  Orders source has been changed at this checkpoint.
+
+## Wave 2 characterization checkpoint — 2026-07-13 — Orders
+
+- Before ownership and LOC: `src/app/dashboard/orders/page.tsx` is 1,127 lines
+  and owns authentication/shop context, eager sales-order loading, lazy
+  purchase-order loading, pagination, conversion and cancellation orchestration,
+  status presentation, date and WhatsApp formatting, both order tables,
+  expansion rows, the conversion modal, and toast output. The existing
+  `src/lib/orders/orderQueries.ts` data-access module is 431 lines and remains
+  unchanged in this wave.
+- Five characterization tests pass against the unchanged page. They freeze the
+  initial sales load and one-time purchase lazy load, list-length pagination
+  offsets, expanded item/note output, sales and purchase WhatsApp payloads,
+  payment selection, conversion reloads, confirmation copy, and shop-scoped
+  cancellation arguments.
+- Extraction has not started. This checkpoint is the rollback boundary for
+  distinguishing the pre-extraction safety net from subsequent file movement.
+
 ## Wave entry template
 
 ```text
