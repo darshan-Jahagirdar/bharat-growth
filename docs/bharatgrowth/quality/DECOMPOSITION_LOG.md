@@ -276,6 +276,37 @@
 - Production result: no production database, deployment, environment, or
   `main` change. Rollback point remains integration commit `e6b58e3`.
 
+## Context re-established — 2026-07-13 — before Wave 3 Products
+
+- Re-read `CODEX_BRIEF.md`, the canonical repository README, decomposition plan
+  and log, migration runbook, and bug-fix status before changing Products code.
+- Git: `codex/decompose-products` is based on verified integration commit
+  `1695da7`. Remote production `main` remains `8c38909`, while remote
+  `codex/production-hardening-baseline` remains `1695da7`.
+- Supabase: the local link resolves to staging project
+  `qokaaggeqahayxsybgds` (`BharatGrowth Staging`). A live read-only migration
+  ledger check returned 48 continuous, matching local/remote versions from
+  `001` through `048`; production was not linked or modified.
+- Workspace: untracked `designs/`, `designs_mobile/`, and
+  `docs/bharatgrowth/design/` remain preserved and excluded from this wave.
+- Current phase: Wave 3 Products characterization and ownership mapping. The
+  Products source remains unchanged; only the pre-extraction test contract is
+  in progress.
+
+## Wave 3 characterization checkpoint — 2026-07-13 — Products
+
+- Before ownership and LOC: `src/app/dashboard/products/page.tsx` is 1,004 lines
+  and owns authentication/shop context, product/inventory/campaign-tag loading,
+  search filtering, flash timers, image validation/upload/removal, inline tag
+  creation, add/edit form state, rupee-to-paise payload conversion, bulk upload,
+  stock adjustment, and the complete form/table UI.
+- Five characterization tests cover the unchanged page's data loads, stock and
+  campaign-tag presentation, money output, search filtering, required-field
+  validation, create/update payloads and tenant scoping, inline tag creation,
+  edit hydration, bulk/stock modal wiring, and image validation.
+- Extraction has not started. This checkpoint is the rollback boundary between
+  the unchanged Products page and later file movement.
+
 ## Wave entry template
 
 ```text
