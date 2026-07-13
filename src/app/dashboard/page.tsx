@@ -12,10 +12,17 @@ import {
   fetchAllDashboardData,
   exportGstReport,
   type DashboardData,
-  type DateRange,
   type CreditCustomer,
   type NegativeStockProduct,
 } from '@/lib/dashboard/dashboardQueries';
+import {
+  buildDashboardDateRange,
+  buildGstExportFilename,
+  DONUT_COLORS,
+  getDashboardPeriodLabel,
+  getTopProductTotal,
+  type DatePreset,
+} from '@/lib/dashboard/dashboardPresentation';
 import { downloadCSV } from '@/lib/utils/csvExport';
 import TopNav from '@/components/layout/TopNav';
 import { RetentionRoiCard } from '@/components/dashboard/RetentionRoiCard';
@@ -48,9 +55,6 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-
-// ── Donut chart palette ──
-const DONUT_COLORS = ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#fff7ed'];
 
 // ── WhatsApp icon ──
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -99,48 +103,14 @@ export default function DashboardPage() {
   const [resolving, setResolving] = useState(false);
 
   // ── Date range filter state ──
-  type DatePreset = 'today' | '7d' | 'month' | 'custom';
   const [datePreset, setDatePreset] = useState<DatePreset>('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
 
-  const buildDateRange = useCallback((): DateRange | undefined => {
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const now = new Date();
-    const istNow = new Date(now.getTime() + istOffset);
-    const todayISO = `${istNow.getUTCFullYear()}-${String(istNow.getUTCMonth() + 1).padStart(2, '0')}-${String(istNow.getUTCDate()).padStart(2, '0')}`;
-
-    switch (datePreset) {
-      case 'today':
-        return {
-          start: `${todayISO}T00:00:00+05:30`,
-          end: `${todayISO}T23:59:59+05:30`,
-        };
-      case '7d': {
-        const weekAgo = new Date(istNow.getTime() - 6 * 24 * 60 * 60 * 1000);
-        const startISO = `${weekAgo.getUTCFullYear()}-${String(weekAgo.getUTCMonth() + 1).padStart(2, '0')}-${String(weekAgo.getUTCDate()).padStart(2, '0')}`;
-        return {
-          start: `${startISO}T00:00:00+05:30`,
-          end: `${todayISO}T23:59:59+05:30`,
-        };
-      }
-      case 'month': {
-        const mm = String(istNow.getUTCMonth() + 1).padStart(2, '0');
-        return {
-          start: `${istNow.getUTCFullYear()}-${mm}-01T00:00:00+05:30`,
-          end: `${todayISO}T23:59:59+05:30`,
-        };
-      }
-      case 'custom':
-        if (customStart) {
-          return {
-            start: `${customStart}T00:00:00+05:30`,
-            end: customEnd ? `${customEnd}T23:59:59+05:30` : `${todayISO}T23:59:59+05:30`,
-          };
-        }
-        return undefined; // no filter
-    }
-  }, [datePreset, customStart, customEnd]);
+  const buildDateRange = useCallback(
+    () => buildDashboardDateRange(datePreset, customStart, customEnd),
+    [datePreset, customStart, customEnd]
+  );
 
   // ── Resolve shop from authenticated user ──
   useEffect(() => {
@@ -184,11 +154,8 @@ export default function DashboardPage() {
   }, [shopId, datePreset, customStart, customEnd, buildDateRange]);
 
   // ── Derived values ──
-  const topProductTotal = data?.topProducts.reduce((s, p) => s + p.sales, 0) ?? 0;
-  const periodLabel = datePreset === 'today' ? 'Today'
-    : datePreset === '7d' ? 'Last 7 Days'
-    : datePreset === 'month' ? 'This Month'
-    : 'Custom Range';
+  const topProductTotal = getTopProductTotal(data?.topProducts ?? []);
+  const periodLabel = getDashboardPeriodLabel(datePreset);
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -218,11 +185,7 @@ export default function DashboardPage() {
                         setGstExporting(false);
                         return;
                       }
-                      // Generate filename: GST_Report_ShopName_Mar2026.csv
-                      const now = new Date();
-                      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                      const safeName = shopNameState.replace(/[^a-zA-Z0-9]/g, '_');
-                      const filename = `GST_Report_${safeName}_${monthNames[now.getMonth()]}${now.getFullYear()}.csv`;
+                      const filename = buildGstExportFilename(shopNameState);
                       downloadCSV(rows as unknown as Record<string, string | number>[], filename);
                       setGstExportDone(true);
                       setTimeout(() => setGstExportDone(false), 3000);
