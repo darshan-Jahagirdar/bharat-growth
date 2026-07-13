@@ -6,24 +6,16 @@
 // Desktop-optimized, glassmorphism dark theme
 // =============================================================================
 
-import { useState, useEffect, useCallback } from 'react';
 import { formatINR } from '@/lib/types/database';
 import {
-  fetchAllDashboardData,
-  exportGstReport,
-  type DashboardData,
-  type CreditCustomer,
-  type NegativeStockProduct,
-} from '@/lib/dashboard/dashboardQueries';
-import {
-  buildDashboardDateRange,
-  buildGstExportFilename,
   DONUT_COLORS,
   getDashboardPeriodLabel,
   getTopProductTotal,
-  type DatePreset,
 } from '@/lib/dashboard/dashboardPresentation';
-import { downloadCSV } from '@/lib/utils/csvExport';
+import { useDashboardData } from '@/lib/dashboard/useDashboardData';
+import { useGstExport } from '@/lib/dashboard/useGstExport';
+import { useKhataReminder } from '@/lib/dashboard/useKhataReminder';
+import { useStockReconciliation } from '@/lib/dashboard/useStockReconciliation';
 import TopNav from '@/components/layout/TopNav';
 import { RetentionRoiCard } from '@/components/dashboard/RetentionRoiCard';
 import Link from 'next/link';
@@ -41,8 +33,6 @@ import {
   ShoppingCart,
   Warehouse,
 } from 'lucide-react';
-import { checkUserOnboarded } from '@/lib/auth/checkUserOnboarded';
-import { createClient } from '@/lib/supabase/client';
 import {
   AreaChart,
   Area,
@@ -83,75 +73,40 @@ function ChartTooltip({ active, payload, label }: {
 }
 
 export default function DashboardPage() {
-  const [shopId, setShopId] = useState<string>('');
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [shopNameState, setShopNameState] = useState('My Shop');
-
-  // ── Khata reminder state ──
-  const [reminderTarget, setReminderTarget] = useState<CreditCustomer | null>(null);
-  const [reminderSending, setReminderSending] = useState(false);
-  const [reminderSuccess, setReminderSuccess] = useState<string | null>(null);
-
-  // ── GST Export state ──
-  const [gstExporting, setGstExporting] = useState(false);
-  const [gstExportDone, setGstExportDone] = useState(false);
-
-  // ── Anomaly reconciliation state ──
-  const [resolveTarget, setResolveTarget] = useState<NegativeStockProduct | null>(null);
-  const [resolveQty, setResolveQty] = useState('');
-  const [resolving, setResolving] = useState(false);
-
-  // ── Date range filter state ──
-  const [datePreset, setDatePreset] = useState<DatePreset>('month');
-  const [customStart, setCustomStart] = useState('');
-  const [customEnd, setCustomEnd] = useState('');
-
-  const buildDateRange = useCallback(
-    () => buildDashboardDateRange(datePreset, customStart, customEnd),
-    [datePreset, customStart, customEnd]
-  );
-
-  // ── Resolve shop from authenticated user ──
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      checkUserOnboarded(session.user.id).then((ctx) => {
-        if (ctx) setShopId(ctx.shopId);
-      });
-    });
-  }, []);
-
-  // ── Load shop info once ──
-  useEffect(() => {
-    if (!shopId) return;
-    async function loadShop() {
-      const supabase = createClient();
-      const { data: shop } = await supabase
-        .from('shops')
-        .select('business_name')
-        .eq('id', shopId)
-        .single();
-      if (shop) {
-        setShopNameState(shop.business_name);
-      }
-    }
-    loadShop();
-  }, [shopId]);
-
-  // ── Load dashboard data (re-fetches when shopId or date range changes) ──
-  useEffect(() => {
-    if (!shopId) return;
-    async function load() {
-      setLoading(true);
-      const range = buildDateRange();
-      const dashData = await fetchAllDashboardData(shopId, range);
-      setData(dashData);
-      setLoading(false);
-    }
-    load();
-  }, [shopId, datePreset, customStart, customEnd, buildDateRange]);
+  const {
+    customEnd,
+    customStart,
+    data,
+    datePreset,
+    loading,
+    setCustomEnd,
+    setCustomStart,
+    setData,
+    setDatePreset,
+    shopId,
+    shopName: shopNameState,
+  } = useDashboardData();
+  const {
+    exportDone: gstExportDone,
+    exporting: gstExporting,
+    handleExport: handleGstExport,
+  } = useGstExport({ shopId, shopName: shopNameState });
+  const {
+    sendReminder: handleSendReminder,
+    sending: reminderSending,
+    setTarget: setReminderTarget,
+    success: reminderSuccess,
+    target: reminderTarget,
+  } = useKhataReminder();
+  const {
+    openTarget: openResolveTarget,
+    quantity: resolveQty,
+    resolve: handleResolve,
+    resolving,
+    setQuantity: setResolveQty,
+    setTarget: setResolveTarget,
+    target: resolveTarget,
+  } = useStockReconciliation({ setData, shopId });
 
   // ── Derived values ──
   const topProductTotal = getTopProductTotal(data?.topProducts ?? []);
@@ -174,27 +129,7 @@ export default function DashboardPage() {
             {shopId && (
               <>
                 <button
-                  onClick={async () => {
-                    if (gstExporting) return;
-                    setGstExporting(true);
-                    setGstExportDone(false);
-                    try {
-                      const rows = await exportGstReport(shopId);
-                      if (rows.length === 0) {
-                        alert('No completed invoices this month to export.');
-                        setGstExporting(false);
-                        return;
-                      }
-                      const filename = buildGstExportFilename(shopNameState);
-                      downloadCSV(rows as unknown as Record<string, string | number>[], filename);
-                      setGstExportDone(true);
-                      setTimeout(() => setGstExportDone(false), 3000);
-                    } catch (err) {
-                      console.error('[GST Export] Error:', err);
-                      alert('Failed to export GST report. Please try again.');
-                    }
-                    setGstExporting(false);
-                  }}
+                  onClick={handleGstExport}
                   disabled={gstExporting}
                   className={`border transition-colors rounded-lg px-4 py-2 flex items-center gap-2 text-sm font-medium
                     ${gstExportDone
@@ -595,7 +530,7 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <button
-                        onClick={() => { setResolveTarget(item); setResolveQty(''); }}
+                        onClick={() => openResolveTarget(item)}
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-800/40 text-red-300
                                    hover:bg-red-700/50 transition-colors border border-red-800/50"
                       >
@@ -809,29 +744,7 @@ export default function DashboardPage() {
             {/* Actions */}
             <div className="flex gap-2">
               <button
-                onClick={async () => {
-                  setReminderSending(true);
-                  try {
-                    const res = await fetch('/api/whatsapp/send-khata-reminder', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        customer_id: reminderTarget.id,
-                      }),
-                    });
-                    const result = await res.json();
-                    if (result.sent || result.simulated) {
-                      setReminderSuccess(
-                        `Reminder sent to ${reminderTarget.name ?? reminderTarget.phone_number}`
-                      );
-                      setTimeout(() => setReminderSuccess(null), 4000);
-                    }
-                  } catch {
-                    // Silent fail — non-critical
-                  }
-                  setReminderSending(false);
-                  setReminderTarget(null);
-                }}
+                onClick={handleSendReminder}
                 disabled={reminderSending}
                 className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50
                            text-white text-sm font-semibold rounded-lg transition-colors
@@ -886,27 +799,7 @@ export default function DashboardPage() {
             <div className="flex gap-3">
               <button
                 disabled={resolving || !resolveQty || parseFloat(resolveQty) <= 0}
-                onClick={async () => {
-                  const qty = parseFloat(resolveQty);
-                  if (isNaN(qty) || qty <= 0) return;
-                  setResolving(true);
-                  const supabase = createClient();
-                  await supabase.rpc('adjust_stock', {
-                    p_shop_id: shopId,
-                    p_product_id: resolveTarget.product_id,
-                    p_quantity_change: qty,
-                    p_movement_type: 'purchase',
-                    p_notes: `Reconciliation: logged missing delivery of ${qty} ${resolveTarget.unit}`,
-                    p_reference_id: null,
-                    p_reference_type: 'manual',
-                    p_allow_negative: true,
-                  });
-                  setResolving(false);
-                  setResolveTarget(null);
-                  // Refresh dashboard
-                  const dashData = await fetchAllDashboardData(shopId);
-                  setData(dashData);
-                }}
+                onClick={handleResolve}
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white
                            hover:bg-emerald-500 transition-colors disabled:opacity-50"
               >
