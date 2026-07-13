@@ -307,6 +307,73 @@
 - Extraction has not started. This checkpoint is the rollback boundary between
   the unchanged Products page and later file movement.
 
+## Wave 3 verified, pending merge — 2026-07-13 — Products
+
+- Branch: `codex/decompose-products`, based on verified integration commit
+  `1695da7`; characterization checkpoint commit `49106b3` predates extraction,
+  and code extraction commit `9346abd` follows it.
+- Current ownership and LOC: the Products route fell from 1,004 to 104 lines and
+  now composes focused views and modal wiring. Product money conversion, edit
+  hydration, search filtering, constants, and shared types live in a 108-line
+  pure module. A 90-line data hook owns the unchanged auth/shop and
+  product/inventory/tag loading. A 282-line editor hook owns the unchanged
+  add/edit, validation, campaign-tag, image, payload, and save workflows. Six
+  named view components own the header, identity fields, commerce fields, image
+  field, editor shell, and inventory-aware catalog table; the largest is 150
+  lines.
+- Behavior contracts exercised: shop-scoped product/inventory/tag reads,
+  search across name/SKU/HSN/barcode/category, required-field and image type
+  validation, inline campaign tags, add/edit form hydration, integer-paise
+  create/update payloads, active/stock toggles, bulk upload wiring, image
+  operations, stock modal wiring, and unchanged money/status/stock output.
+- Automated checks: 13 Products-focused tests pass, including five contracts
+  against the unchanged route and pure helper cases. The full repository has 73
+  passing tests across 15 files; strict TypeScript and repository-wide ESLint
+  pass with zero warnings. The optimized Next.js build passes all 25 routes,
+  including `/dashboard/products`; `git diff --check` passes.
+- React review: each new view has one named component, colocated typed props,
+  semantic controls, stable product IDs, `next/image`, complete hook dependency
+  arrays, and timer cleanup. No compatibility export, schema, copy, styling,
+  payload, or workflow was changed.
+- PR: draft
+  [#4](https://github.com/darshan-Jahagirdar/bharat-growth/pull/4) targets
+  `codex/production-hardening-baseline`, never `main`.
+- Preview isolation: automatic deployment
+  `dpl_5KWdG4dR5xLzzGazLXYMKRuuTq3c` inherited the global Preview production
+  Supabase ref and was rejected before authentication. The existing staging
+  URL, publishable key, and decomposition-preview secret were then added only
+  to the `codex/decompose-products` Preview branch. Rebuild
+  `dpl_BZq84YGgEdq3EMLBh5W4S2F2EwTy` is READY; all eight fetched public chunks
+  contain staging ref `qokaaggeqahayxsybgds`, contain no production ref, and
+  contain no framework-overlay marker.
+- Visual comparison: the cleaned authenticated integration and Wave 3 Products
+  pages matched byte-for-byte at 1440x900. Their PNG SHA-256 values were equal,
+  representing 0 changed pixels out of 1,296,000 (0%).
+- Targeted staging smoke: all eight Ganesh Tyres products rendered with no
+  framework overlay or uncaught browser error. SKU search, bulk-upload open and
+  close, existing tracked stock value 30, add/edit form, required-field and
+  invalid-image handling, inline tag creation, and edit hydration passed.
+- Database evidence: synthetic product
+  `9fabc6dd-101d-4efa-96ad-5fbf8a1d0dd5` was created with cost 123,456 paise,
+  selling price 149,999 paise, campaign tag
+  `b0d0357d-54bd-45c3-8e1e-dcba022b88e2`, and stock tracking enabled. Editing
+  updated its selling price to 159,999 paise. A manual purchase adjustment
+  created inventory `98b3a8b4-5f12-43a4-a91f-e36f58cb3d17` and one +3 movement
+  ending at quantity 3. The synthetic product and tag were then deleted; both
+  verification queries returned zero rows.
+- Auth and artifact cleanup: the disposable staging auth user was deleted and
+  verified absent; its `public.users` row count is zero. The isolated browser
+  cookies were cleared and the browser was closed. Temporary credentials,
+  cookie jars, auth state, screenshots, evidence, and helper files are removed
+  after the evidence commit.
+- Production result: no production database, deployment, environment, or
+  `main` change. Rollback point remains integration commit `1695da7`; the
+  pre-extraction Wave 3 checkpoint is `49106b3`.
+- Known follow-ups kept out of scope: all feature/UI changes, schema changes,
+  opportunistic fixes, contract migration 049, and launch-feature work. The
+  staging-only `codex_decomposition_previews` key remains scheduled for
+  revocation after all decomposition waves.
+
 ## Wave entry template
 
 ```text
