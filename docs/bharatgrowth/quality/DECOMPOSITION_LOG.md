@@ -374,6 +374,127 @@
   staging-only `codex_decomposition_previews` key remains scheduled for
   revocation after all decomposition waves.
 
+## Context re-established and Wave 4 characterization checkpoint — 2026-07-13 — Dashboard/progress handoff
+
+- Re-read the canonical README, `CODEX_BRIEF.md`, decomposition plan and full
+  log, migration runbook, bug-fix status, behavior contracts, architecture, and
+  manual regression checklist before handing work to a new Codex thread.
+- Git: `codex/decompose-dashboard-progress` was created from verified integration
+  commit `b38e0ad`. A live remote check returned production `main` at `8c38909`
+  and `codex/production-hardening-baseline` at `b38e0ad`; fallback tag
+  `pre-hardening-8c38909` remains the production rollback point.
+- GitHub: PRs #2 Billing/POS, #3 Orders, and #4 Products are merged only into the
+  integration branch. Draft PR #1 remains open from integration to `main`; its
+  quality, public-smoke, Vercel, and preview-comment checks pass.
+- Supabase: the linked project is staging `qokaaggeqahayxsybgds`. A fresh
+  `supabase migration list` returned continuous matching local/remote versions
+  `001` through `048`. Production was not linked or modified.
+- Before ownership and LOC: `src/app/dashboard/page.tsx` remains unchanged at
+  973 lines and owns auth/shop resolution, shop-name loading, IST date-range
+  construction, dashboard loading, GST export, KPI/progress/chart rendering,
+  retention display, khata reminder state/API calls, negative-stock
+  reconciliation, action lists, modals, toast timers, and scrollbar styling.
+  The existing 672-line `src/lib/dashboard/dashboardQueries.ts` remains reserved
+  for Wave 7 data-access decomposition.
+- Five characterization tests pass against the unchanged dashboard page. They
+  freeze auth/shop loading and the default IST month, preset/custom range
+  payloads, metric/progress and storefront output, GST rows and filename,
+  khata-reminder endpoint/payload, and negative-stock RPC/refresh behavior.
+- Dashboard extraction has not started and no application source file changed.
+  This characterization checkpoint is the Wave 4 pre-extraction rollback
+  boundary.
+- Workspace: untracked user-owned `designs/`, `designs_mobile/`, and
+  `docs/bharatgrowth/design/` remain preserved and excluded. No secret value was
+  read into documentation or committed.
+- Collaboration: the BharatGrowth Google handoff documents Waves 1–3 and the
+  verified Wave 3 Slack update is posted in `#bharatgrowth`. No Wave 4 success
+  was announced because the wave is not implemented or merged.
+- Next action: resume Wave 4 from this checkpoint, extract pure transforms first,
+  then controllers/hooks, then focused views. Preserve every current payload,
+  date rule, copy string, chart output, focus/modal behavior, RLS assumption, and
+  refresh path. Do not modify `dashboardQueries.ts`, schema, features, or styling
+  in Wave 4.
+
+## Wave 4 verified, pending merge — 2026-07-14 — Dashboard/progress
+
+- Branch and sequence: `codex/decompose-dashboard-progress` remains based on
+  verified integration commit `b38e0ad`; characterization checkpoint `74fc96b`
+  predates all application-source extraction. Pure transforms were committed
+  first at `d8ec0b1`, controller hooks second at `aac20b0`, and focused views
+  last at `3b54d24`.
+- Current ownership and LOC: the Dashboard route fell from 973 to 117 lines and
+  now composes named views and four controller hooks. Tested date/period,
+  top-product-total, donut-color, and GST-filename transforms live in a 105-line
+  presentation module. The data, GST export, khata reminder, and stock
+  reconciliation hooks are 85, 47, 39, and 66 lines. Ten focused view modules
+  own the unchanged header, filters, KPI/progress metrics, charts, anomaly and
+  action lists, reminder/reconciliation dialogs, WhatsApp icon, and success
+  toast; the largest is 175 lines. `dashboardQueries.ts` remains unchanged at
+  672 lines for Wave 7.
+- Behavior contracts exercised: auth and separate shop-name resolution; exact
+  IST today, seven-day, month, and custom timestamp boundaries; selected-period
+  loading; progress/KPI values; chart and empty-state output; storefront link;
+  current-month GST rows, alerts, filename, and success state; khata reminder
+  endpoint and `{ customer_id }` payload; and the existing negative-stock RPC
+  payload followed by the intentionally range-less dashboard refresh.
+- Automated checks: all 10 Dashboard-focused tests pass. The full repository
+  has 83 passing tests across 17 files; strict TypeScript and repository-wide
+  ESLint pass with zero warnings. The optimized Next.js build passes all 25
+  routes, including `/dashboard`; `git diff --check` and targeted credential-
+  value scans pass.
+- React review: the extracted TSX uses named focused components, colocated typed
+  props, complete hook dependencies, semantic controls, and stable domain IDs.
+  Inherited timer, backdrop-click, and chart-index-key behavior was deliberately
+  preserved instead of expanded into an opportunistic change.
+- PR and code preview: draft PR
+  [#5](https://github.com/darshan-Jahagirdar/bharat-growth/pull/5) targets only
+  `codex/production-hardening-baseline`. Source commit `3b54d24` passed GitHub
+  `quality`, `public-smoke`, Vercel, and preview-comment checks. Deployment
+  `dpl_3s8cLZZ7cF8wCimg8BvLUTHPZ4ba` is READY for that exact commit.
+- Preview isolation: exactly three encrypted Preview variables are scoped to
+  `codex/decompose-dashboard-progress`: staging Supabase URL, publishable key,
+  and server-only secret key. The fetched application chunks contained staging
+  ref `qokaaggeqahayxsybgds`, no production ref, and no framework-overlay
+  marker. Preview has no WhatsApp access-token or phone-number variable, so the
+  reminder endpoint uses its existing simulation path and cannot contact Meta.
+- Targeted staging smoke: the Ganesh Tyres dashboard loaded real staging data;
+  Today, Last 7 Days, This Month, and Custom filters passed, including a
+  2026-07-01 through 2026-07-14 custom range. Progress/KPI cards, revenue and
+  top-product charts, storefront link, GST export state, khata hitlist/reminder
+  modal, low-stock list, and negative-stock anomaly all rendered and operated
+  without a framework overlay. Stock reconciliation accepted +3 against the
+  synthetic -2 anomaly, removed the anomaly, and displayed quantity 1.
+- Approved reminder gate: Darshan authorized one staging reminder invocation.
+  A disposable staging customer was used once; the protected Wave 4 deployment
+  returned HTTP 200 and logged `SIMULATION MODE` for template `bg_khata_v1`.
+  No external WhatsApp/Meta request was made and no second invocation occurred.
+- Visual comparison: integration and Wave 4 were captured from the same tab,
+  authenticated fixture, 1440x900 viewport, and cleaned dashboard state. Both
+  PNGs were exactly 55,827 bytes with SHA-256
+  `a13dc556ac8bca1accbfa2c15d3568220f4e89f791f30503c110799eeb9ce85c`;
+  the byte comparison is identical, representing zero visual difference.
+- Staging cleanup and credential containment: the disposable customer, auth
+  user, profile, reconciliation movement, browser sessions, Keychain fixtures,
+  screenshots, auth handoff, and helper scripts were removed. The product and
+  inventory values plus original timestamps were restored exactly; Auth phone,
+  OTP, and callback settings returned to baseline. The already-disabled legacy
+  staging service-role credential still returns HTTP 401, while the modern
+  scoped staging secret remains healthy and unique. Because the exposed legacy
+  path was already disabled and its signing key revoked, no disruptive key
+  replacement was needed in this wave; Darshan will rotate all remaining keys
+  before the first sale, and the decomposition-only scoped secret remains due
+  for revocation after the waves.
+- Runtime and production result: the Wave 4 preview reported no error/fatal
+  runtime logs in the smoke window. Production `main`, production Supabase,
+  production Vercel, production environment variables, and production data were
+  never changed.
+- Rollback points: integration `b38e0ad` for the whole wave and characterization
+  checkpoint `74fc96b` for the pre-extraction Dashboard state.
+- Known follow-ups kept out of scope: all feature, schema, query-facade, copy,
+  styling, payload, visual, focus, keyboard, RLS, stock-rule, workflow, and
+  opportunistic cleanup changes; migration 049; production rollout work; and
+  the full pre-sale manual hard-test checklist.
+
 ## Wave entry template
 
 ```text
