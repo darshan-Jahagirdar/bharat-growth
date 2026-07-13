@@ -374,6 +374,47 @@
   staging-only `codex_decomposition_previews` key remains scheduled for
   revocation after all decomposition waves.
 
+## Context re-established and Wave 4 characterization checkpoint — 2026-07-13 — Dashboard/progress handoff
+
+- Re-read the canonical README, `CODEX_BRIEF.md`, decomposition plan and full
+  log, migration runbook, bug-fix status, behavior contracts, architecture, and
+  manual regression checklist before handing work to a new Codex thread.
+- Git: `codex/decompose-dashboard-progress` was created from verified integration
+  commit `b38e0ad`. A live remote check returned production `main` at `8c38909`
+  and `codex/production-hardening-baseline` at `b38e0ad`; fallback tag
+  `pre-hardening-8c38909` remains the production rollback point.
+- GitHub: PRs #2 Billing/POS, #3 Orders, and #4 Products are merged only into the
+  integration branch. Draft PR #1 remains open from integration to `main`; its
+  quality, public-smoke, Vercel, and preview-comment checks pass.
+- Supabase: the linked project is staging `qokaaggeqahayxsybgds`. A fresh
+  `supabase migration list` returned continuous matching local/remote versions
+  `001` through `048`. Production was not linked or modified.
+- Before ownership and LOC: `src/app/dashboard/page.tsx` remains unchanged at
+  973 lines and owns auth/shop resolution, shop-name loading, IST date-range
+  construction, dashboard loading, GST export, KPI/progress/chart rendering,
+  retention display, khata reminder state/API calls, negative-stock
+  reconciliation, action lists, modals, toast timers, and scrollbar styling.
+  The existing 672-line `src/lib/dashboard/dashboardQueries.ts` remains reserved
+  for Wave 7 data-access decomposition.
+- Five characterization tests pass against the unchanged dashboard page. They
+  freeze auth/shop loading and the default IST month, preset/custom range
+  payloads, metric/progress and storefront output, GST rows and filename,
+  khata-reminder endpoint/payload, and negative-stock RPC/refresh behavior.
+- Dashboard extraction has not started and no application source file changed.
+  This characterization checkpoint is the Wave 4 pre-extraction rollback
+  boundary.
+- Workspace: untracked user-owned `designs/`, `designs_mobile/`, and
+  `docs/bharatgrowth/design/` remain preserved and excluded. No secret value was
+  read into documentation or committed.
+- Collaboration: the BharatGrowth Google handoff documents Waves 1–3 and the
+  verified Wave 3 Slack update is posted in `#bharatgrowth`. No Wave 4 success
+  was announced because the wave is not implemented or merged.
+- Next action: resume Wave 4 from this checkpoint, extract pure transforms first,
+  then controllers/hooks, then focused views. Preserve every current payload,
+  date rule, copy string, chart output, focus/modal behavior, RLS assumption, and
+  refresh path. Do not modify `dashboardQueries.ts`, schema, features, or styling
+  in Wave 4.
+
 ## Wave entry template
 
 ```text
