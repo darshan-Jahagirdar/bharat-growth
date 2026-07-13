@@ -1,6 +1,6 @@
 # BharatGrowth Codex Handoff
 
-Last verified: 2026-07-13 (Asia/Kolkata)
+Last verified: 2026-07-14 (Asia/Kolkata)
 
 This is the first file the next Codex thread must read. It is a continuation
 handoff, not a new planning proposal. Re-verify every drift-prone statement
@@ -83,7 +83,11 @@ live state.
 - Remote integration: `b38e0ad4fb16ec613fa23293cf1be21c3ea853f9`.
 - Current local branch: `codex/decompose-dashboard-progress`.
 - Wave 4 pre-extraction characterization commit: `74fc96b`.
-- The Wave 4 branch has not been pushed and has no PR at this handoff.
+- Wave 4 source commits are `d8ec0b1` (pure transforms), `aac20b0`
+  (controllers/hooks), and `3b54d24` (focused views), in that order.
+- Draft PR #5 targets only `codex/production-hardening-baseline`. Source commit
+  `3b54d24` is pushed and green; re-verify any later evidence-only head before
+  merge.
 - Preserve and exclude the user-owned untracked directories:
   `designs/`, `designs_mobile/`, and `docs/bharatgrowth/design/`.
 
@@ -96,6 +100,8 @@ live state.
 - PR #2 Billing/POS merged into integration as `e6b58e3`.
 - PR #3 Orders merged into integration as `1695da7`.
 - PR #4 Products merged into integration as `b38e0ad`.
+- Draft PR #5 Dashboard/progress is open against integration and has green
+  checks for source commit `3b54d24`.
 - No decomposition wave has merged to production `main`.
 
 ### Supabase
@@ -106,6 +112,9 @@ live state.
   migrations `001` through `048`.
 - Migration 049 does not exist yet and must not be created during Wave 4.
 - No disposable staging auth user remains from Waves 1–3.
+- Wave 4 disposable reminder/browser users, profiles, customer, and stock
+  movement were removed; the touched inventory/product rows and Auth settings
+  were restored exactly.
 - Production database, migration ledger, auth users, and data were not changed
   during decomposition.
 
@@ -119,22 +128,23 @@ live state.
   global Preview production Supabase variables unless branch-specific staging
   overrides are configured. Never authenticate to a preview until its public
   assets prove staging ref present and production ref absent.
-- `codex/decompose-dashboard-progress` does not yet have its Wave 4 Preview
-  branch overrides or Supabase redirect URL configured.
+- Wave 4 preview `dpl_3s8cLZZ7cF8wCimg8BvLUTHPZ4ba` is READY for source
+  commit `3b54d24`. Exactly three encrypted staging Supabase variables are
+  branch-scoped to `codex/decompose-dashboard-progress`; its public application
+  chunks contain the staging ref, no production ref, and no overlay marker.
 - A staging-only preview secret named `codex_decomposition_previews` is stored
   in macOS Keychain for the decomposition workflow. Never print it, copy it to
   documentation, or expose it to the client. Revoke it after all waves.
 
 ### Local verification at the handoff
 
-- Five Dashboard characterization tests pass against the unchanged page.
-- Full repository: 78 tests pass across 16 files.
+- Ten Dashboard-focused tests pass: five characterization contracts plus five
+  direct presentation-transform tests.
+- Full repository: 83 tests pass across 17 files.
 - `npm run typecheck` passes.
 - Repository-wide `npm run lint` passes with zero warnings.
 - `git diff --check` and the targeted credential-pattern scan pass.
-- The latest merged integration build (Wave 3) passed the optimized 25-route
-  Next.js build. The Wave 4 checkpoint changes only tests/docs, so no new build
-  claim is made yet.
+- The Wave 4 optimized build passes all 25 routes, including `/dashboard`.
 
 ### Collaboration artifacts
 
@@ -197,95 +207,46 @@ live state.
 - Staging add/edit paise payloads, tags, image validation, search, bulk modal,
   tracked stock adjustment, and synthetic cleanup passed.
 
-## 6. Current work: Wave 4 Dashboard/progress
+## 6. Current work: Wave 4 Dashboard/progress closeout
 
-### What has happened
+### What is implemented and proven
 
-- The branch was created from verified integration `b38e0ad`.
-- `src/app/dashboard/page.tsx` is still exactly the integration version and is
-  973 lines.
-- No Dashboard application source has been edited.
-- `src/lib/dashboard/dashboardQueries.ts` remains unchanged at 672 lines and is
+- The branch remains based on verified integration `b38e0ad`; checkpoint
+  `74fc96b` proves the five characterization tests preceded source extraction.
+- Extraction order is preserved in separate commits: pure transforms
+  `d8ec0b1`, controller hooks `aac20b0`, and focused views `3b54d24`.
+- `src/app/dashboard/page.tsx` is 117 lines, down from 973. A 105-line tested
+  presentation module, four controller hooks, and ten focused view modules own
+  the same responsibilities. The largest focused view is 175 lines.
+- `src/lib/dashboard/dashboardQueries.ts` is unchanged at 672 lines and remains
   reserved for Wave 7.
-- Characterization commit `74fc96b` adds five tests plus the corresponding
-  decomposition-log checkpoint.
+- Ten focused tests and 83 repository tests pass. Typecheck, zero-warning lint,
+  the 25-route optimized build, diff check, credential-value scans, source CI,
+  public smoke, Vercel checks, browser smoke, stock reconciliation, cleanup,
+  runtime-log review, and visual parity all pass.
+- The integration and Wave 4 Dashboard PNGs are byte-identical at 1440x900 with
+  SHA-256 `a13dc556ac8bca1accbfa2c15d3568220f4e89f791f30503c110799eeb9ce85c`.
+- Darshan-approved reminder invocation ran exactly once in staging simulation
+  mode. Preview has no WhatsApp credentials, so no external Meta request was
+  possible. All disposable records and artifacts were removed afterward.
+- The exposed legacy staging credential was already disabled and its old signing
+  key revoked; live verification still returns 401. The modern scoped staging
+  secret is healthy. Darshan plans a complete key rotation before the first
+  customer, while the decomposition-only secret remains due for revocation
+  after the waves.
 
-### Current responsibilities that must be separated without changing behavior
+### Remaining closeout gates
 
-- Auth session and onboarded-shop resolution.
-- Separate shop business-name loading.
-- IST `today`, seven-day, month, and custom date-range construction.
-- Dashboard data loading and selected-period state.
-- Current-month GST export, filename sanitization, alerts, and success state.
-- Retention/progress hero, KPI cards, revenue chart, top-products donut.
-- Khata hitlist, reminder confirmation/API payload, and success toast.
-- Negative-stock anomaly list, reconciliation RPC, and refresh.
-- Low-stock action list, modal state, overlay behavior, and scrollbar styling.
-
-### Characterization contracts now frozen
-
-- Auth resolves user `user-1` to shop `shop-1`; the shop name is read separately
-  from `shops.business_name`.
-- Default 2026-07-13 IST range is
-  `2026-07-01T00:00:00+05:30` through
-  `2026-07-13T23:59:59+05:30`.
-- Today and custom date controls preserve exact timestamp boundaries.
-- Progress/KPI values and `/store/{shopId}` link render unchanged.
-- GST export calls `exportGstReport(shopId)` and uses the existing
-  `GST_Report_<safe shop>_<Mon><Year>.csv` filename.
-- Khata reminder POSTs only `{ customer_id }` to the existing endpoint.
-- Reconciliation calls `adjust_stock` with the current purchase/manual payload,
-  allows negative correction, and then refreshes with
-  `fetchAllDashboardData(shopId)` without the selected range. That refresh quirk
-  is current behavior and must not be "fixed" inside decomposition.
-
-### Recommended extraction map
-
-Keep files cohesive and normally under 250 lines; keep the route under 300 lines.
-Names may be adjusted if a clearer boundary emerges, but ownership must remain
-equivalent.
-
-1. Pure transforms/constants first:
-   - `DatePreset`, IST date-range construction, period label.
-   - top-product total and GST export filename construction.
-2. Controller hooks second:
-   - dashboard auth/shop/data orchestration.
-   - GST export state/action.
-   - khata reminder state/action.
-   - stock reconciliation state/action.
-3. Focused named views last:
-   - header/export/storefront and date filter.
-   - KPI/progress metric sections.
-   - revenue and top-product charts.
-   - anomaly, khata, and low-stock action sections.
-   - reminder and reconciliation dialogs plus success toast.
-4. Keep the existing `RetentionRoiCard` behavior and current
-   `dashboardQueries.ts` facade unchanged.
-
-### Next Wave 4 execution gates
-
-1. Re-run the five characterization tests before source extraction.
-2. Add direct pure-transform tests before moving the transform logic.
-3. Extract in small reviewable steps and compare payload/copy/style line by line.
-4. Run focused tests, full tests, typecheck, zero-warning lint, optimized build,
-   `git diff --check`, and targeted secret scan.
-5. Push only reviewed commits; open a draft PR targeting
-   `codex/production-hardening-baseline`.
-6. Configure only the Wave 4 branch's staging Preview values. Verify public
-   chunks before any login.
-7. Add the exact Wave 4 preview redirect to staging Auth only when required.
-8. Use a disposable staging user linked to synthetic data; never production.
-9. Smoke date filters, metric/progress values, charts/empty states, GST export,
-   storefront link, reminder modal/API, anomaly reconciliation, low stock,
-   overlay/focus behavior, and browser errors.
-10. Compare integration and Wave 4 screenshots at the same authenticated state,
-    data, viewport, fonts, and toolbar state. Any pixel difference must be
-    explained or treated as a failure.
-11. Delete synthetic mutations and the disposable user; remove cookies,
-    screenshots, env pulls, helpers, and temporary credentials.
-12. Record commit/PR/preview/checks/manual/visual/cleanup evidence in the log and
-    PR, merge only after every gate passes, then update Google handoff and post a
-    verified `#bharatgrowth` milestone.
+1. Commit and push this evidence-only documentation update.
+2. Re-verify the exact new PR head, required GitHub checks, and its docs-only
+   Vercel preview before merge.
+3. Update the Google handoff and post the evidence-backed Wave 4 milestone to
+   `#bharatgrowth` without claiming a production change.
+4. Merge PR #5 only into `codex/production-hardening-baseline`; re-fetch and
+   verify integration plus its staging deployment. Never merge or promote to
+   `main`.
+5. If all closeout gates remain green, begin Wave 5 Purchases from the newly
+   verified integration commit in a new short-lived branch.
 
 ## 7. Remaining roadmap after Wave 4
 
@@ -365,13 +326,16 @@ Copy and send this as the first message in the new thread:
 > and `supabase migration list`, and the latest integration Vercel result. Stop
 > and report if anything contradicts the handoff. Preserve and exclude
 > `designs/`, `designs_mobile/`, and `docs/bharatgrowth/design/`; never print or
-> invent secrets. Confirm Wave 4 is on
+> invent secrets. Confirm Wave 4 source extraction is on
 > `codex/decompose-dashboard-progress`, based on integration `b38e0ad`, with
-> characterization checkpoint `74fc96b`, five Dashboard tests passing, and no
-> Dashboard application-source changes. Then continue Wave 4 Dashboard/progress
-> exactly under `DECOMPOSITION_PLAN.md`: pure transforms first, controllers/hooks
-> second, focused views last; no feature, schema, query-facade, copy, styling,
-> payload, visual, focus, keyboard, RLS, stock, or workflow changes. Complete all
-> automated, branch-scoped staging preview, browser smoke, visual, cleanup,
-> documentation, PR, Google handoff, and `#bharatgrowth` gates before merging
-> only into `codex/production-hardening-baseline`. Do not touch production.
+> characterization checkpoint `74fc96b`, source tip `3b54d24`, ten focused
+> Dashboard tests, an unchanged `dashboardQueries.ts`, and no behavior or visual
+> difference. Re-derive whether PR #5 and its evidence-only head completed every
+> closeout gate and merged only into `codex/production-hardening-baseline`. If it
+> did not, finish those gates without touching production. If it did, verify the
+> new integration commit, linked staging migrations, GitHub checks, and latest
+> integration Vercel result, then begin Wave 5 Purchases under
+> `DECOMPOSITION_PLAN.md`: characterization first, pure transforms first,
+> controllers/hooks second, focused views last; no feature, schema, query-facade,
+> copy, styling, payload, visual, focus, keyboard, RLS, stock, or workflow
+> changes. Preserve and exclude all design directories. Do not touch production.
