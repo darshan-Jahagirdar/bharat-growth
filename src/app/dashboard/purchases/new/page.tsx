@@ -5,385 +5,66 @@
 // Keyboard-driven tabular entry + optional AI Vision scanner
 // =============================================================================
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { checkUserOnboarded, type UserShopContext } from '@/lib/auth/checkUserOnboarded';
+import { useEffect } from 'react';
 import { formatINR } from '@/lib/types/database';
-import type { Product } from '@/lib/types/database';
 import TopNav from '@/components/layout/TopNav';
-import { savePurchaseOrder } from '@/lib/orders/orderQueries';
-import { getIndiaDate } from '@/lib/utils/indiaDate';
+import { usePurchaseBillContext } from '@/lib/purchases/usePurchaseBillContext';
+import { usePurchaseBillSave } from '@/lib/purchases/usePurchaseBillSave';
+import { usePurchaseGrid } from '@/lib/purchases/usePurchaseGrid';
+import { usePurchaseScanner } from '@/lib/purchases/usePurchaseScanner';
 import {
-  buildPurchaseBillRpcArgs,
-  buildPurchaseOrderParams,
   calculateGrandTotal,
-  countSkippedRows,
-  createEmptyRow as emptyRow,
-  getSaveableRows,
-  getScanFileError,
-  getScanMatchMessage,
   getSelectedRows,
-  mapScannedItemsToRows,
-  mergeScannedRows,
-  type GridRow,
-  type ScannedPurchaseItem,
 } from './purchaseBillTransforms';
 
 // ── Component ──
 
 export default function NewPurchaseBillPage() {
-  // ── Auth state ──
-  const [shopCtx, setShopCtx] = useState<UserShopContext | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const shopId = shopCtx?.shopId ?? '';
-
-  // ── Bill header state ──
-  const [supplierName, setSupplierName] = useState('');
-  const [billNumber, setBillNumber] = useState('');
-  const [billDate, setBillDate] = useState(getIndiaDate);
-
-  // ── Grid state ──
-  const [rows, setRows] = useState<GridRow[]>([emptyRow()]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isCreatingPO, setIsCreatingPO] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState('');
-  const [saveError, setSaveError] = useState('');
-
-  // ── AI Scanner state ──
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState('');
-  const [scansRemaining, setScansRemaining] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // ── Focus refs: Map<rowIndex, Map<column, HTMLInputElement>> ──
-  const cellRefs = useRef<Map<string, HTMLInputElement>>(new Map());
-
-  const setCellRef = useCallback(
-    (rowIdx: number, col: string, el: HTMLInputElement | null) => {
-      const key = `${rowIdx}-${col}`;
-      if (el) {
-        cellRefs.current.set(key, el);
-      } else {
-        cellRefs.current.delete(key);
-      }
-    },
-    []
-  );
-
-  const focusCell = useCallback((rowIdx: number, col: string) => {
-    const key = `${rowIdx}-${col}`;
-    const el = cellRefs.current.get(key);
-    if (el) {
-      el.focus();
-      el.select();
-    }
-  }, []);
-
-  // ── Auth init ──
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        setAuthLoading(false);
-        return;
-      }
-      checkUserOnboarded(session.user.id).then((ctx) => {
-        setShopCtx(ctx);
-        setAuthLoading(false);
-      });
-    });
-  }, []);
-
-  // ── Fetch AI scan quota on mount ──
-  useEffect(() => {
-    if (!shopId) return;
-    const supabase = createClient();
-    supabase
-      .from('shops')
-      .select('monthly_ai_scans')
-      .eq('id', shopId)
-      .single()
-      .then(({ data }) => {
-        if (data) setScansRemaining(data.monthly_ai_scans ?? 0);
-      });
-  }, [shopId]);
-
-  // ── Product search for a row ──
-  const searchProducts = useCallback(
-    async (query: string, rowIdx: number) => {
-      if (!shopId || query.length < 1) {
-        setRows((prev) => {
-          const next = [...prev];
-          next[rowIdx] = { ...next[rowIdx], suggestions: [], showSuggestions: false };
-          return next;
-        });
-        return;
-      }
-
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .eq('shop_id', shopId)
-        .eq('is_active', true)
-        .or(`name.ilike.${query}%,sku.ilike.${query}%,barcode.eq.${query}`)
-        .order('name')
-        .limit(6);
-
-      setRows((prev) => {
-        const next = [...prev];
-        next[rowIdx] = {
-          ...next[rowIdx],
-          suggestions: (data ?? []) as Product[],
-          showSuggestions: (data ?? []).length > 0,
-        };
-        return next;
-      });
-    },
-    [shopId]
-  );
-
-  // ── Select product from suggestions ──
-  const selectProduct = useCallback(
-    (rowIdx: number, product: Product) => {
-      setRows((prev) => {
-        const next = [...prev];
-        next[rowIdx] = {
-          ...next[rowIdx],
-          product,
-          productQuery: product.name,
-          costPricePaise: product.purchase_price_paise || product.unit_price_paise,
-          matched: true,
-          suggestions: [],
-          showSuggestions: false,
-        };
-        return next;
-      });
-      // Auto-advance to quantity cell
-      setTimeout(() => focusCell(rowIdx, 'qty'), 50);
-    },
-    [focusCell]
-  );
-
-  // ── Handle Enter key in grid cells ──
-  const handleCellKeyDown = useCallback(
-    (e: React.KeyboardEvent, rowIdx: number, col: string) => {
-      if (e.key !== 'Enter' && e.key !== 'Tab') return;
-
-      // If suggestions are showing, select the first one
-      if (col === 'product' && rows[rowIdx].showSuggestions && rows[rowIdx].suggestions.length > 0) {
-        e.preventDefault();
-        selectProduct(rowIdx, rows[rowIdx].suggestions[0]);
-        return;
-      }
-
-      e.preventDefault();
-
-      // Navigate: product → qty → price → next row product
-      if (col === 'product') {
-        focusCell(rowIdx, 'qty');
-      } else if (col === 'qty') {
-        focusCell(rowIdx, 'price');
-      } else if (col === 'price') {
-        // If this is the last row, add a new one
-        if (rowIdx === rows.length - 1) {
-          setRows((prev) => [...prev, emptyRow()]);
-          setTimeout(() => focusCell(rowIdx + 1, 'product'), 50);
-        } else {
-          focusCell(rowIdx + 1, 'product');
-        }
-      }
-    },
-    [rows, focusCell, selectProduct]
-  );
-
-  // ── Update row field ──
-  const updateRow = useCallback(
-    (rowIdx: number, field: keyof GridRow, value: string | number | boolean) => {
-      setRows((prev) => {
-        const next = [...prev];
-        next[rowIdx] = { ...next[rowIdx], [field]: value };
-        return next;
-      });
-    },
-    []
-  );
-
-  // ── Remove row ──
-  const removeRow = useCallback((rowIdx: number) => {
-    setRows((prev) => {
-      if (prev.length <= 1) return [emptyRow()];
-      return prev.filter((_, i) => i !== rowIdx);
-    });
-  }, []);
-
-  // ── AI Scanner ──
-  const handleScanBill = useCallback(async (file: File) => {
-    setIsScanning(true);
-    setScanError('');
-
-    try {
-      const fileError = getScanFileError(file);
-      if (fileError) {
-        setScanError(fileError);
-        setIsScanning(false);
-        return;
-      }
-
-      // Convert to base64
-      const buffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (const byte of bytes) binary += String.fromCharCode(byte);
-      const base64 = btoa(binary);
-
-      const res = await fetch('/api/vision/scan-bill', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: base64, image_mime_type: file.type }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        setScanError(err.error || `Scan failed (${res.status})`);
-        setIsScanning(false);
-        return;
-      }
-
-      const data = await res.json();
-      setScansRemaining(data.scans_remaining ?? null);
-
-      // ── Single DB query: fetch ALL active products for this shop ──
-      const supabase = createClient();
-      const { data: allProducts } = await supabase
-        .from('products')
-        .select('*')
-        .eq('shop_id', shopId)
-        .eq('is_active', true);
-
-      const catalog = (allProducts ?? []) as Product[];
-
-      // ── Match each scanned item in-memory (zero extra DB queries) ──
-      const { rows: newRows, matchedCount } = mapScannedItemsToRows(
-        data.items as ScannedPurchaseItem[],
-        catalog
-      );
-
-      // Notify about unmatched items
-      const matchMessage = getScanMatchMessage(matchedCount, newRows.length);
-      if (matchMessage) setScanError(matchMessage);
-
-      // Replace empty rows, keep any existing user-entered rows
-      setRows((prev) => mergeScannedRows(prev, newRows));
-    } catch (err) {
-      setScanError(err instanceof Error ? err.message : 'Scan failed');
-    }
-
-    setIsScanning(false);
-  }, [shopId]);
-
-  // ── Save bill (single atomic RPC — 1 HTTP request, 1 Postgres transaction) ──
-  const handleSave = useCallback(async () => {
-    const validRows = getSaveableRows(rows);
-    if (validRows.length === 0) {
-      setSaveError('Add at least one product to save');
-      setTimeout(() => setSaveError(''), 3000);
-      return;
-    }
-    if (!supplierName.trim()) {
-      setSaveError('Supplier name is required');
-      setTimeout(() => setSaveError(''), 3000);
-      return;
-    }
-
-    setIsSaving(true);
-    setSaveError('');
-
-    const supabase = createClient();
-
-    const rpcArgs = buildPurchaseBillRpcArgs({
-      shopId,
-      supplierName,
-      billNumber,
-      billDate,
-      createdBy: shopCtx?.userId || null,
-      rows: validRows,
-    });
-    const totalAmountPaise = rpcArgs.p_bill.total_amount_paise;
-
-    // Skipped row count for user feedback
-    const skippedCount = countSkippedRows(rows, validRows.length);
-
-    // Single atomic RPC: bill insert + all stock adjustments in one transaction
-    const { data: result, error: rpcErr } = await supabase.rpc('save_purchase_bill', rpcArgs);
-
-    setIsSaving(false);
-
-    if (rpcErr) {
-      console.error('[PurchaseBill] save_purchase_bill FAILED:', rpcErr.message);
-      setSaveError(`Failed to save bill: ${rpcErr.message}`);
-      setTimeout(() => setSaveError(''), 8000);
-      return;
-    }
-
-    const itemsProcessed = (result as { bill_id: string; items_processed: number })?.items_processed ?? 0;
-    const skippedMsg = skippedCount > 0
-      ? ` (${skippedCount} unmatched item${skippedCount > 1 ? 's' : ''} skipped)`
-      : '';
-
-    console.log('[PurchaseBill] save_purchase_bill OK:', result);
-    setSaveSuccess(
-      `Bill saved! ${itemsProcessed} item${itemsProcessed !== 1 ? 's' : ''} stocked in (${formatINR(totalAmountPaise)})${skippedMsg}`
-    );
-
-    // Reset form
-    setSupplierName('');
-    setBillNumber('');
-    setRows([emptyRow()]);
-    setTimeout(() => setSaveSuccess(''), 6000);
-  }, [rows, supplierName, billNumber, billDate, shopId, shopCtx]);
-
-  // ── Save as Draft Purchase Order (no inventory changes) ──
-  const handleSaveDraftPO = useCallback(async () => {
-    const validPORows = getSaveableRows(rows);
-    if (validPORows.length === 0) {
-      setSaveError('Add at least one product to create a PO');
-      setTimeout(() => setSaveError(''), 3000);
-      return;
-    }
-    if (!supplierName.trim()) {
-      setSaveError('Supplier name is required');
-      setTimeout(() => setSaveError(''), 3000);
-      return;
-    }
-
-    setIsCreatingPO(true);
-    setSaveError('');
-
-    const result = await savePurchaseOrder(buildPurchaseOrderParams({
-      shopId,
-      supplierName,
-      billDate,
-      createdBy: shopCtx?.userId,
-      rows: validPORows,
-    }));
-
-    setIsCreatingPO(false);
-
-    if (result.success) {
-      const poNumber = (result.data?.po_number as string) ?? '';
-      setSaveSuccess(`Purchase Order ${poNumber} created! No stock changes until received.`);
-      setSupplierName('');
-      setBillNumber('');
-      setRows([emptyRow()]);
-      setTimeout(() => setSaveSuccess(''), 6000);
-    } else {
-      setSaveError(result.error ?? 'Failed to create purchase order');
-      setTimeout(() => setSaveError(''), 8000);
-    }
-  }, [rows, supplierName, billDate, shopId, shopCtx]);
-
-  // ── Computed totals ──
+  const {
+    authLoading,
+    scansRemaining,
+    setScansRemaining,
+    shopContext: shopCtx,
+    shopId,
+  } = usePurchaseBillContext();
+  const grid = usePurchaseGrid(shopId);
+  const scanner = usePurchaseScanner({
+    setRows: grid.setRows,
+    setScansRemaining,
+    shopId,
+  });
+  const save = usePurchaseBillSave({
+    rows: grid.rows,
+    setRows: grid.setRows,
+    shopContext: shopCtx,
+    shopId,
+  });
+  const {
+    addRow,
+    handleCellKeyDown,
+    removeRow,
+    rows,
+    selectProduct,
+    setCellRef,
+    updateProductQuery,
+    updateRow,
+  } = grid;
+  const { fileInputRef, handleScanBill, isScanning, scanError } = scanner;
+  const {
+    billDate,
+    billNumber,
+    handleClear,
+    handleSave,
+    handleSaveDraftPO,
+    isCreatingPO,
+    isSaving,
+    saveError,
+    saveSuccess,
+    setBillDate,
+    setBillNumber,
+    setSupplierName,
+    supplierName,
+  } = save;
   const validRows = getSelectedRows(rows);
   const grandTotal = calculateGrandTotal(rows);
 
@@ -558,19 +239,7 @@ export default function NewPurchaseBillPage() {
                   ref={(el) => setCellRef(idx, 'product', el)}
                   type="text"
                   value={row.productQuery}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setRows((prev) => {
-                      const next = [...prev];
-                      next[idx] = {
-                        ...next[idx],
-                        productQuery: val,
-                        ...(!val ? { product: null, matched: false } : {}),
-                      };
-                      return next;
-                    });
-                    searchProducts(val, idx);
-                  }}
+                  onChange={(e) => updateProductQuery(idx, e.target.value)}
                   onKeyDown={(e) => handleCellKeyDown(e, idx, 'product')}
                   onBlur={() => {
                     // Delay to allow click on suggestion
@@ -665,10 +334,7 @@ export default function NewPurchaseBillPage() {
 
           {/* Add Row Button */}
           <button
-            onClick={() => {
-              setRows((prev) => [...prev, emptyRow()]);
-              setTimeout(() => focusCell(rows.length, 'product'), 50);
-            }}
+            onClick={addRow}
             className="w-full px-4 py-3 text-left text-sm text-gray-600 hover:text-gray-400
                        hover:bg-white/[0.02] transition-colors"
           >
@@ -687,13 +353,7 @@ export default function NewPurchaseBillPage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                setRows([emptyRow()]);
-                setSupplierName('');
-                setBillNumber('');
-                setSaveSuccess('');
-                setSaveError('');
-              }}
+              onClick={handleClear}
               className="px-4 py-2.5 rounded-lg text-sm text-gray-400 border border-white/10
                          hover:bg-white/5 transition-colors"
             >
