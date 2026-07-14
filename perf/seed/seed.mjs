@@ -20,8 +20,13 @@
 // =============================================================================
 
 import { randomUUID } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { loadEnv, pgConfigFromEnv, parseArgs, LOADTEST_PREFIX } from '../lib/env.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const env = loadEnv();
 const args = parseArgs();
@@ -38,6 +43,10 @@ const N_PRODUCTS = Number(args.products || 8);
 const N_CUSTOMERS = Number(args.customers || 10);
 const N_HISTORY = Number(args.history || 6);
 const USER_PW = env.PERF_USER_PASSWORD || 'loadtest-pass-123';
+// Manifest lets k6 / the DB-tier harness build valid requests (ids, prices, creds).
+const MANIFEST_PATH = args.manifest && args.manifest !== true
+  ? args.manifest
+  : resolve(__dirname, `.manifest.${RUN_ID}.json`);
 
 const STATES = ['27', '29', '09', '24', '06', '07'];
 const VERTICALS = [
@@ -133,6 +142,13 @@ async function main() {
     `${plan.customers} customers · up to ${plan.invoices} history invoices\n`);
 
   const q = (text, params) => client.query(text, params);
+  const manifest = {
+    run_id: RUN_ID,
+    created_at: new Date().toISOString(),
+    db: { host: cfg.host, port: cfg.port, database: cfg.database },
+    user_password: USER_PW,
+    shops: [],
+  };
 
   try {
     await q('BEGIN');
@@ -159,11 +175,13 @@ async function main() {
 
       // ── Users: 1 owner + N cashiers (auth.users + auth.identities + public.users) ──
       let ownerId = null;
+      const shopUsers = [];
       for (let u = 0; u < 1 + N_CASHIERS; u++) {
         const uid = randomUUID();
         const role = u === 0 ? 'owner' : 'cashier';
         if (u === 0) ownerId = uid;
         const email = `loadtest.${RUN_ID}.${s + 1}.${u}@perf.local`.toLowerCase();
+        shopUsers.push({ id: uid, email, role });
         await q(
           `INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password,
              email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
@@ -262,6 +280,21 @@ async function main() {
           [JSON.stringify(invoice), JSON.stringify(items), loyalty ? JSON.stringify(loyalty) : null]);
       }
 
+      manifest.shops.push({
+        id: shopId,
+        gst_type: v.gst_type,
+        business_type: v.business_type,
+        state_code: state,
+        owner_id: ownerId,
+        users: shopUsers,
+        products: products.map((p) => ({
+          id: p.id, name: p.name, hsn_code: p.hsn_code, unit: p.unit,
+          selling_price_paise: p.selling_price_paise, gst_rate_percent: p.gst_rate_percent,
+          is_stock_tracked: p.is_stock_tracked,
+        })),
+        customers: customers.map((c) => ({ id: c.id, name: c.name, phone_number: c.phone_number })),
+      });
+
       console.log(`  ✓ shop ${s + 1}/${N_SHOPS} (${v.business_type}, ${v.gst_type})`);
     }
 
@@ -270,7 +303,9 @@ async function main() {
       console.log(`\n🧪 DRY RUN complete — all inserts executed then ROLLED BACK. Nothing written.\n`);
     } else {
       await q('COMMIT');
+      writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
       console.log(`\n✅ Seed committed. Tag: shops.settings->>'perf_run_id' = "${RUN_ID}".`);
+      console.log(`   Manifest: ${MANIFEST_PATH}`);
       console.log(`   Reverse with: node perf/seed/cleanup.mjs --run-id ${RUN_ID}\n`);
     }
   } catch (e) {

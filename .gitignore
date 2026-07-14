@@ -25,6 +25,7 @@ npm-debug.log*
 perf/.env.perf
 perf/**/results/
 perf/**/*.summary.json
+perf/seed/.manifest.*.json
 
 # vercel
 .vercel

@@ -68,17 +68,31 @@ const CHECKS = [
          SELECT count(DISTINCT i.id) FROM invoices i
          WHERE i.customer_id = c.id
            AND EXISTS (SELECT 1 FROM loyalty_ledger ll WHERE ll.invoice_id = i.id AND ll.customer_id = c.id)), 0)`],
-  ['inventory_movement_running_balance',
+  // Order-INDEPENDENT movement-chain checks. (An earlier ctid/created_at-ordered
+  // version produced false positives under concurrency: neither ctid nor
+  // transaction_timestamp reliably reflects commit order when transactions block
+  // on the advisory lock or the heap reuses pages. These reconstruct the chain by
+  // VALUE instead, so they are correct regardless of physical/temporal order.)
+  //
+  // Lost-update signature: a read-modify-write race would make two movements on
+  // the same inventory end at the SAME quantity_after. Correct serialization ⇒ none.
+  ['inventory_no_duplicate_after',
     `SELECT count(*)::int n FROM (
-       SELECT quantity_after, quantity_change,
-              lag(quantity_after) OVER (PARTITION BY inventory_id ORDER BY ctid) prev
-       FROM inventory_movements m WHERE {S}
-     ) x WHERE prev IS NOT NULL AND quantity_after <> prev + quantity_change`],
-  ['inventory_final_matches_ledger',
+       SELECT 1 FROM inventory_movements WHERE {S}
+       GROUP BY inventory_id, quantity_after HAVING count(*) > 1
+     ) x`],
+  // Current stock must be the unique terminal of the movement chain: a movement
+  // ending at quantity_in_stock that is no other movement's implied predecessor.
+  ['inventory_final_is_terminal',
     `SELECT count(*)::int n FROM inventory inv WHERE {S}
        AND EXISTS (SELECT 1 FROM inventory_movements m WHERE m.inventory_id = inv.id)
-       AND inv.quantity_in_stock <> (
-         SELECT quantity_after FROM inventory_movements m WHERE m.inventory_id = inv.id ORDER BY ctid DESC LIMIT 1)`],
+       AND NOT EXISTS (
+         SELECT 1 FROM inventory_movements t
+         WHERE t.inventory_id = inv.id
+           AND t.quantity_after = inv.quantity_in_stock
+           AND NOT EXISTS (
+             SELECT 1 FROM inventory_movements s
+             WHERE s.inventory_id = inv.id AND s.quantity_after - s.quantity_change = t.quantity_after))`],
   ['negative_credit_balances',
     `SELECT count(*)::int n FROM customers c WHERE {S} AND c.credit_balance_paise < 0`],
 ];

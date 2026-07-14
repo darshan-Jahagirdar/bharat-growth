@@ -14,7 +14,7 @@ the stack becomes unstable.
 |-----------|-------------|--------|-------|
 | **M0** | Docs + `perf/` skeleton + local-only env-guard | ✅ Done | No load run. Deliverables committed. |
 | **M1** | Seed generator + reversible cleanup + SQL invariant checker (extra-care gate) | ✅ Done | Validated on a tiny dataset; fully reversible. Details below. |
-| **M2** | k6 auth helper + baseline & sustained | ⬜ Not started | Needs M1 green. |
+| **M2** | k6 auth helper + baseline & sustained | 🟡 Partial | k6 scripts built (run on dev machine — no HTTP stack in this container). **DB-tier baseline captured here** — see below. |
 | **M3** | Stress/ramp + spike (find the knee) | ⬜ Not started | ≤ 200 VU. |
 | **M4** | DB concurrency (same-shop storm) + RLS isolation | ⬜ Not started | Invariant gate. |
 | **M5** | Soak + failure/retry + idempotency | ⬜ Not started | ≤ 45 min. |
@@ -44,14 +44,18 @@ Legend: ✅ done · ⏳ awaiting approval / in progress · ⬜ not started · �
 
 ---
 
-## Reference metrics (baseline — fill at M2)
+## Reference metrics
 
-| Path | p50 | p95 | p99 | error % | notes |
+- **DB-tier baseline (captured):** see the M2 results table below — `save_invoice` p95 = 9 ms at
+  4 workers, 0 errors.
+- **HTTP baseline/sustained (pending — dev machine):** run `perf/k6/baseline.js` + `sustained.js`
+  with `supabase start` + `npm run dev` up, then fill the table below.
+
+| Path (HTTP) | p50 | p95 | p99 | error % | notes |
 |------|-----|-----|-----|---------|-------|
-| POS `save_invoice` | — | — | — | — | |
-| Reads (catalogue/customer) | — | — | — | — | |
-| Storefront checkout | — | — | — | — | |
-| Receipt send (simulated) | — | — | — | — | |
+| POS `save_invoice` | — | — | — | — | dev-machine k6 |
+| Reads (catalogue/customer) | — | — | — | — | dev-machine k6 |
+| Storefront checkout | — | — | — | — | dev-machine k6 |
 
 Thresholds (from plan §8): `save_invoice` p95 < 800 ms / p99 < 1500 ms · reads p95 < 400 ms ·
 checkout p95 < 1200 ms · errors < 1% steady, abort > 10%.
@@ -85,6 +89,50 @@ the demo seed, not a defect introduced by the harness, and it's untouched by see
 *Implication:* the concurrency/integrity gate runs **scoped to the load `--run-id`** (data generated
 through the real RPCs), which reconciles cleanly. Worth deciding later whether the pilot seed should
 derive those denormalized fields from transactions.
+
+## M2 results (DB-tier baseline + k6 harness)
+
+**Built:** `perf/k6/` (`lib/config.js`, `lib/auth.js`, `baseline.js`, `sustained.js`) — HTTP load for
+the dev machine — and `perf/dbload/run.mjs` — a DB-tier harness that drives the real `save_invoice`
+RPC directly against Postgres. `seed.mjs` now emits a manifest (`perf/seed/.manifest.<run-id>.json`,
+gitignored) that both drivers consume.
+
+**Why DB-tier here:** Docker isn't available in the automation container, so GoTrue/PostgREST/Next
+can't run — the k6 HTTP numbers must be captured on the dev machine. The DB-tier harness needs only
+Postgres, so it produced **real numbers on the #1 bottleneck now**. It runs each invoice in one
+transaction with the JWT-sub claim set transaction-local — the same shape PostgREST uses — so the
+advisory-lock hold time is realistic.
+
+**DB-tier `save_invoice` results** (local Postgres 16, 40–50% write mix, 0 errors throughout):
+
+| Scenario | Workers | Write thr | save p50 | save p95 | save p99 | read p95 |
+|----------|--------:|----------:|---------:|---------:|---------:|---------:|
+| Baseline (spread) | 4 | **688/s** | 4.5 ms | 9.0 ms | 12.1 ms | 0.8 ms |
+| Spread | 16 | 576/s | 21 ms | 56 ms | 165 ms | 2.2 ms |
+| **Concentrated (1 shop)** | 16 | **261/s** | 57 ms | 76 ms | 117 ms | 0.5 ms |
+| Concentrated (1 shop) | 32 | 204/s | 135 ms | 264 ms | 343 ms | 0.7 ms |
+
+> These are local, no-network numbers — treat the **shape**, not the absolute ms, as the signal.
+> HTTP p50s on the dev machine will be higher (auth + PostgREST + network).
+
+### Finding F-2 — advisory-lock serialization confirmed (by design; per-shop write ceiling)
+Concentrating all writes on a single shop cuts `save_invoice` throughput ~2.2× vs spreading across
+shops at 16 workers (261 vs 576/s), and **adding more workers makes it worse** (204/s at 32 workers,
+p50 → 135 ms). This is exactly the `pg_advisory_xact_lock(shop_id‖fy)` behaviour predicted in the
+plan: sequential per-`(shop, FY)` invoice numbering serialises a shop's writes. Reads are unaffected;
+spreading across shops scales. **Implication:** a single very high-volume shop has a hard write
+ceiling. Reasonable for the 20–200 bills/day ICP, but worth noting for outliers — M3 ramp will
+locate the HTTP-tier knee.
+
+### Finding F-3 — invariant checker had an ordering bug (fixed); data was actually sound
+The first concurrency run flagged 11,232 `inventory_movement_running_balance` violations. Investigation
+showed **zero** duplicate `quantity_after` per inventory (the lost-update signature) and every
+inventory matching its terminal movement — i.e. the data was consistent; the **checker** was wrong.
+It ordered the movement chain by `ctid`, which stops reflecting insertion order once the heap reuses
+pages / transactions block on the advisory lock (neither `ctid` nor `transaction_timestamp` is a
+reliable commit-order key). Replaced with **order-independent** checks: `inventory_no_duplicate_after`
+(lost-update detector) + `inventory_final_is_terminal`. Re-run: **14/14 invariants PASS** over ~14k
+concurrently-generated invoices. This hardening is exactly what the M4 concurrency gate needs.
 
 ## Scenario results log
 
