@@ -18,7 +18,7 @@ the stack becomes unstable.
 | **M3** | Stress/ramp + spike (find the knee) | 🟡 Partial | k6 `stress-ramp.js` + `spike.js` built (dev machine). **DB-tier knee sweep captured here** — see below. |
 | **M4** | DB concurrency (same-shop storm) + RLS isolation | ✅ Done (DB tier) | 10/10 isolation checks + same-shop storm integrity PASS here. k6 `db-concurrency.js`/`rls-isolation.js` for dev machine. |
 | **M5** | Soak + failure/retry + idempotency | ✅ Done (DB tier) | 5/5 failure/retry PASS; soak surfaced **F-5** (missing index) + **F-6** (erasure vs consent immutability). |
-| **M6** | Narrow Playwright flows + final go/no-go report | ⬜ Not started | — |
+| **M6** | Narrow Playwright flows + final go/no-go report | ✅ Done | Playwright specs built (dev machine); consolidated report below. |
 
 Legend: ✅ done · ⏳ awaiting approval / in progress · ⬜ not started · ❌ blocked/failed
 
@@ -308,22 +308,67 @@ only (superuser, transaction-scoped).
 - Idempotency (`idempotency_key`): —
 - Partial-write / rollback integrity: —
 
-### M6 — Playwright flows
-- POS keyboard billing: —
-- Storefront checkout: —
+### M6 — Playwright flows (built; run on dev machine)
+- POS keyboard billing: `perf/browser/pos-billing.spec.ts` — dev login → billing → product search (read path).
+- Storefront checkout: `perf/browser/storefront-checkout.spec.ts` — add → consent → place order, asserts API 200 (no real WhatsApp).
 
 ---
 
-## Open questions / findings
+## M6 results (browser flows)
 
-- _(record hypotheses confirmed or refuted here as runs complete — e.g. whether the
-  `(shop_id, financial_year, invoice_sequence)` index is needed, actual advisory-lock penalty, cron
-  timeout margin)_
+**Built:** `perf/browser/playwright.config.ts` + `storefront-checkout.spec.ts` (public checkout, asserts
+API 200, no real WhatsApp) + `pos-billing.spec.ts` (dev login → billing product search, read-only).
+Run on the dev machine (`supabase start` + `npm run dev`). Selectors are grounded in the current
+components; the app has no `data-testid`s (see follow-up R-4).
 
 ---
 
-## Go / no-go summary (fill at M6)
+## Final go / no-go report
 
-- Overall verdict: —
-- Must-fix before production load: —
-- Recommended follow-ups: —
+**Scope run in this engagement:** M0–M6. Everything executed against a **local, disposable Postgres**
+(no production/staging ever contacted). The HTTP-tier k6 + Playwright scenarios are built and ready to
+run on a dev machine with `supabase start`; the DB tier — where the architecture's real bottlenecks
+and integrity guarantees live — was exercised directly here (up to ~43k invoices/run, ~56k in soak).
+
+### Overall verdict: **GO, conditional on F-5.**
+The core transactional design is **correct and safe under concurrency**: invoice numbering stays
+perfectly sequential under a same-shop storm, tenant isolation holds at both the RLS and RPC layers,
+and failure paths are atomic and idempotent. The one thing to fix before scaling is the missing
+sequence index (F-5) — a one-line, additive change with ~85× measured effect on the hottest path.
+
+### What passed (evidence)
+- **Concurrency integrity:** 3,805 invoices on ONE shop under 32 concurrent writers → sequence
+  `1…3805`, zero duplicates, zero gaps; ~43k more across the sweeps → invariants **14/14 PASS**. GST
+  Rule-46 sequential numbering holds under worst-case contention (advisory lock is doing its job).
+- **Tenant isolation:** 10/10 — RLS hides cross-shop reads; RPC guards + RLS `WITH CHECK` block
+  cross-shop writes; the RLS-bypassing storefront path re-derives ownership; `consent_logs` immutable.
+- **Failure/retry:** 5/5 — concurrent same-key checkouts dedupe to one order; `save_invoice` atomic;
+  insufficient-stock rolls back fully; bad input rejected.
+- **Data reconciliation:** totals, GST split, credit balances, loyalty spend/visits, inventory
+  movement chains all reconcile after heavy load.
+
+### Findings ledger
+
+| ID | Sev | Finding | Recommendation |
+|----|-----|---------|----------------|
+| **F-5** | 🔴 High | `MAX(invoice_sequence)` next-number lookup has no `invoice_sequence`-ordered index and runs inside the advisory-lock critical section → per-shop write latency grows with yearly invoice count (14.4 ms/1878 buf at ~28k rows). | Add `CREATE INDEX idx_invoices_shop_fy_seq ON invoices (shop_id, financial_year, invoice_sequence DESC);` → 0.17 ms/6 buf. **Validated.** |
+| **F-2 / F-4** | 🟡 Med | Per-shop write throughput is capped by the advisory lock (single shop saturates at ~1–2 writers; spreading gives ~2.5×). By design for sequential numbering. | Fine for the ICP (<1 write/s/shop). If a very high-volume single shop appears, consider a per-shop sequence/`nextval` strategy instead of `MAX+lock`. Re-check after F-5. |
+| **F-6** | 🟡 Med | `consent_logs` append-only trigger blocks DELETE → hard cascade-deletion of a shop/customer fails; conflicts with DPDP right-to-erasure. | Design an explicit erasure path (anonymise-in-place, or privileged purge that bypasses the trigger + logs the erasure). |
+| **F-1** | 🟢 Low | Pilot `supabase/seed.sql` customers carry denormalized `total_spent`/`visit_count` with no backing invoices (don't reconcile). | Derive those fields from transactions, or accept as demo-only data. |
+| **F-3** | ✅ Fixed | Invariant checker's inventory chain check used `ctid` ordering → false positives under concurrency. | Replaced with order-independent checks (lost-update + terminal-state). Done in M2. |
+| **cron** | 🟡 Med (unrun) | `GET /api/cron/campaigns` is N+1 (per rule → invoices → per-match dup check) + sequential WhatsApp sends → Vercel timeout risk as data grows. Not load-tested (needs the HTTP stack + a `find_campaign_matches` RPC). | Push matching into a single set-based SQL/RPC; batch/parallelise sends; add a timeout budget. Cover in the dev-machine soak. |
+
+### Recommended follow-ups
+- **R-1 (do first):** ship the F-5 index migration. *(I can open it on request.)*
+- **R-2:** run the built HTTP-tier scenarios on a dev machine (`k6 baseline/sustained/stress/spike/
+  db-concurrency/rls-isolation`, Playwright) to capture real network-inclusive latency and confirm the
+  Supabase connection-pool ceiling; fill the HTTP reference table above.
+- **R-3:** decide the DPDP erasure strategy (F-6).
+- **R-4:** add `data-testid`s to checkout/billing controls to harden the Playwright flows.
+- **R-5:** refactor the campaign cron to set-based matching + batched sends before it grows.
+
+### Safety statement
+No production or hosted environment was accessed; no real WhatsApp/SMS/email/payment was sent; all
+data was synthetic and tagged; every run stayed within the ≤200-VU / ≤60-min caps and the >10%
+error-rate abort gate (never tripped); all synthetic data was removed and pilot data verified intact
+after each milestone.
