@@ -16,7 +16,7 @@ the stack becomes unstable.
 | **M1** | Seed generator + reversible cleanup + SQL invariant checker (extra-care gate) | ✅ Done | Validated on a tiny dataset; fully reversible. Details below. |
 | **M2** | k6 auth helper + baseline & sustained | 🟡 Partial | k6 scripts built (run on dev machine — no HTTP stack in this container). **DB-tier baseline captured here** — see below. |
 | **M3** | Stress/ramp + spike (find the knee) | 🟡 Partial | k6 `stress-ramp.js` + `spike.js` built (dev machine). **DB-tier knee sweep captured here** — see below. |
-| **M4** | DB concurrency (same-shop storm) + RLS isolation | ⬜ Not started | Invariant gate. |
+| **M4** | DB concurrency (same-shop storm) + RLS isolation | ✅ Done (DB tier) | 10/10 isolation checks + same-shop storm integrity PASS here. k6 `db-concurrency.js`/`rls-isolation.js` for dev machine. |
 | **M5** | Soak + failure/retry + idempotency | ⬜ Not started | ≤ 45 min. |
 | **M6** | Narrow Playwright flows + final go/no-go report | ⬜ Not started | — |
 
@@ -173,6 +173,45 @@ The sweeps generated **43,270 invoices**; the (M2-hardened) invariant checker re
 scoped to the run — no duplicate/gapped invoice numbers, totals/tax/credit/inventory all reconciled,
 zero lost updates — strong evidence the advisory-lock + row-lock design is correct under load.
 Cleanup restored pilot data (shops 3, invoices 0).
+
+## M4 results (DB concurrency + RLS isolation) — the core gate
+
+**Built:** `perf/rls/check.mjs` (RLS isolation, runnable here), `perf/k6/db-concurrency.js`
+(same-shop HTTP storm), `perf/k6/rls-isolation.js` (HTTP isolation). The `authenticated`/`anon`
+table grants Supabase provides were added to `perf/local-ci/bootstrap.sql` (via DEFAULT PRIVILEGES)
+so RLS is actually exercisable in the Docker-less DB.
+
+### Same-shop invoice storm (the GST-compliance gate)
+32 concurrent writers, **100% writes**, one shop, 15 s → **3,805 invoices, 0 errors**:
+
+| invoices on shop | distinct invoice_number | distinct sequence | max sequence |
+|-----------------:|------------------------:|------------------:|-------------:|
+| 3,805 | **3,805** | **3,805** | **3,805** |
+
+Perfectly contiguous `1…3805` — **zero duplicate numbers, zero gaps** under worst-case contention.
+The `pg_advisory_xact_lock(shop_id‖FY)` guarantees sequential per-`(shop, FY)` invoice numbering
+(Rule 46 CGST requirement) even when hammered. Full invariant checker: **14/14 PASS**.
+
+### RLS / tenant isolation — 10/10 PASS
+Run as the `authenticated` role with a shop-A identity attempting shop-B access:
+
+| Check | Result |
+|-------|--------|
+| own-shop products visible (control) | ✅ saw 6/6 |
+| cross-shop products hidden | ✅ 0 visible |
+| cross-shop customers hidden | ✅ 0 visible |
+| cross-shop invoices hidden | ✅ 0 visible |
+| cross-shop product INSERT blocked (RLS `WITH CHECK`) | ✅ rejected |
+| cross-shop `save_invoice` blocked (`assert_authenticated_shop`) | ✅ "Unauthorized: user does not belong to shop …" |
+| own-shop `save_invoice` works (no over-block) | ✅ succeeded |
+| storefront `create_online_order` rejects foreign product | ✅ "Product … is not available for this shop" |
+| `consent_logs` UPDATE blocked (DPDP append-only) | ✅ rejected |
+| `consent_logs` DELETE blocked (DPDP append-only) | ✅ rejected |
+
+**No tenant leakage found.** RLS enforces read isolation, the RPC guards enforce write isolation
+(incl. the RLS-bypassing admin storefront path re-deriving ownership server-side), and consent
+records are immutable. The HTTP-tier `perf/k6/rls-isolation.js` re-checks the same assertions with
+real JWTs (`checks` threshold = 100%).
 
 ## Scenario results log
 

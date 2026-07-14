@@ -82,3 +82,17 @@ CREATE OR REPLACE FUNCTION storage.foldername(name text) RETURNS text[] AS $$
 $$ LANGUAGE sql IMMUTABLE;
 
 GRANT USAGE ON SCHEMA auth, storage TO anon, authenticated, service_role;
+
+-- ── Table privileges Supabase grants to its roles ──
+-- Real Supabase grants CRUD to anon/authenticated (RLS then restricts the rows)
+-- and full access to service_role. Migrations don't restate this (Supabase sets
+-- it up), so mirror it here via DEFAULT PRIVILEGES BEFORE the migrations run, so
+-- every table they create is auto-granted. Without this, RLS can't be exercised
+-- (the role would be blocked by table privilege, not by policy).
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated, anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON TABLES TO service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO anon, authenticated, service_role;
