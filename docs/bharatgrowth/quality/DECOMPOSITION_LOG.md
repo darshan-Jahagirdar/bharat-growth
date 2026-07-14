@@ -495,6 +495,117 @@
   opportunistic cleanup changes; migration 049; production rollout work; and
   the full pre-sale manual hard-test checklist.
 
+## Context re-established and Wave 5 characterization checkpoint — 2026-07-14 — Purchases
+
+- Re-read the complete verified handoff and every file in its required reading
+  order before inspecting or changing Purchases. The decomposition order and
+  no-change boundaries remain pure transforms first, controllers/hooks second,
+  and focused views last, with no feature, schema, query-facade, copy, styling,
+  payload, visual, focus, keyboard, RLS, stock, or workflow change.
+- Git: `codex/decompose-purchases` was created from verified integration commit
+  `ac75c68812b6c31994b11278fbc862583d4030e2`. A fresh remote check returned
+  production `main` at `8c389098db7e31180b5bdd6f1661adfd4bdc902b` and
+  `codex/production-hardening-baseline` at the same `ac75c68` integration
+  commit; production was not touched.
+- GitHub: Wave 4 PR #5 is merged only into the integration branch. Draft PR #1
+  remains open from integration to `main`, its exact head is `ac75c68`, and its
+  required checks pass. A separate unmerged Claude stress-test branch exists
+  remotely but is outside this wave and does not change the integration base.
+- Supabase and Vercel: the linked project is staging
+  `qokaaggeqahayxsybgds`; a fresh migration list returned matching continuous
+  local/remote versions `001` through `048`. Integration deployment
+  `dpl_44yB22FfD5vZo4wwKD9qG6A8pSHa` is READY for exact commit `ac75c68`.
+  Newer previews belong only to the unrelated unmerged branch.
+- Before ownership and LOC: `src/app/dashboard/purchases/new/page.tsx` is 871
+  lines and owns state/controller behavior, the editable grid and keyboard
+  flow, AI scan mapping, totals, draft purchase-order creation, and atomic bill
+  save. The 317-line Purchases history route is not named by the Wave 5
+  extraction contract and remains unchanged. `src/lib/orders/orderQueries.ts`
+  remains unchanged and reserved for Wave 7 query-facade decomposition.
+- Five characterization tests pass against the unchanged new-purchase page.
+  They freeze auth/shop and quota loading; shop-scoped product search; Enter,
+  Tab, and F10 behavior; validation and paise totals; exact bill RPC and draft
+  purchase-order payloads; scan file validation; one-catalog-query matching for
+  exact, leading-two-word, and unmatched items; and the existing scan API
+  payload and feedback.
+- Purchases extraction has not started and no application source file changed.
+  This checkpoint is the Wave 5 pre-extraction rollback boundary.
+- Workspace: untracked user-owned `designs/`, `designs_mobile/`, and
+  `docs/bharatgrowth/design/` remain preserved and excluded. No secret value was
+  printed, documented, or committed.
+
+## Wave 5 complete — 2026-07-14 — Purchases
+
+- Extraction order and commits: characterization checkpoint `2e6bec8` preceded
+  every application-source edit. Tested pure transforms were extracted first in
+  `a6945f6`, controllers/hooks second in `dc87b3a`, and focused views last in
+  `97fbe54`. No feature, schema, query-facade, copy, styling, payload, visual,
+  focus, keyboard, RLS, stock-rule, or workflow change was included.
+- After ownership and LOC: the new-purchase route is 78 lines and composes six
+  focused views. The 200-line pure transform module owns deterministic row,
+  scan, total, bill-RPC, and purchase-order parameter construction. Four hooks
+  own the unchanged auth/shop/quota, editable grid, scanner, and save flows.
+  Purchases history and `src/lib/orders/orderQueries.ts` have zero Wave 5 diff.
+- Tests and automated gates: five pre-extraction characterization tests plus six
+  direct transform tests cover auth/shop/quota loading, shop-scoped search,
+  Enter/Tab/F10 flow, exact validation and paise totals, bill and draft-PO
+  payloads, scan validation/matching, and scan feedback. All 94 tests across 19
+  files pass; strict TypeScript passes; repository-wide ESLint passes with zero
+  warnings; the optimized build passes all 25 routes; and `git diff --check`
+  passes.
+- Pull request and retained branch preview: draft PR
+  [#6](https://github.com/darshan-Jahagirdar/bharat-growth/pull/6) targets only
+  `codex/production-hardening-baseline`. Application-source head `97fbe54`
+  passed GitHub `quality`, `public-smoke`, Vercel, and preview-comment checks.
+  Exact preview `dpl_EKUBTxDfiUFoJFWYifL9aD97Dnsi` is READY. Its public chunks
+  contain staging ref `qokaaggeqahayxsybgds`, contain no other Supabase project
+  ref, and contain no framework-overlay marker.
+- Authenticated staging smoke: a user-owned staging test-phone Auth identity was
+  mapped temporarily to the existing Ganesh Tyres fixture with one uniquely
+  tagged `public.users` manager row. Product search returned both MRF fixtures;
+  Enter selected the first suggestion and focused quantity; quantity Enter
+  focused price; price Enter created and focused the next product row; quantity
+  2 at ₹275.00 produced ₹550.00; F10 stopped at `Supplier name is required`
+  before any request; and Clear All restored one empty row and ₹0.00. AI scan,
+  Save Bill, and Save as PO were never invoked. Browser console checks returned
+  zero warnings/errors.
+- Temporary login compatibility: hosted Supabase test-phone configuration uses
+  the raw ten-digit fixture, while committed auth normalization adds `91`.
+  Darshan explicitly approved a staging-only raw-ten-digit workaround so the
+  smoke could proceed. The workaround changed only the login display and phone
+  payload in uncommitted deployment inputs; it was never committed, pushed,
+  added to PR #6, or applied to production. The normal auth/provider design is
+  intentionally deferred to the dedicated auth/payment-gateway work.
+- Preview isolation and containment: Wave 5 smoke used temporary staging-only
+  preview `dpl_4bxEWPBUczAPqLKJhhaRoLFqNWoZ`. The visual baseline used exact
+  integration commit `ac75c68` plus the same uncommitted login workaround in
+  temporary preview `dpl_ASVNEXro6P4rVpywjBv92P6VxnoU`. Both public bundles
+  contained exactly one Supabase ref and it was staging. An earlier temporary
+  integration attempt, `dpl_E52nq52mB7KJ6MJtU7FijR4HqK7H`, lacked the staging
+  ref and was rejected and deleted before authentication or application use.
+- Visual comparison: integration and Wave 5 were captured from the same tab,
+  authenticated fixture, cleaned page state, and explicit 1440×900 viewport.
+  Both JPEGs were exactly 36,139 bytes with SHA-256
+  `fdbb57136bb16dba217c170be73c74eecf5046d185bf7d919e19b1389729e4e2`;
+  byte comparison is identical, representing zero visual difference.
+- Cleanup and runtime result: both preview sessions were signed out. The single
+  tagged profile row was deleted and verified at zero while the user-owned test
+  Auth identity and Ganesh Tyres fixture remain. All three temporary previews
+  above were deleted and confirmed absent. Temporary tokens, helper scripts,
+  clone/worktree data, bundle evidence, and screenshots were removed. Both used
+  previews returned no error-level runtime logs. No purchase, order, shop,
+  product, inventory, scan quota, or Auth record was created, updated, or
+  deleted by the smoke.
+- Production result and rollback: production `main` remains
+  `8c389098db7e31180b5bdd6f1661adfd4bdc902b`; production Supabase, production
+  Vercel, production environment variables, and production data were untouched.
+  Rollback points are integration `ac75c68` for the whole wave and
+  characterization checkpoint `2e6bec8` for the pre-extraction Purchases state.
+- Known follow-ups kept out of scope: Purchases history, the Wave 7 order query
+  facade, auth/provider normalization, payment-gateway work, migration 049,
+  all sale-ready features, production rollout, and the full pre-sale manual
+  hard-test checklist.
+
 ## Wave entry template
 
 ```text
