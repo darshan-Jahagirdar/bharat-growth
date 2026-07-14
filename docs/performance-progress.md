@@ -15,7 +15,7 @@ the stack becomes unstable.
 | **M0** | Docs + `perf/` skeleton + local-only env-guard | ✅ Done | No load run. Deliverables committed. |
 | **M1** | Seed generator + reversible cleanup + SQL invariant checker (extra-care gate) | ✅ Done | Validated on a tiny dataset; fully reversible. Details below. |
 | **M2** | k6 auth helper + baseline & sustained | 🟡 Partial | k6 scripts built (run on dev machine — no HTTP stack in this container). **DB-tier baseline captured here** — see below. |
-| **M3** | Stress/ramp + spike (find the knee) | ⬜ Not started | ≤ 200 VU. |
+| **M3** | Stress/ramp + spike (find the knee) | 🟡 Partial | k6 `stress-ramp.js` + `spike.js` built (dev machine). **DB-tier knee sweep captured here** — see below. |
 | **M4** | DB concurrency (same-shop storm) + RLS isolation | ⬜ Not started | Invariant gate. |
 | **M5** | Soak + failure/retry + idempotency | ⬜ Not started | ≤ 45 min. |
 | **M6** | Narrow Playwright flows + final go/no-go report | ⬜ Not started | — |
@@ -133,6 +133,46 @@ pages / transactions block on the advisory lock (neither `ctid` nor `transaction
 reliable commit-order key). Replaced with **order-independent** checks: `inventory_no_duplicate_after`
 (lost-update detector) + `inventory_final_is_terminal`. Re-run: **14/14 invariants PASS** over ~14k
 concurrently-generated invoices. This hardening is exactly what the M4 concurrency gate needs.
+
+## M3 results (knee sweep + stress/spike harness)
+
+**Built:** `perf/k6/stress-ramp.js` (10→200 VU ramp, latency observed / only error-rate aborts),
+`perf/k6/spike.js` (ramping-arrival-rate storefront burst + recovery). DB-tier engine refactored into
+`perf/dbload/core.mjs`; added `perf/dbload/sweep.mjs` to map the throughput/latency knee.
+
+**DB-tier knee sweep** (local PG16, 6 shops, 70% write mix, 6 s/step, 0 errors — read p95 in ms):
+
+*Concentrated (all writes on ONE shop):*
+
+| workers | 1 | 2 | 4 | 8 | 16 | 24 | 32 | 48 | 64 |
+|---------|--:|--:|--:|--:|---:|---:|---:|---:|---:|
+| W thr/s | 282 | **324** | 243 | 221 | 211 | 230 | 193 | 132 | 117 |
+| W p95 ms | 5 | 8 | 20 | 43 | 124 | 145 | 223 | 600 | 991 |
+
+*Spread (writes across 6 shops):*
+
+| workers | 1 | 2 | 4 | 8 | 16 | 24 | 32 | 48 | 64 |
+|---------|--:|--:|--:|--:|---:|---:|---:|---:|---:|
+| W thr/s | 277 | 533 | 759 | **815** | 677 | 592 | 528 | 476 | 468 |
+| W p95 ms | 6 | 6 | 11 | 25 | 94 | 175 | 279 | 432 | 622 |
+
+### Finding F-4 — the write knee is per-shop and early; spreading gives ~2.5× headroom
+- **One shop saturates at ~1–2 concurrent writers** (peak ≈324/s at 2), then throughput plateaus and
+  *declines* while p95 climbs to ~1 s at 64 — the `save_invoice` advisory lock serialises a shop's
+  writes, so extra concurrency just queues.
+- **Spread across 6 shops peaks ≈815/s at 8 workers** (~2.5× the single-shop ceiling), i.e. it scales
+  with shop count until the single local Postgres itself saturates (CPU/pool), then tapers.
+- **Implication for the HTTP tier (M3 on dev machine):** the app's ceiling won't be VU count per se —
+  it's *writes-per-shop* plus the Supabase pool. For the 20–200 bills/day ICP a single shop needs
+  &lt;1 write/s, so this is comfortable; the risk is a synthetic single-shop storm, not real traffic.
+  Run `perf/k6/stress-ramp.js` to confirm the HTTP knee and pool behaviour end-to-end.
+- Absolute ms are local/no-network; the **curve shape and the ~2.5× spread advantage** are the signal.
+
+### Integrity under sustained concurrency
+The sweeps generated **43,270 invoices**; the (M2-hardened) invariant checker reported **14/14 PASS**
+scoped to the run — no duplicate/gapped invoice numbers, totals/tax/credit/inventory all reconciled,
+zero lost updates — strong evidence the advisory-lock + row-lock design is correct under load.
+Cleanup restored pilot data (shops 3, invoices 0).
 
 ## Scenario results log
 
