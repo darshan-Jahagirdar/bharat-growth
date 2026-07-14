@@ -13,32 +13,21 @@ import type { Product } from '@/lib/types/database';
 import TopNav from '@/components/layout/TopNav';
 import { savePurchaseOrder } from '@/lib/orders/orderQueries';
 import { getIndiaDate } from '@/lib/utils/indiaDate';
-
-// ── Types ──
-
-interface GridRow {
-  id: string;
-  productQuery: string;
-  product: Product | null;
-  quantity: number;
-  costPricePaise: number;
-  matched: boolean; // true = product matched from catalog, false = AI raw_name unmatched
-  suggestions: Product[];
-  showSuggestions: boolean;
-}
-
-function emptyRow(): GridRow {
-  return {
-    id: crypto.randomUUID(),
-    productQuery: '',
-    product: null,
-    quantity: 1,
-    costPricePaise: 0,
-    matched: false,
-    suggestions: [],
-    showSuggestions: false,
-  };
-}
+import {
+  buildPurchaseBillRpcArgs,
+  buildPurchaseOrderParams,
+  calculateGrandTotal,
+  countSkippedRows,
+  createEmptyRow as emptyRow,
+  getSaveableRows,
+  getScanFileError,
+  getScanMatchMessage,
+  getSelectedRows,
+  mapScannedItemsToRows,
+  mergeScannedRows,
+  type GridRow,
+  type ScannedPurchaseItem,
+} from './purchaseBillTransforms';
 
 // ── Component ──
 
@@ -228,63 +217,15 @@ export default function NewPurchaseBillPage() {
     });
   }, []);
 
-  // ── In-memory product matcher (1 DB query for ALL products, then score in JS) ──
-  // Scales to 10,000+ shops: one SELECT per scan, not N×items queries
-  const findBestMatch = useCallback(
-    (rawName: string, products: Product[]): Product | null => {
-      const trimmed = rawName.trim().toLowerCase();
-      if (!trimmed) return null;
-
-      let bestProduct: Product | null = null;
-      let bestScore = 0;
-
-      for (const p of products) {
-        const pName = p.name.toLowerCase();
-
-        // Level 0: exact match → return immediately (highest confidence)
-        if (pName === trimmed) return p;
-
-        // Score by counting matching leading words (order-sensitive)
-        const rawWords = trimmed.split(/\s+/);
-        const pWords = pName.split(/\s+/);
-        let matchCount = 0;
-        for (let i = 0; i < Math.min(rawWords.length, pWords.length); i++) {
-          if (rawWords[i] === pWords[i]) matchCount++;
-          else break; // stop at first divergence — word order matters
-        }
-
-        // Bonus: if ALL leading words match AND word count is equal → near-exact
-        if (matchCount === rawWords.length && matchCount === pWords.length) {
-          return p; // should be caught by exact match above, but safety net
-        }
-
-        if (matchCount > bestScore) {
-          bestScore = matchCount;
-          bestProduct = p;
-        }
-      }
-
-      // Require at least 2 matching leading words to avoid false positives
-      // (e.g. "Apollo" alone matching "Apollo Bike Tyre" when user meant "Apollo Car Tyre")
-      return bestScore >= 2 ? bestProduct : null;
-    },
-    []
-  );
-
   // ── AI Scanner ──
   const handleScanBill = useCallback(async (file: File) => {
     setIsScanning(true);
     setScanError('');
 
     try {
-      const supportedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-      if (!supportedTypes.has(file.type)) {
-        setScanError('Choose a JPEG, PNG, WebP, or GIF image.');
-        setIsScanning(false);
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setScanError('Image is too large. Maximum size is 5 MB.');
+      const fileError = getScanFileError(file);
+      if (fileError) {
+        setScanError(fileError);
         setIsScanning(false);
         return;
       }
@@ -323,52 +264,27 @@ export default function NewPurchaseBillPage() {
       const catalog = (allProducts ?? []) as Product[];
 
       // ── Match each scanned item in-memory (zero extra DB queries) ──
-      const newRows: GridRow[] = [];
-      let matchedCount = 0;
-
-      for (const item of data.items as Array<{
-        raw_name: string;
-        quantity: number;
-        price_paise: number;
-      }>) {
-        const matchedProduct = findBestMatch(item.raw_name, catalog);
-        if (matchedProduct) matchedCount++;
-
-        newRows.push({
-          id: crypto.randomUUID(),
-          productQuery: item.raw_name,
-          product: matchedProduct,
-          quantity: item.quantity,
-          costPricePaise: item.price_paise,
-          matched: matchedProduct !== null,
-          suggestions: [],
-          showSuggestions: false,
-        });
-      }
+      const { rows: newRows, matchedCount } = mapScannedItemsToRows(
+        data.items as ScannedPurchaseItem[],
+        catalog
+      );
 
       // Notify about unmatched items
-      const unmatchedCount = newRows.length - matchedCount;
-      if (unmatchedCount > 0) {
-        setScanError(
-          `${matchedCount}/${newRows.length} products matched. ${unmatchedCount} unmatched — select them manually before saving.`
-        );
-      }
+      const matchMessage = getScanMatchMessage(matchedCount, newRows.length);
+      if (matchMessage) setScanError(matchMessage);
 
       // Replace empty rows, keep any existing user-entered rows
-      setRows((prev) => {
-        const existingWithData = prev.filter((r) => r.product !== null);
-        return [...existingWithData, ...newRows, emptyRow()];
-      });
+      setRows((prev) => mergeScannedRows(prev, newRows));
     } catch (err) {
       setScanError(err instanceof Error ? err.message : 'Scan failed');
     }
 
     setIsScanning(false);
-  }, [shopId, findBestMatch]);
+  }, [shopId]);
 
   // ── Save bill (single atomic RPC — 1 HTTP request, 1 Postgres transaction) ──
   const handleSave = useCallback(async () => {
-    const validRows = rows.filter((r) => r.product !== null && r.quantity > 0);
+    const validRows = getSaveableRows(rows);
     if (validRows.length === 0) {
       setSaveError('Add at least one product to save');
       setTimeout(() => setSaveError(''), 3000);
@@ -385,34 +301,21 @@ export default function NewPurchaseBillPage() {
 
     const supabase = createClient();
 
-    // Calculate bill total
-    const totalAmountPaise = validRows.reduce(
-      (sum, r) => sum + r.costPricePaise * r.quantity,
-      0
-    );
+    const rpcArgs = buildPurchaseBillRpcArgs({
+      shopId,
+      supplierName,
+      billNumber,
+      billDate,
+      createdBy: shopCtx?.userId || null,
+      rows: validRows,
+    });
+    const totalAmountPaise = rpcArgs.p_bill.total_amount_paise;
 
     // Skipped row count for user feedback
-    const totalRowsWithData = rows.filter((r) => r.productQuery.trim()).length;
-    const skippedCount = totalRowsWithData - validRows.length;
+    const skippedCount = countSkippedRows(rows, validRows.length);
 
     // Single atomic RPC: bill insert + all stock adjustments in one transaction
-    const { data: result, error: rpcErr } = await supabase.rpc('save_purchase_bill', {
-      p_bill: {
-        shop_id: shopId,
-        supplier_name: supplierName.trim(),
-        bill_number: billNumber.trim() || null,
-        bill_date: billDate,
-        total_amount_paise: totalAmountPaise,
-        created_by: shopCtx?.userId || null,
-      },
-      p_items: validRows
-        .filter((r): r is GridRow & { product: Product } => r.product !== null)
-        .map((r) => ({
-          product_id: r.product.id,
-          quantity: r.quantity,
-          unit_price_paise: r.costPricePaise,
-        })),
-    });
+    const { data: result, error: rpcErr } = await supabase.rpc('save_purchase_bill', rpcArgs);
 
     setIsSaving(false);
 
@@ -442,7 +345,7 @@ export default function NewPurchaseBillPage() {
 
   // ── Save as Draft Purchase Order (no inventory changes) ──
   const handleSaveDraftPO = useCallback(async () => {
-    const validPORows = rows.filter((r) => r.product !== null && r.quantity > 0);
+    const validPORows = getSaveableRows(rows);
     if (validPORows.length === 0) {
       setSaveError('Add at least one product to create a PO');
       setTimeout(() => setSaveError(''), 3000);
@@ -457,25 +360,13 @@ export default function NewPurchaseBillPage() {
     setIsCreatingPO(true);
     setSaveError('');
 
-    const totalAmountPaise = validPORows.reduce(
-      (sum, r) => sum + r.costPricePaise * r.quantity,
-      0
-    );
-
-    const result = await savePurchaseOrder({
+    const result = await savePurchaseOrder(buildPurchaseOrderParams({
       shopId,
-      supplierName: supplierName.trim(),
-      expectedDate: billDate,
-      totalAmountPaise,
+      supplierName,
+      billDate,
       createdBy: shopCtx?.userId,
-      items: validPORows
-        .filter((r): r is GridRow & { product: Product } => r.product !== null)
-        .map((r) => ({
-          productId: r.product.id,
-          quantity: r.quantity,
-          expectedPricePaise: r.costPricePaise,
-        })),
-    });
+      rows: validPORows,
+    }));
 
     setIsCreatingPO(false);
 
@@ -493,11 +384,8 @@ export default function NewPurchaseBillPage() {
   }, [rows, supplierName, billDate, shopId, shopCtx]);
 
   // ── Computed totals ──
-  const validRows = rows.filter((r) => r.product !== null);
-  const grandTotal = rows.reduce(
-    (sum, r) => sum + (r.product ? r.costPricePaise * r.quantity : 0),
-    0
-  );
+  const validRows = getSelectedRows(rows);
+  const grandTotal = calculateGrandTotal(rows);
 
   // ── Loading / Auth guard ──
   if (authLoading) {
