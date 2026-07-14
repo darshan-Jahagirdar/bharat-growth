@@ -21,6 +21,11 @@ npm-debug.log*
 # env files (secrets)
 .env*.local
 
+# perf harness local config + results (secrets / machine-specific)
+perf/.env.perf
+perf/**/results/
+perf/**/*.summary.json
+
 # vercel
 .vercel
 
