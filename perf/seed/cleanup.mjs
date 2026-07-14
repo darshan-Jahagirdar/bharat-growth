@@ -61,8 +61,14 @@ async function main() {
     }
 
     await q('BEGIN');
+    // consent_logs is append-only (DPDP immutability trigger), which blocks the
+    // CASCADE delete when a synthetic shop has consent rows (e.g. from storefront
+    // checkout). For TEST-DATA teardown only, disable that trigger for this tx —
+    // it is restored on COMMIT/ROLLBACK. (Superuser/owner; local disposable DB.)
+    await q(`ALTER TABLE consent_logs DISABLE TRIGGER consent_logs_immutable`);
     // Deleting the shops cascades every shop_id child row.
     const delShops = await q(`DELETE FROM shops WHERE id = ANY($1::uuid[])`, [shopIds]);
+    await q(`ALTER TABLE consent_logs ENABLE TRIGGER consent_logs_immutable`);
     // Remove the auth users (public.users already gone via cascade).
     if (userIds.length) {
       await q(`DELETE FROM auth.identities WHERE user_id = ANY($1::uuid[])`, [userIds]);

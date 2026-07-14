@@ -17,7 +17,7 @@ the stack becomes unstable.
 | **M2** | k6 auth helper + baseline & sustained | 🟡 Partial | k6 scripts built (run on dev machine — no HTTP stack in this container). **DB-tier baseline captured here** — see below. |
 | **M3** | Stress/ramp + spike (find the knee) | 🟡 Partial | k6 `stress-ramp.js` + `spike.js` built (dev machine). **DB-tier knee sweep captured here** — see below. |
 | **M4** | DB concurrency (same-shop storm) + RLS isolation | ✅ Done (DB tier) | 10/10 isolation checks + same-shop storm integrity PASS here. k6 `db-concurrency.js`/`rls-isolation.js` for dev machine. |
-| **M5** | Soak + failure/retry + idempotency | ⬜ Not started | ≤ 45 min. |
+| **M5** | Soak + failure/retry + idempotency | ✅ Done (DB tier) | 5/5 failure/retry PASS; soak surfaced **F-5** (missing index) + **F-6** (erasure vs consent immutability). |
 | **M6** | Narrow Playwright flows + final go/no-go report | ⬜ Not started | — |
 
 Legend: ✅ done · ⏳ awaiting approval / in progress · ⬜ not started · ❌ blocked/failed
@@ -212,6 +212,62 @@ Run as the `authenticated` role with a shop-A identity attempting shop-B access:
 (incl. the RLS-bypassing admin storefront path re-deriving ownership server-side), and consent
 records are immutable. The HTTP-tier `perf/k6/rls-isolation.js` re-checks the same assertions with
 real JWTs (`checks` threshold = 100%).
+
+## M5 results (soak + failure/retry) — two findings
+
+**Built:** `perf/failure/check.mjs` (failure/retry), `perf/dbload/soak.mjs` (segmented soak with
+p95 + connection sampling).
+
+### Failure / retry — 5/5 PASS
+| Check | Result |
+|-------|--------|
+| idempotency (10 concurrent same-key checkouts) | ✅ exactly 1 order — 1 create + 9 replays, 1 stored row |
+| `save_invoice` atomicity (fails mid-body) | ✅ no partial write (invoice count stable) |
+| insufficient-stock online order | ✅ full rollback — no invoice/customer/consent residue |
+| missing consent rejected | ✅ |
+| invalid phone rejected | ✅ |
+
+The idempotency result is the important one: rapid double-click / retry storms dedupe correctly via
+the `(shop, key)` advisory lock + partial-unique index.
+
+### Soak (compressed: 6 × 30s, 12 workers, spread)
+| segment | 1 | 2 | 3 | 4 | 5 | 6 |
+|---------|--:|--:|--:|--:|--:|--:|
+| W thr/s | 396 | 358 | 316 | 285 | 270 | 245 |
+| W p95 ms | 56 | 59 | 68 | 79 | 80 | 89 |
+| active conns | 1 | 1 | 1 | 1 | 1 | 1 |
+
+Throughput fell ~38% and p95 drifted +60% *within a 3-minute run* — not a connection leak (flat), but
+a real degradation that led directly to **F-5**. (Caveat: the sampler reads connections between
+segments when the load pool is closed, so this run doesn't test for a mid-segment connection leak —
+the dev-machine k6 soak covers that.)
+
+### Finding F-5 — `save_invoice` slows as a shop accumulates invoices (missing index) — HIGH
+`save_invoice` and `create_online_order` compute the next invoice number with
+`MAX(invoice_sequence) WHERE shop_id = ? AND financial_year = ?`. There is **no index ordered by
+`invoice_sequence`** (the closest, `idx_invoices_shop_fy`, is ordered by `created_at`), so this
+aggregates over *all* of a shop's invoices for the year — and it sits **inside the advisory-lock
+critical section**, so it lengthens lock-hold time for every concurrent writer. Measured on a shop
+with ~28k invoices:
+
+| | plan | time | buffers |
+|---|------|-----:|--------:|
+| before | Aggregate over matching rows | 14.4 ms | 1,878 pages |
+| after `idx_invoices_shop_fy_seq (shop_id, financial_year, invoice_sequence DESC)` | index lookup | **0.17 ms** | **6 pages** |
+
+~85× faster, and O(1) regardless of history. In production a shop accrues invoices all financial
+year (200/day ≈ 70k), so every bill would slow progressively. **Recommendation:** add
+`CREATE INDEX idx_invoices_shop_fy_seq ON invoices (shop_id, financial_year, invoice_sequence DESC);`
+(validated in the throwaway DB; not added to product migrations — say the word and I'll open it).
+
+### Finding F-6 — DPDP right-to-erasure vs `consent_logs` immutability — MEDIUM
+The `consent_logs_immutable` trigger (append-only, correct for DPDP audit) blocks **DELETE**, so a
+hard `DELETE FROM shops/customers` **cascades into `consent_logs` and fails** — a customer/shop can't
+be hard-deleted while consent rows exist. DPDP mandates *both* auditable consent *and* a right to
+erasure, so the erasure path needs an explicit design (anonymise-in-place, or a privileged
+purge that bypasses the trigger) rather than a naive cascade delete. Surfaced because the perf
+cleanup itself hit it; `perf/seed/cleanup.mjs` now disables the trigger for **test-data** teardown
+only (superuser, transaction-scoped).
 
 ## Scenario results log
 
