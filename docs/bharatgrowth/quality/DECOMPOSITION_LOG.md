@@ -495,6 +495,45 @@
   opportunistic cleanup changes; migration 049; production rollout work; and
   the full pre-sale manual hard-test checklist.
 
+## Context re-established and Wave 5 characterization checkpoint — 2026-07-14 — Purchases
+
+- Re-read the complete verified handoff and every file in its required reading
+  order before inspecting or changing Purchases. The decomposition order and
+  no-change boundaries remain pure transforms first, controllers/hooks second,
+  and focused views last, with no feature, schema, query-facade, copy, styling,
+  payload, visual, focus, keyboard, RLS, stock, or workflow change.
+- Git: `codex/decompose-purchases` was created from verified integration commit
+  `ac75c68812b6c31994b11278fbc862583d4030e2`. A fresh remote check returned
+  production `main` at `8c389098db7e31180b5bdd6f1661adfd4bdc902b` and
+  `codex/production-hardening-baseline` at the same `ac75c68` integration
+  commit; production was not touched.
+- GitHub: Wave 4 PR #5 is merged only into the integration branch. Draft PR #1
+  remains open from integration to `main`, its exact head is `ac75c68`, and its
+  required checks pass. A separate unmerged Claude stress-test branch exists
+  remotely but is outside this wave and does not change the integration base.
+- Supabase and Vercel: the linked project is staging
+  `qokaaggeqahayxsybgds`; a fresh migration list returned matching continuous
+  local/remote versions `001` through `048`. Integration deployment
+  `dpl_44yB22FfD5vZo4wwKD9qG6A8pSHa` is READY for exact commit `ac75c68`.
+  Newer previews belong only to the unrelated unmerged branch.
+- Before ownership and LOC: `src/app/dashboard/purchases/new/page.tsx` is 871
+  lines and owns state/controller behavior, the editable grid and keyboard
+  flow, AI scan mapping, totals, draft purchase-order creation, and atomic bill
+  save. The 317-line Purchases history route is not named by the Wave 5
+  extraction contract and remains unchanged. `src/lib/orders/orderQueries.ts`
+  remains unchanged and reserved for Wave 7 query-facade decomposition.
+- Five characterization tests pass against the unchanged new-purchase page.
+  They freeze auth/shop and quota loading; shop-scoped product search; Enter,
+  Tab, and F10 behavior; validation and paise totals; exact bill RPC and draft
+  purchase-order payloads; scan file validation; one-catalog-query matching for
+  exact, leading-two-word, and unmatched items; and the existing scan API
+  payload and feedback.
+- Purchases extraction has not started and no application source file changed.
+  This checkpoint is the Wave 5 pre-extraction rollback boundary.
+- Workspace: untracked user-owned `designs/`, `designs_mobile/`, and
+  `docs/bharatgrowth/design/` remain preserved and excluded. No secret value was
+  printed, documented, or committed.
+
 ## Wave entry template
 
 ```text
