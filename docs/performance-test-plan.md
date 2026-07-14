@@ -170,6 +170,8 @@ npm i -D playwright pg
 # ── Bring up the LOCAL disposable stack + apply migrations ─────────
 supabase start
 supabase db reset               # applies supabase/migrations + seed.sql to the local DB
+# (Docker-less fallback, e.g. CI: build the same schema on a plain local Postgres)
+#   DB=bg_perf perf/local-ci/apply.sh   # shim + all migrations + seed.sql
 
 # ── Preflight (safe, read-only) ────────────────────────────────────
 npx tsx scripts/test-db.ts                       # connectivity, pointed at 127.0.0.1 keys
@@ -188,7 +190,7 @@ k6 run perf/k6/soak.js
 
 # ── DB concurrency (same-shop invoice storm) + invariant gate ──────
 k6 run perf/k6/db-concurrency.js
-node perf/invariants/check.mjs --run-id "$PERF_RUN_ID"     # PASS/FAIL gate
+node perf/invariants/check.mjs --run-id "$PERF_RUN_ID"     # PASS/FAIL gate (scope to the run's data)
 
 # ── RLS / tenant isolation + narrow browser flows ─────────────────
 k6 run perf/k6/rls-isolation.js

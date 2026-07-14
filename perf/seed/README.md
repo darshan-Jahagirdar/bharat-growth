@@ -1,13 +1,23 @@
-# perf/seed/ — synthetic tenant generator (M1)
+# perf/seed/ — synthetic tenant generator (M1) ✅
 
-**Not yet implemented — M0 placeholder.** Built at milestone M1 (extra-care gate).
+Implemented and validated at milestone M1.
 
-Planned:
-- `seed.mjs` — deterministic, idempotent, `--dry-run`-capable generator. Every row tagged with a
-  `perf_run_id` and `LOADTEST-` marker; synthetic phones from a reserved non-real range. Creates
-  shops (mixed gst_type/vertical), owner + cashier users with known passwords, products across GST
-  slabs, inventory, customers, back-dated invoices, tags + campaign_rules.
-- `cleanup.mjs` — deletes **strictly** the rows matching a given `--run-id`. Reversible teardown.
+- **`seed.mjs`** — deterministic, idempotent, `--dry-run`-capable generator. Every shop is tagged
+  `shops.settings->>'perf_run_id' = <run-id>` and named `LOADTEST-…`; synthetic phones use a
+  reserved `9999……` range. Creates shops (mixed gst_type/vertical), owner + cashier users
+  (`auth.users` + `auth.identities` + `public.users`, known password for JWT minting), products
+  across GST slabs, inventory, customers, tags + `campaign_rules`, and back-dated invoice history
+  generated through the **real `save_invoice` RPC** (so cross-table data is realistic and
+  reconcilable). `--dry-run` runs the whole insert path in one transaction and ROLLS BACK.
+- **`cleanup.mjs`** — deletes **strictly** the shops for a `--run-id`; all `shop_id` child rows
+  CASCADE away, then the matching `auth.users`/`auth.identities` are removed. `--dry-run` reports
+  the exact counts it would delete.
 
-Safety: runs only after `perf/guard/check-env.mjs` passes (local target). Pilot data in
-`supabase/seed.sql` is never touched; `supabase db reset` is the full restore.
+```bash
+node perf/seed/seed.mjs   --run-id "$PERF_RUN_ID" --shops 50 [--dry-run]
+node perf/seed/cleanup.mjs --run-id "$PERF_RUN_ID" [--dry-run]
+```
+
+Safety: LOCAL-only (aborts on non-127.0.0.1). Pilot data in `supabase/seed.sql` is never touched;
+`supabase db reset` is the full restore. Config via `perf/.env.perf` (`PERF_DB_*`, `PERF_RUN_ID`,
+`PERF_USER_PASSWORD`).

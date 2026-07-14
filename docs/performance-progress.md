@@ -13,7 +13,7 @@ the stack becomes unstable.
 | Milestone | Description | Status | Notes |
 |-----------|-------------|--------|-------|
 | **M0** | Docs + `perf/` skeleton + local-only env-guard | ✅ Done | No load run. Deliverables committed. |
-| **M1** | Seed generator + reversible cleanup + SQL invariant checker (extra-care gate) | ⏳ Awaiting approval | Tiny-dataset validation only. |
+| **M1** | Seed generator + reversible cleanup + SQL invariant checker (extra-care gate) | ✅ Done | Validated on a tiny dataset; fully reversible. Details below. |
 | **M2** | k6 auth helper + baseline & sustained | ⬜ Not started | Needs M1 green. |
 | **M3** | Stress/ramp + spike (find the knee) | ⬜ Not started | ≤ 200 VU. |
 | **M4** | DB concurrency (same-shop storm) + RLS isolation | ⬜ Not started | Invariant gate. |
@@ -24,16 +24,23 @@ Legend: ✅ done · ⏳ awaiting approval / in progress · ⬜ not started · �
 
 ---
 
-## Environment snapshot (to fill at M1)
+## Environment snapshot
 
 | Item | Value |
 |------|-------|
-| Host machine (CPU / RAM) | _tbd_ |
-| Postgres version (local) | _tbd_ |
-| Supabase CLI version | _tbd_ |
-| k6 version | _tbd_ |
-| Shops / users / products / customers seeded | _tbd_ |
-| `perf_run_id` of latest seed | _tbd_ |
+| Validation environment | Automation container (no Docker) → plain **Postgres 16.13** on `127.0.0.1:5432` |
+| Schema provisioning | `perf/local-ci/apply.sh` (shim + all 35 migrations + `seed.sql`) |
+| Node | v22 · `pg` devDependency |
+| Supabase CLI / k6 | n/a in container — used on the dev machine at M2+ |
+| Latest seed tag validated | `m1final` (removed after cycle) |
+
+> **Note on the validation environment.** Docker isn't available in the automation container, so
+> the full `supabase start` stack can't run here. M1 was validated against a real local Postgres 16
+> provisioned by `perf/local-ci/apply.sh`, which applies a minimal Supabase shim (auth/storage
+> schemas, roles, `auth.uid()`) plus **the actual repo migrations 001–035 and `seed.sql`**. On the
+> dev machine (the real target) `supabase start` provides these natively — the shim is a
+> Docker-less fallback only. The seed/cleanup/invariant scripts themselves are environment-agnostic
+> (they read `PERF_DB_*` and run against whatever local Postgres is configured).
 
 ---
 
@@ -50,6 +57,34 @@ Thresholds (from plan §8): `save_invoice` p95 < 800 ms / p99 < 1500 ms · reads
 checkout p95 < 1200 ms · errors < 1% steady, abort > 10%.
 
 ---
+
+## M1 results (seed + cleanup + invariants)
+
+**Scripts:** `perf/seed/seed.mjs`, `perf/seed/cleanup.mjs`, `perf/invariants/check.mjs`,
+`perf/lib/env.mjs` (shared local-only guard + `PERF_DB_*` config).
+
+**Tiny-dataset run (2 shops · 2 cashiers · 6 products · 8 customers · 6 history invoices/shop):**
+
+| Step | Result |
+|------|--------|
+| env-guard | ✅ passes for `127.0.0.1`, hard-aborts non-local (exit 1) |
+| seed `--dry-run` | ✅ full insert path executes then ROLLS BACK — DB counts unchanged |
+| seed (real) | ✅ committed 2 shops, 6 users (auth+public), 12 products, 16 customers, 12 invoices, 29 items, 16 inventory movements, 2 credit-ledger, loyalty entries — history generated through the **real `save_invoice` RPC** |
+| invariants (scoped to run-id) | ✅ **14/14 PASS** (incl. invoice-number uniqueness, item↔invoice totals, GST line arithmetic, tenant isolation, credit reconciliation, inventory running-balance & final-state) |
+| cleanup `--dry-run` | ✅ reports exact rows it would remove, deletes nothing |
+| cleanup (real) | ✅ removed tagged shops → all child rows CASCADE; pilot data byte-for-byte restored (shops 3, invoices 0, auth users 1) |
+
+Re-verified end-to-end after a clean `apply.sh` rebuild → identical result.
+
+### Finding F-1 — pilot seed customers don't reconcile to ledgers (pre-existing)
+Running the checker over **ALL** data (not scoped) fails `total_spent_reconciliation` and
+`visit_count_reconciliation` with 7 violations. These are exactly the 7 hand-authored customers in
+`supabase/seed.sql` (Ganesh Tyres, Bikaner Sweets, Trends Boutique) whose `total_spent_paise` /
+`visit_count` are set as literals with **no backing invoices/loyalty rows**. This is a property of
+the demo seed, not a defect introduced by the harness, and it's untouched by seed/cleanup.
+*Implication:* the concurrency/integrity gate runs **scoped to the load `--run-id`** (data generated
+through the real RPCs), which reconciles cleanly. Worth deciding later whether the pilot seed should
+derive those denormalized fields from transactions.
 
 ## Scenario results log
 
