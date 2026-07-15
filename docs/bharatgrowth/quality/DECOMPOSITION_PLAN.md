@@ -1,9 +1,10 @@
 # Behavior-Preserving Decomposition Plan
 
-Current status (2026-07-15): Waves 1–5 are merged only into integration. The
-application checkpoint is `907dfe3`; a docs-only handoff merge may advance the
-integration pointer without changing application source. Wave 6 Storefront is
-next. Production remains `8c38909` and untouched.
+Current status (2026-07-15): Waves 1–6 are merged only into integration at
+`6255234`. The exact application-source checkpoint is `145437b`; a docs-only
+Wave 7 handoff merge may advance the integration pointer without changing
+application source. Wave 7 data access is next and is the final decomposition
+wave. Production remains `8c38909` and untouched.
 
 ## Rules
 
@@ -56,14 +57,14 @@ next. Production remains `8c38909` and untouched.
 | 3 Products | `b38e0ad` | Merged and staging-verified. |
 | 4 Dashboard/progress | `ac75c68` | Merged; characterization rollback `74fc96b`; query facade unchanged. |
 | 5 Purchases | `907dfe3` | Merged; characterization rollback `2e6bec8`; Purchase History/query facade unchanged. |
-| 6 Storefront | Pending | Next. Characterization must precede application edits. |
-| 7 Data access | Pending | Starts only after Wave 6 merge and staging smoke. |
+| 6 Storefront | `6255234` | Merged and staging-verified; characterization rollback `ac7fe57`; pixel comparison explicitly waived by Darshan before the intentional reskin. |
+| 7 Data access | Pending | Next. Exact data-access characterization must precede implementation movement. |
 
-## Wave 6 Storefront contract
+## Wave 6 Storefront retained contract
 
-Wave 6 starts from the freshly verified remote integration head. The expected
-application tree beneath any handoff-doc merge is Wave 5 application checkpoint
-`907dfe3`.
+Wave 6 started from verified integration `d9d7b4f`; its application-source
+checkpoint is `145437b`, merged only into integration at `6255234`. The contract
+below remains the audit record for that completed wave.
 
 Characterize the unchanged loader/public mapping, all three theme dispatch and
 outputs, Modern category/search behavior, strict-stock cart, checkout fields and
@@ -81,6 +82,65 @@ Industrial and Festive are already focused theme outputs. Share code only when
 the rendered behavior for all themes stays exact; do not give them Modern cart
 behavior. Keep `src/lib/storefront/queries.ts` compatible and out of query-facade
 restructuring until Wave 7.
+
+## Wave 7 data-access contract
+
+Wave 7 starts from the freshly verified remote integration head after the
+docs-only Wave 7 handoff PR. Confirm the application tree beneath that docs-only
+merge remains exact application checkpoint `145437b`.
+
+The in-scope compatibility facades are:
+
+- `src/lib/billing/billingQueries.ts` — 408 lines;
+- `src/lib/orders/orderQueries.ts` — 431 lines;
+- `src/lib/dashboard/dashboardQueries.ts` — 672 lines;
+- `src/lib/storefront/queries.ts` — 129 lines.
+
+### Characterization checkpoint before implementation movement
+
+Add focused module-level tests against the unchanged facades and commit them
+before moving any implementation. Freeze:
+
+- every exported symbol, interface, constant, parameter default, return shape,
+  fallback, thrown-versus-returned error, warning/error side effect, and public
+  client-versus-authenticated client boundary;
+- exact table/RPC/storage names, selected columns and joins, filters and their
+  order, sort/null behavior, pagination/range/limit values, mutation payloads,
+  optional-argument omission, and call sequencing;
+- Billing search sanitization, lazy loyalty, barcode, invoice/repayment RPCs,
+  refresh, customer image/create/consent flow, and shop context;
+- Orders header-then-item fetches, grouping, 50-row `hasMore`, create/convert
+  RPCs, guarded cancellation mutations, and error mapping;
+- Dashboard IST ranges, parallel KPI/data orchestration, retention RPC mapping,
+  khata/stock queries, aggregation/rounding, and GST export row order/output;
+- Storefront public shop plus owner-phone RPC behavior, active catalog
+  selection/order, tracked/untracked/missing inventory mapping, and non-fatal
+  contact/product failures.
+
+Record zero pre-extraction source diff for the four facades. The characterization
+commit is the Wave 7 rollback boundary.
+
+### Implementation order
+
+1. Extract cohesive shared types only where the original exported identity and
+   module path remain compatible.
+2. Split Billing and Orders reads/writes by use case without changing a query,
+   RPC, error path, or caller import.
+3. Split Dashboard analytics/retention/stock/GST and Storefront public shop/
+   catalog data by use case under their existing trust boundaries.
+4. Leave the four original facade paths as explicit compatibility exports and
+   prove every existing caller still resolves the same symbols.
+
+No route, component, hook, page, copy, style, DOM, visual, focus, keyboard,
+payload, API, SQL, migration, RLS, policy, grant, function, provider, Auth, or
+workflow change belongs in Wave 7. Migration 049 and Storefront public-boundary
+hardening remain separate post-decomposition work.
+
+The Wave 7 browser gate is limited to representative data-flow evidence that
+module-level mocks cannot prove: public Storefront loading and bounded protected
+Billing, Orders, and Dashboard reads on the exact staging deployment. If no
+TSX/CSS/DOM source changes, do not manufacture a duplicate pixel comparison;
+record the zero UI-source diff and exact rendered data-flow/console evidence.
 
 ## Per-wave gate
 

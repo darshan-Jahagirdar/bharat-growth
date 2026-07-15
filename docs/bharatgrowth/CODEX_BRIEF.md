@@ -112,9 +112,11 @@ This brief remains the approved decision record, but its “next actions” and
 33-test baseline are historical checkpoints, not the current stage. Do not redo
 completed setup actions.
 
-- Waves 1–5 are merged only into integration; application checkpoint is
-  `907dfe3`. Wave 6 Storefront is next, then Wave 7 data access.
-- The current suite is 94 tests across 19 files, with strict typecheck,
+- At this historical checkpoint, Waves 1–5 were merged only into integration;
+  application checkpoint was `907dfe3`, and Wave 6 Storefront was next. The
+  later completion addendum below is current.
+- At that checkpoint, the suite was 94 tests across 19 files, with strict
+  typecheck,
   zero-warning lint, 25-route build, GitHub checks, staging browser/visual gates,
   and cleanup evidence passing through Wave 5.
 - Production remains `8c38909` and untouched.
@@ -131,3 +133,18 @@ completed setup actions.
   anonymous compatibility policies. Do not remove them until a separate
   reviewed application hardening change proves the constrained path preserves
   Storefront behavior.
+
+## Wave 6 completion addendum — 2026-07-15
+
+- Wave 6 Storefront is merged only into integration at `6255234`; its final
+  application-source checkpoint is `145437b`. Production remains `8c38909` and
+  untouched.
+- The current suite is 116 tests across 24 files, with strict typecheck,
+  zero-warning lint, the optimized 25-route build, GitHub checks, staging theme
+  smoke, runtime inspection, and cleanup evidence complete.
+- Wave 7 data access is now the final decomposition wave. It must preserve the
+  exact exports, client trust boundaries, SQL selections, filters, ordering,
+  pagination, RPC arguments, error mapping, result shaping, and call sequencing
+  of the Billing, Orders, Dashboard, and Storefront query facades.
+- The intentional Storefront redesign remains separate product work after Wave
+  7. Migration 049 remains a later, separately reviewed staging contract gate.

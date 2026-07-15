@@ -743,6 +743,63 @@
   migration 049, Auth/provider work, payment-gateway work, intentional reskin,
   production rollout, and the full pre-sale hard-test checklist.
 
+## Wave 6 post-merge integration verification — 2026-07-15
+
+- PR #8 merged only into `codex/production-hardening-baseline`; exact merge
+  commit is `6255234937a79b2d74d2a3a577a8065d167d911f`, with reviewed head
+  `d02a592d500bb63041131792ad43554eac806c71` as its second parent. Remote
+  production `main` remains `8c389098db7e31180b5bdd6f1661adfd4bdc902b`.
+- GitHub reports PR #8 merged with successful `quality`, `public-smoke`, Vercel,
+  and Vercel Preview Comments checks. Guarded PR #1 remains open, draft, clean,
+  and points from exact integration head `6255234` to `main`.
+- The merged application tree matches Wave 6 application checkpoint
+  `145437b13eeff1d1cd4f7eebfe86d06611805dfb`; there is no post-review
+  application or Supabase drift.
+- Linked Supabase remains staging `qokaaggeqahayxsybgds`; fresh migration
+  readback returns matching continuous local/remote versions 001–048. The
+  post-smoke cleanup evidence that all three synthetic seed shops are `modern`
+  remains valid because no later data mutation occurred.
+- Integration deployment `dpl_3cu9JfBqjAgB929LQbmvAC2bEmmh` is READY and
+  Preview-only for exact integration branch/commit `6255234`. All eight loaded
+  chunks contain only the staging project ref with the active publishable-key
+  shape, no unexpected Supabase ref, no legacy JWT key shape, and no preview
+  overlay. The error/warning/fatal runtime query returned no entries.
+- All three temporary sensitive Preview variables scoped only to
+  `codex/decompose-storefront` were removed after merged-deployment verification;
+  branch-scoped environment readback returned `envs: []`. No deployment,
+  obsolete preview, alias, or retained branch setting was deleted.
+- The canonical Google handoff and the signed `— Sol/Codex` merged message in
+  `#bharatgrowth` contain the exact merge, deployment, cleanup, visual-waiver,
+  and production-safety facts.
+- Production application, Supabase, Vercel, Auth, data, aliases, configuration,
+  and environment values were not changed.
+
+## Durable Wave 7 handoff preparation — 2026-07-15
+
+- Darshan approved plan-first continuation: a documentation-only Wave 7 handoff
+  PR first, followed by Wave 7 data-access decomposition. The intentional
+  Storefront reskin remains a separate later product/design PR.
+- Re-read `CODEX_HANDOFF.md` and every file in its required reading order from
+  disk. Live re-verification returned integration `6255234`, production
+  `8c38909`, PR #8 merged, PR #1 draft/clean, linked staging
+  `qokaaggeqahayxsybgds` with migrations 001–048 matching, and integration
+  deployment `dpl_3cu9JfBqjAgB929LQbmvAC2bEmmh` READY/Preview-only.
+- Branch `codex/prepare-wave7-handoff` was created from exact remote integration
+  `6255234`. This checkpoint changes canonical documentation only; `src/` and
+  `supabase/` remain identical to Wave 6 application checkpoint `145437b`.
+- Wave 7 scope was re-derived from source: Billing `billingQueries.ts` is 408
+  lines, Orders `orderQueries.ts` 431, Dashboard `dashboardQueries.ts` 672, and
+  Storefront `queries.ts` 129. Their 1,640 lines retain four stable compatibility
+  module paths and all current exports while implementation is split by use case.
+- The Wave 7 plan freezes client trust boundaries, exact selections/joins,
+  filter/call order, pagination, sorting, RPC/storage arguments, optional
+  omission, error/fallback/log behavior, result shaping, tenant scoping, and call
+  sequencing before implementation movement. No SQL, schema, migration, RLS,
+  API/payload, UI, Auth, provider, reskin, or migration 049 change is allowed.
+- User-owned `designs/`, `designs_mobile/`, `docs/bharatgrowth/design/`, and the
+  concurrent `docs/bharatgrowth/CLAUDE_HANDOFF.md` remain untracked, unstaged,
+  preserved, and excluded.
+
 ## Wave entry template
 
 ```text

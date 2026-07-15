@@ -1,8 +1,8 @@
 # Current Architecture
 
-Last source verification: 2026-07-15 at integration application checkpoint
-`907dfe3`. Runtime truth must be rechecked before every external or production
-action.
+Last source verification: 2026-07-15 at Wave 6 application checkpoint
+`145437b`, merged only into integration at `6255234`. Runtime truth must be
+rechecked before every external or production action.
 
 ## Product shape
 
@@ -55,7 +55,7 @@ credentials; secret values never belong in docs.
 
 ## Route and module map
 
-| Domain | Route/surface | Current ownership after Waves 1–5 |
+| Domain | Route/surface | Current ownership after Waves 1–6 |
 |---|---|---|
 | Auth/onboarding | `/login`, `/auth/callback`, `/onboarding` | Page/API orchestration plus `src/lib/auth/*`. |
 | Billing/POS | `/billing` | Thin page composition over `src/lib/billing/*` hooks/transforms and focused `src/components/billing/*`. |
@@ -64,7 +64,7 @@ credentials; secret values never belong in docs.
 | Purchases | `/dashboard/purchases/new`, `/history` | New Purchase is a 78-line composition over transforms/hooks/views; History remains its existing 317-line route. |
 | Orders | `/dashboard/orders` | Thin tab composition over presentation/controller modules and focused Sales/PO views; `orderQueries.ts` remains the query facade. |
 | Campaigns | `/dashboard/campaigns`, cron/API | Campaign page, default/seed modules, database matcher, scheduled sender, WhatsApp service. |
-| Storefront | `/store/[shop_id]` | 180-line loader plus 717-line Modern theme, focused Industrial/Festive themes, shared per-product WhatsApp button, checkout API, and existing query module. Wave 6 target. |
+| Storefront | `/store/[shop_id]` | Unchanged loader over the existing 129-line query facade; 77-line Modern composition over catalog/cart/checkout transforms, two controller hooks, and focused views; focused Industrial/Festive themes remain unchanged. |
 | Receipt | `/receipt/[id]` | Public page plus mobile `ReceiptLoader` over constrained RPC. |
 | Settings/navigation | `/settings`, `TopNav` | Tax/GST settings and stable protected navigation. |
 | Progress | `/progress` | LocalStorage-backed product-build tracker, independent of shop analytics. |
@@ -159,6 +159,10 @@ transaction authority into the browser.
 - Keep routes/composition thin without inventing abstractions.
 - Preserve query facades and exports through Waves 1–6; split them only in Wave
   7 behind compatibility exports.
+- Wave 7 covers the current Billing (408 lines), Orders (431), Dashboard (672),
+  and Storefront (129) data-access facades. Their original module paths and
+  exports remain compatibility contracts while implementation is split by use
+  case.
 - Do not change schema, migrations, RLS, API/RPC contracts, copy, styles, visual
   output, focus, keyboard, stock, consent, or provider workflow.
 - Generated/general UI primitives are outside the decomposition without a

@@ -58,13 +58,15 @@ fresh `git ls-remote`; never infer the base from an old local branch label.
 
 1. Verify clean scope and preserve the excluded design directories.
 2. Characterize current behavior before application extraction.
-3. Commit the pure-transform checkpoint, then controllers/hooks, then focused
-   views, then verification/docs.
+3. Commit the wave-specific checkpoints. Waves 1–6 used pure transforms,
+   controllers/hooks, then focused views; Wave 7 uses exact data-access
+   characterization, use-case splits, compatibility facades, then
+   verification/docs.
 4. Push and open a draft PR targeting only the integration branch.
 5. Verify the PR head SHA and base branch through GitHub.
 6. Wait for `quality`, `public-smoke`, Vercel, and preview-comment checks.
-7. Prove preview isolation, browser behavior, visual equivalence, cleanup, and
-   documentation before marking ready.
+7. Prove preview isolation, the wave-specific browser and visual-or-zero-UI-diff
+   gate, cleanup, and documentation before marking ready.
 8. Merge only after every per-wave gate passes. Re-verify the remote integration
    SHA and its post-merge preview.
 
@@ -200,7 +202,8 @@ The hosted staging test phone currently exposes a formatting mismatch with the
 committed Auth request. The UI shows `+91`, while `useAuth.sendOtp` sends
 `91XXXXXXXXXX` without a literal plus. The one-time workaround sent only the
 raw ten digits; it was preview-only and removed. Do not reintroduce it into
-source during Wave 6; auth/provider design is a separate approved workstream.
+source during decomposition; auth/provider design is a separate approved
+workstream.
 
 ## 9. End-to-end milestone sequence
 
@@ -211,10 +214,12 @@ For each remaining wave:
 3. Stop on contradiction.
 4. Create the wave branch from exact remote integration.
 5. Characterize behavior; record rollback checkpoint.
-6. Extract pure transforms, controllers/hooks, then focused views.
+6. Follow the current wave's documented implementation order. For Wave 7,
+   split data access by use case behind stable compatibility exports.
 7. Run focused and full automated gates.
 8. Push draft PR; verify GitHub and branch-scoped preview.
-9. Run bounded staging browser/API/database smoke and visual comparison.
+9. Run only the bounded staging browser/API/database and visual-or-zero-UI-diff
+   checks required by the current wave contract.
 10. Clean every temporary fixture, session, variable, deployment, and local
     artifact; verify cleanup.
 11. Update repository docs and the shared Google handoff with verified facts.
