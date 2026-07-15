@@ -98,8 +98,9 @@ scope. Do not make Darshan repeatedly explain the app or collaboration process.
 - A user login/takeover gate is allowed only on a verified staging-only preview.
   Darshan enters private values himself and tells Codex when signed in.
 - The raw-ten-digit staging phone workaround was temporary, preview-only, and
-  removed. Do not commit it. Current source retains India `+91` normalization;
-  auth/provider redesign is separate future work.
+  removed. Do not commit it. Current UI visibly shows `+91`; committed
+  `useAuth.sendOtp` sends `91XXXXXXXXXX` without a literal plus. Preserve that
+  exact inherited behavior until the separately approved auth/provider work.
 - Staging fixtures must be synthetic or explicitly approved, uniquely
   identifiable, minimal, and cleaned with readback verification.
 - Do not claim a gate passed because code exists. Record exact current evidence.

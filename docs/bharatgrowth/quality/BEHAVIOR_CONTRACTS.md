@@ -53,8 +53,10 @@ PR.
 
 - Phone OTP and email magic link remain supported with current redirects and OTP
   input behavior.
-- Committed phone normalization retains India `+91` semantics. The removed
-  raw-ten-digit staging workaround is not a source contract.
+- The phone field visibly renders a `+91` prefix, accepts ten local digits, and
+  committed `useAuth.sendOtp` sends `91XXXXXXXXXX` (country code plus digits,
+  without a literal `+`) to Supabase. The removed workaround instead sent only
+  the raw ten digits and is not a source contract.
 - `shops.id` / `shop_id` is the tenant boundary.
 - Protected server routes derive/verify tenant membership server-side; browser
   tenant fields are not authoritative.

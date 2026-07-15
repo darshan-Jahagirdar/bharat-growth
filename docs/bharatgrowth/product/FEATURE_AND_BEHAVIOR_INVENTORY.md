@@ -68,7 +68,7 @@ controllers/hooks third, and focused views last. Query facades remain for Wave
 | Route or surface | Why it exists | Current behavior to preserve |
 |---|---|---|
 | `/` | Product positioning and conversion | Existing Spline visuals, copy, sections, CTAs, pricing/benefit claims, and responsive output. |
-| `/login` | Shop-user authentication | Phone OTP and email magic-link tabs; `next` redirect; six-digit OTP entry, paste, backspace, auto-advance, and Enter behavior. Phone UI and committed normalization use India `+91` semantics. |
+| `/login` | Shop-user authentication | Phone OTP and email magic-link tabs; `next` redirect; six-digit OTP entry, paste, backspace, auto-advance, and Enter behavior. Phone UI visibly shows `+91`; committed Auth sends `91XXXXXXXXXX` without a literal plus. |
 | `/auth/callback` | Completes email/magic-link auth | Exchanges the callback code and returns to the validated destination. Root `?code=` is redirected here by middleware. |
 | `/onboarding` | Creates the first shop and owner membership | Auth required; business profile, pincode/state resolution, shop creation, owner row creation, rollback/retry behavior, and inactive default campaign seeding. |
 | `/billing` | High-speed point of sale | Protected desktop billing workspace and the behavior detailed below. |
@@ -98,8 +98,8 @@ application credentials in the client.
 Preserve:
 
 - phone and email tabs, current labels/copy, error display, and redirect rules;
-- India phone formatting and the current `useAuth.sendOtp` normalization to a
-  `91`-prefixed value for a ten-digit number;
+- the visible `+91` prefix, ten-digit input limit, and current
+  `useAuth.sendOtp` normalization to `91XXXXXXXXXX` without a literal plus;
 - six OTP cells, digit-only handling, full-code paste, forward focus, Backspace
   movement, Enter submit, resend, and loading/disabled states;
 - email magic link callback URL and onboarding-versus-billing routing;

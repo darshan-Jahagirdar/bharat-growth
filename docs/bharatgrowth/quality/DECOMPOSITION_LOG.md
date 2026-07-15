@@ -619,7 +619,9 @@
   exact branch `codex/production-hardening-baseline` and exact commit `907dfe3`.
   A 24-hour error-level runtime-log query returned no entries.
 - The temporary raw-ten-digit staging auth workaround was not committed or
-  merged. The temporary tagged `public.users` mapping was removed; the
+  merged. The preserved source contract visibly shows `+91` and sends
+  `91XXXXXXXXXX` without a literal plus. The temporary tagged `public.users`
+  mapping was removed; the
   user-owned staging Auth test identity remains. Temporary workaround previews,
   browser sessions, local evidence, and helper artifacts had already been
   removed and verified.
@@ -642,9 +644,20 @@
   characterization scope, pure/controller/view extraction order, query-facade
   boundary, visual/browser/cleanup gates, and a paste-ready next-task prompt.
 - This branch is documentation-only. No application source, migration, schema,
-  Vercel/Supabase configuration, staging data, or production state changed.
+  staging data, or production state changed. Three exact branch-scoped Preview
+  variables were temporarily added in Vercel for staging-only PR verification;
+  their values were never printed or persisted in the repository.
 - User-owned untracked `designs/`, `designs_mobile/`, and
   `docs/bharatgrowth/design/` remain preserved and excluded.
+- The first PR preview, `dpl_3wdLBJaPRQWwv8ubBAKPk4YfGtw9`, inherited the
+  generic production public Supabase reference. Verification stopped before
+  any login, Auth call, or data mutation. A corrected Preview-only redeploy,
+  `dpl_HaDMNAJA82rGRhDk7Qe9UtixbJfz`, is READY for exact documentation commit
+  `488465e76de60e27449b11be4bb3e99717252cc4`; its login bundle contains the
+  staging project ref and no production project ref. The public login rendered
+  without an overlay, no credentials were entered, and verification tabs were
+  closed. The obsolete deployment was not deleted because the user prohibited
+  destructive actions.
 
 ## Wave entry template
 

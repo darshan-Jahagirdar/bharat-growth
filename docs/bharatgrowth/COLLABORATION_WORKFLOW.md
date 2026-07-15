@@ -197,9 +197,10 @@ can require another login even when the underlying Supabase account is the same;
 this is not an account reset. Avoid creating extra login-required previews.
 
 The hosted staging test phone currently exposes a formatting mismatch with the
-committed India `+91` normalization. The one-time raw-ten-digit workaround was
-preview-only and removed. Do not reintroduce it into source during Wave 6;
-auth/provider design is a separate approved workstream.
+committed Auth request. The UI shows `+91`, while `useAuth.sendOtp` sends
+`91XXXXXXXXXX` without a literal plus. The one-time workaround sent only the
+raw ten digits; it was preview-only and removed. Do not reintroduce it into
+source during Wave 6; auth/provider design is a separate approved workstream.
 
 ## 9. End-to-end milestone sequence
 
