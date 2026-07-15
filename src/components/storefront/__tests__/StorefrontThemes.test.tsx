@@ -49,7 +49,7 @@ describe('Industrial and Festive theme behavior contract before decomposition', 
         shop={SHOP}
         products={[
           product({ id: 'tyre', name: 'Road King', category: 'Tyres' }),
-          product({ id: 'other', name: 'Wheel Service', category: null, unit: 'service' }),
+          product({ id: 'other', name: 'Wheel Service', category: null, unit: 'box' }),
         ]}
       />
     );
@@ -60,7 +60,7 @@ describe('Industrial and Festive theme behavior contract before decomposition', 
     expect(screen.getByRole('heading', { name: 'Tyres' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Other' })).toBeInTheDocument();
     expect(screen.getAllByText('₹1,235')).toHaveLength(2);
-    expect(screen.getByText('/service')).toBeInTheDocument();
+    expect(screen.getByText('/box')).toBeInTheDocument();
 
     const links = screen.getAllByRole('link', { name: 'Buy on WhatsApp' });
     expect(links).toHaveLength(2);

@@ -2,22 +2,28 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { StorefrontShop, StorefrontProduct } from '@/lib/storefront/queries';
+import {
+  addStorefrontCartItem,
+  buildStorefrontCheckoutPayload,
+  buildStorefrontWhatsAppLink,
+  filterStorefrontProducts,
+  formatStorefrontPrice,
+  getStorefrontCartItems,
+  getStorefrontCartQuantity,
+  getStorefrontCategories,
+  getStorefrontPlaceholderColor,
+  getStorefrontStockMessage,
+  removeStorefrontCartItem,
+  summarizeStorefrontCart,
+  type StorefrontCart,
+  type StorefrontCheckoutResult,
+  type StorefrontPaymentMethod,
+} from '@/lib/storefront/modernStorefrontTransforms';
 import Image from 'next/image';
 
 interface ModernThemeProps {
   shop: StorefrontShop;
   products: StorefrontProduct[];
-}
-
-interface CartItem {
-  product: StorefrontProduct;
-  qty: number;
-}
-
-interface CheckoutResult {
-  order_id: string;
-  invoice_number: string;
-  total_paise: number;
 }
 
 // RFC4122 v4 key for storefront checkout idempotency. Uses crypto.randomUUID
@@ -33,34 +39,6 @@ function genIdempotencyKey(): string {
   });
 }
 
-function formatPrice(paise: number): string {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(paise / 100);
-}
-
-const PLACEHOLDER_COLORS = [
-  '#F97316', '#3B82F6', '#10B981', '#8B5CF6', '#EC4899',
-  '#F59E0B', '#06B6D4', '#EF4444', '#6366F1', '#14B8A6',
-];
-
-function getPlaceholderColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return PLACEHOLDER_COLORS[Math.abs(hash) % PLACEHOLDER_COLORS.length];
-}
-
-function getCategories(products: StorefrontProduct[]): string[] {
-  const cats = new Set<string>();
-  for (const p of products) {
-    if (p.category) cats.add(p.category);
-  }
-  return ['All', ...Array.from(cats).sort()];
-}
-
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -72,12 +50,12 @@ function WhatsAppIcon({ className }: { className?: string }) {
 export function ModernTheme({ shop, products }: ModernThemeProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [cart, setCart] = useState<Map<string, CartItem>>(new Map());
+  const [cart, setCart] = useState<StorefrontCart>(new Map());
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutName, setCheckoutName] = useState('');
   const [checkoutPhone, setCheckoutPhone] = useState('');
   const [checkoutAddress, setCheckoutAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'khata'>('upi');
+  const [paymentMethod, setPaymentMethod] = useState<StorefrontPaymentMethod>('upi');
   const [dataConsent, setDataConsent] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,61 +66,27 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
   // Persists across retries of the same checkout attempt; cleared on success.
   const idempotencyKeyRef = useRef<string | null>(null);
 
-  const categories = getCategories(products);
-
-  const filtered = products.filter((p) => {
-    const matchesCategory = activeCategory === 'All' || p.category === activeCategory;
-    if (!searchQuery.trim()) return matchesCategory;
-    const q = searchQuery.toLowerCase();
-    return matchesCategory && (
-      p.name.toLowerCase().includes(q) ||
-      (p.category?.toLowerCase().includes(q) ?? false)
-    );
-  });
-
-  const cartItems = Array.from(cart.values());
-  const cartCount = cartItems.reduce((sum, ci) => sum + ci.qty, 0);
-  const cartTotal = cartItems.reduce((sum, ci) => sum + ci.product.selling_price_paise * ci.qty, 0);
+  const categories = getStorefrontCategories(products);
+  const filtered = filterStorefrontProducts(products, activeCategory, searchQuery);
+  const cartItems = getStorefrontCartItems(cart);
+  const { count: cartCount, totalPaise: cartTotal } = summarizeStorefrontCart(cartItems);
 
   const addToCart = useCallback((product: StorefrontProduct) => {
-    // Stock clamp: check BEFORE updating state so we can fire toast
-    const currentQty = cart.get(product.id)?.qty ?? 0;
-    if (product.is_stock_tracked && product.stock_quantity !== null) {
-      if (currentQty + 1 > product.stock_quantity) {
-        setStockToast(`Only ${product.stock_quantity} available in stock`);
-        setTimeout(() => setStockToast(''), 2500);
-        return; // hard stop — do NOT update cart
-      }
+    const stockMessage = getStorefrontStockMessage(cart, product);
+    if (stockMessage) {
+      setStockToast(stockMessage);
+      setTimeout(() => setStockToast(''), 2500);
+      return;
     }
-
-    setCart((prev) => {
-      const next = new Map(prev);
-      const existing = next.get(product.id);
-      if (existing) {
-        next.set(product.id, { ...existing, qty: existing.qty + 1 });
-      } else {
-        next.set(product.id, { product, qty: 1 });
-      }
-      return next;
-    });
+    setCart((previous) => addStorefrontCartItem(previous, product));
   }, [cart]);
 
   const removeFromCart = useCallback((productId: string) => {
-    setCart((prev) => {
-      const next = new Map(prev);
-      const existing = next.get(productId);
-      if (!existing) return prev;
-      if (existing.qty <= 1) {
-        next.delete(productId);
-      } else {
-        next.set(productId, { ...existing, qty: existing.qty - 1 });
-      }
-      return next;
-    });
+    setCart((previous) => removeStorefrontCartItem(previous, productId));
   }, []);
 
   const getQty = useCallback((productId: string): number => {
-    return cart.get(productId)?.qty ?? 0;
+    return getStorefrontCartQuantity(cart, productId);
   }, [cart]);
 
   useEffect(() => {
@@ -153,34 +97,6 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
     }
     return () => { document.body.style.overflow = ''; };
   }, [showCheckout]);
-
-  const buildWhatsAppLink = (order?: Pick<CheckoutResult, 'invoice_number' | 'total_paise'>): string => {
-    const cleanPhone = (shop.owner_phone ?? '').replace(/[^0-9]/g, '');
-    const waPhone = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
-    const confirmedTotal = order?.total_paise ?? cartTotal;
-
-    const lines: string[] = [];
-    lines.push(`*New Order from ${shop.business_name} Store*`);
-    lines.push('');
-    if (order?.invoice_number) lines.push(`*Order No:* ${order.invoice_number}`);
-    lines.push(`*Customer:* ${checkoutName || 'Guest'}`);
-    if (checkoutPhone) lines.push(`*Phone:* ${checkoutPhone}`);
-    if (checkoutAddress) lines.push(`*Address:* ${checkoutAddress}`);
-    lines.push(`*Payment:* ${paymentMethod === 'upi' ? 'UPI' : 'Khata (Pay Later)'}`);
-    lines.push('');
-    lines.push('*Order Items:*');
-
-    for (const ci of cartItems) {
-      const price = formatPrice(ci.product.selling_price_paise * ci.qty);
-      lines.push(`${ci.qty}x ${ci.product.name} — ${price}`);
-    }
-
-    lines.push('');
-    lines.push(`*Total: ${formatPrice(confirmedTotal)}*`);
-
-    const message = encodeURIComponent(lines.join('\n'));
-    return `https://wa.me/${waPhone}?text=${message}`;
-  };
 
   const handlePlaceOrder = async () => {
     if (!checkoutName.trim() || !checkoutPhone.trim() || !dataConsent) return;
@@ -193,20 +109,17 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
       idempotencyKeyRef.current = genIdempotencyKey();
     }
 
-    const payload = {
-      shop_id: shop.id,
-      customer_name: checkoutName.trim(),
-      customer_phone: checkoutPhone.trim(),
-      delivery_address: checkoutAddress.trim() || null,
-      payment_method: paymentMethod,
-      data_consent: dataConsent,
-      marketing_consent: marketingConsent,
-      idempotency_key: idempotencyKeyRef.current,
-      items: cartItems.map((ci) => ({
-        product_id: ci.product.id,
-        quantity: ci.qty,
-      })),
-    };
+    const payload = buildStorefrontCheckoutPayload({
+      shopId: shop.id,
+      checkoutName,
+      checkoutPhone,
+      checkoutAddress,
+      paymentMethod,
+      dataConsent,
+      marketingConsent,
+      idempotencyKey: idempotencyKeyRef.current,
+      cartItems,
+    });
 
     let res: Response;
     try {
@@ -236,7 +149,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
       return; // ← HARD STOP, no WhatsApp
     }
 
-    let orderResult: CheckoutResult | undefined;
+    let orderResult: StorefrontCheckoutResult | undefined;
 
     // Only reach here on 200 OK
     try {
@@ -245,7 +158,16 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
       // Response was 200 but no JSON body — still success
     }
 
-    const waUrl = buildWhatsAppLink(orderResult);
+    const waUrl = buildStorefrontWhatsAppLink({
+      shop,
+      checkoutName,
+      checkoutPhone,
+      checkoutAddress,
+      paymentMethod,
+      cartItems,
+      cartTotal,
+      order: orderResult,
+    });
     // Order created - retire this key so the next cart starts a fresh attempt.
     idempotencyKeyRef.current = null;
     setCart(new Map());
@@ -369,7 +291,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
           <div className="grid grid-cols-2 gap-2.5">
             {filtered.map((product) => {
               const qty = getQty(product.id);
-              const placeholderBg = getPlaceholderColor(product.name);
+              const placeholderBg = getStorefrontPlaceholderColor(product.name);
 
               return (
                 <div
@@ -415,7 +337,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
                     <div className="mt-auto flex items-end justify-between gap-1.5">
                       <div>
                         <p className="text-base font-bold text-gray-900 leading-none">
-                          {formatPrice(product.selling_price_paise)}
+                          {formatStorefrontPrice(product.selling_price_paise)}
                         </p>
                         {product.is_stock_tracked && product.stock_quantity !== null && product.stock_quantity <= 0 && (
                           <p className="text-[9px] text-red-500 font-semibold mt-0.5">Out of Stock</p>
@@ -489,7 +411,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
                 <p className="text-[11px] text-green-100 leading-tight">
                   {cartCount} {cartCount === 1 ? 'item' : 'items'}
                 </p>
-                <p className="text-base font-bold leading-tight">{formatPrice(cartTotal)}</p>
+                <p className="text-base font-bold leading-tight">{formatStorefrontPrice(cartTotal)}</p>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
@@ -541,7 +463,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
                   <div key={ci.product.id} className="flex items-center justify-between">
                     <div className="flex-1 min-w-0 mr-3">
                       <p className="text-sm font-medium text-gray-900 truncate">{ci.product.name}</p>
-                      <p className="text-xs text-gray-400">{formatPrice(ci.product.selling_price_paise)} each</p>
+                      <p className="text-xs text-gray-400">{formatStorefrontPrice(ci.product.selling_price_paise)} each</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -562,7 +484,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
                         </button>
                       </div>
                       <span className="text-sm font-semibold text-gray-900 w-16 text-right">
-                        {formatPrice(ci.product.selling_price_paise * ci.qty)}
+                        {formatStorefrontPrice(ci.product.selling_price_paise * ci.qty)}
                       </span>
                     </div>
                   </div>
@@ -570,7 +492,7 @@ export function ModernTheme({ shop, products }: ModernThemeProps) {
 
                 <div className="pt-3 border-t border-gray-200 flex items-center justify-between">
                   <span className="text-sm font-bold text-gray-900">Total</span>
-                  <span className="text-lg font-bold text-gray-900">{formatPrice(cartTotal)}</span>
+                  <span className="text-lg font-bold text-gray-900">{formatStorefrontPrice(cartTotal)}</span>
                 </div>
               </div>
 
