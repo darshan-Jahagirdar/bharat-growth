@@ -7,15 +7,18 @@ verified, and how production changes are rolled out or reversed.
 ## Current continuation state
 
 - Production `main` remains unchanged at `8c38909`.
-- Integration application checkpoint after Wave 5 is `907dfe3`.
-- Waves 1–5 are merged only into integration; Wave 6 Storefront is next.
+- Integration is `6255234` after the Wave 6 merge; the exact application-source
+  checkpoint is `145437b`.
+- Waves 1–6 are merged only into integration; Wave 7 data access is next and is
+  the final decomposition wave.
 - Staging Supabase is `qokaaggeqahayxsybgds` with matching migrations 001–048.
 - The authoritative exact handoff is [`CODEX_HANDOFF.md`](CODEX_HANDOFF.md).
 - Current product behavior is mapped in
   [`product/FEATURE_AND_BEHAVIOR_INVENTORY.md`](product/FEATURE_AND_BEHAVIOR_INVENTORY.md).
 
-Re-verify drift-prone pointers before acting. A docs-only handoff merge may move
-the integration SHA without changing the application tree.
+Re-verify drift-prone pointers before acting. A docs-only Wave 7 handoff merge
+may move the integration SHA without changing application source beneath
+`145437b`.
 
 ## Preserved baselines
 

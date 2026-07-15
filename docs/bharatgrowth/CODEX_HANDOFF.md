@@ -36,8 +36,8 @@ decomposition.
 
 We are production-hardening the existing application and decomposing its
 largest mixed-responsibility surfaces through seven small, independently
-revertible waves. Waves 1–5 are merged into the integration branch. Wave 6 is
-Storefront. Wave 7 is data-access/query facade decomposition.
+revertible waves. Waves 1–6 are merged into the integration branch. Wave 7 is
+the final decomposition wave and covers data-access/query facades.
 
 ### Why
 
@@ -63,6 +63,11 @@ For each domain:
 9. Update repository docs, the shared Google handoff, and `#bharatgrowth` with
    exact evidence.
 10. Merge only into `codex/production-hardening-baseline`.
+
+Wave 7 is the explicit exception to steps 3–5: after characterization, it
+splits data-access implementation by cohesive use case and leaves the original
+facades as compatibility exports. Its exact order is in Section 8 and
+`quality/DECOMPOSITION_PLAN.md`.
 
 No decomposition wave may change a feature, schema, migration, query facade
 outside Wave 7, copy, styling, payload, visual output, focus, keyboard behavior,
@@ -133,12 +138,12 @@ Root `ROADMAP.md`, `docs/BUG_FIX_PLAN.md`, `docs/CURRENT_ARCHITECTURE.md`,
 inputs. Their canonical-current links and status banners take precedence over
 old unchecked boxes or older project references.
 
-## 6. Exact verified checkpoint before this handoff-doc PR
+## 6. Exact verified checkpoint before this Wave 7 handoff-doc PR
 
 The docs-only handoff PR is expected to advance the integration branch without
 changing application source. Therefore the next task must re-derive the current
-integration SHA. The exact application-source checkpoint beneath that docs-only
-change is `907dfe3b4f02bc872264c4b983d6a59aab747423`.
+integration SHA. The exact application-source checkpoint beneath this docs-only
+change is `145437b13eeff1d1cd4f7eebfe86d06611805dfb`.
 
 ### Git
 
@@ -147,25 +152,31 @@ change is `907dfe3b4f02bc872264c4b983d6a59aab747423`.
   `8c389098db7e31180b5bdd6f1661adfd4bdc902b`.
 - Verified integration before this docs-only handoff:
   `origin/codex/production-hardening-baseline` =
-  `907dfe3b4f02bc872264c4b983d6a59aab747423`.
-- Wave 5 feature branch:
-  `origin/codex/decompose-purchases` =
-  `0133f9cf64417c9c1aa06f5b0159e3dd11ca9490`.
-- A local integration branch pointer may be stale at `ac75c68`; do not use it as
-  a base. Use remote verification.
-- Immediately before creating this handoff branch, the only non-branch files in
-  `git status` were the three preserved untracked design directories.
+  `6255234937a79b2d74d2a3a577a8065d167d911f`.
+- Wave 6 feature branch:
+  `origin/codex/decompose-storefront` =
+  `d02a592d500bb63041131792ad43554eac806c71`.
+- `6255234` has parents `d9d7b4f` and `d02a592`; its application tree matches
+  reviewed Wave 6 application checkpoint `145437b` with no post-review source
+  drift.
+- The local integration branch pointer is stale at `ac75c68`; do not use it as a
+  base. Use fresh remote verification.
+- Before creating `codex/prepare-wave7-handoff`, the only non-branch files were
+  preserved untracked `designs/`, `designs_mobile/`,
+  `docs/bharatgrowth/design/`, and the concurrent user-approved
+  `docs/bharatgrowth/CLAUDE_HANDOFF.md`. Keep all four unstaged and excluded.
 
 ### GitHub
 
-- PR [#6](https://github.com/darshan-Jahagirdar/bharat-growth/pull/6)
-  (`codex/decompose-purchases` → integration) is merged.
-- PR #6 head: `0133f9cf64417c9c1aa06f5b0159e3dd11ca9490`.
-- PR #6 merge commit: `907dfe3b4f02bc872264c4b983d6a59aab747423`.
-- PR #6 checks `quality`, `public-smoke`, Vercel, and Vercel Preview Comments
+- PR [#8](https://github.com/darshan-Jahagirdar/bharat-growth/pull/8)
+  (`codex/decompose-storefront` → integration) is merged.
+- PR #8 head: `d02a592d500bb63041131792ad43554eac806c71`.
+- PR #8 merge commit: `6255234937a79b2d74d2a3a577a8065d167d911f`.
+- PR #8 checks `quality`, `public-smoke`, Vercel, and Vercel Preview Comments
   completed successfully.
-- Draft PR #1 is the integration-to-`main` release vehicle. It is not permission
-  to merge or touch production.
+- Draft PR #1 remains the guarded integration-to-`main` release vehicle. It is
+  open, draft, clean, and points from integration head `6255234` to `main`; it is
+  not permission to merge or touch production.
 
 ### Supabase
 
@@ -173,39 +184,49 @@ change is `907dfe3b4f02bc872264c4b983d6a59aab747423`.
 - Linked staging project ref: `qokaaggeqahayxsybgds`.
 - A fresh `supabase migration list --linked` returned continuous matching local
   and remote migrations 001–048.
-- Staging uses synthetic/shared test data only. Production database/Auth was not
-  queried or changed for Wave 5 or this handoff.
-- The user-owned staging test Auth identity remains. The temporary tagged
-  `public.users` mapping created for Wave 5 was deleted and verified absent.
+- Staging uses synthetic/shared test data only. The two temporary theme changes
+  used for Wave 6 were restored; readback confirmed all three seed shops are
+  `modern`.
+- The user-owned staging test Auth identity remains. Wave 6 created no Auth or
+  profile fixture and performed no checkout/data mutation.
 - Legacy exposed staging credentials had already been disabled/revoked. Never
   print key material. Darshan intends to rotate remaining keys before the first
   sale; do not perform that future rotation during decomposition.
 
 ### Vercel
 
-- Verified post-Wave-5 integration deployment:
-  `dpl_5HprXDZjfavK1vGGYbtzZnGweWaB`.
+- Verified post-Wave-6 integration deployment:
+  `dpl_3cu9JfBqjAgB929LQbmvAC2bEmmh`.
 - State: `READY`; target: Preview; region: Mumbai (`bom1`).
 - Deployment Git metadata: branch `codex/production-hardening-baseline`, exact
-  commit `907dfe3b4f02bc872264c4b983d6a59aab747423`.
-- Runtime error-level log query for the latest 24 hours returned no entries.
-- This is an integration preview, not production. No preview was promoted.
+  commit `6255234937a79b2d74d2a3a577a8065d167d911f`.
+- All eight login-page chunks loaded. The combined bundle contains exact staging
+  ref `qokaaggeqahayxsybgds` and the active publishable-key shape, with no
+  unexpected Supabase ref, legacy JWT key shape, or preview-overlay marker.
+- Runtime error/warning/fatal query returned no entries.
+- All three temporary variables scoped to `codex/decompose-storefront` were
+  removed after post-merge verification; branch readback returned `envs: []`.
+- This is an integration preview, not production. No preview was promoted, and
+  obsolete retained deployments were not deleted.
 
 ### Automated verification
 
-- 94 tests pass across 19 files.
+- 116 tests pass across 24 files at application checkpoint `145437b`.
 - Strict TypeScript passes.
 - Repository-wide ESLint passes with zero warnings.
 - Optimized Next.js build passes all 25 routes.
-- GitHub `quality` and `public-smoke` pass for Wave 5.
+- GitHub `quality` and `public-smoke` pass at exact Wave 6 head and the merged
+  integration head.
+- The application suite was not repeated after docs-only or merge commits because
+  application/configuration did not change.
 
 ### Collaboration artifacts
 
 - Shared Google handoff:
   [BharatGrowth handoff](https://docs.google.com/document/d/1pbhmmfvz_RLfqwbcTNkn5BZEJYfeSZzX4iOvf2DLu9I/edit).
 - Slack channel: `#bharatgrowth`, ID `C0BG39UE1A9`.
-- Verified Wave 5 merge post:
-  [Slack message](https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784051619188539).
+- Verified Wave 6 merge post:
+  [Slack message](https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784124233674089).
 - Exact update/readback/send rules live in `COLLABORATION_WORKFLOW.md`.
 
 ## 7. Completed foundation and decomposition waves
@@ -275,96 +296,125 @@ Production remains at the pre-hardening application commit.
   sessions, tagged profile, and local evidence were removed and verified.
 - Production was untouched.
 
+### Wave 6 — Storefront
+
+- Branch base: integration `d9d7b4f`; characterization checkpoint `ac7fe57`.
+- Pure transforms: `cedec19`; controllers/hooks: `675d106`; focused views:
+  `145437b`; verification docs head: `d02a592`.
+- PR #8 merged only into integration at `6255234`.
+- `ModernTheme.tsx` dropped from 717 to 77 lines and now composes focused
+  header, catalog, cart, and checkout views. Industrial/Festive, the loader,
+  checkout route, query facade, Auth, schema, migrations, RLS, and payload
+  boundaries had zero Wave 6 diff.
+- Sixteen pre-extraction tests plus direct transform coverage freeze loader,
+  themes, catalog/search, strict stock, cart, checkout, consent, payload,
+  idempotency, hard-stop, and WhatsApp behavior. Full repository: 116 tests
+  across 24 files.
+- Public Modern, Industrial, and Festive mobile smoke passed. Both temporary
+  theme changes were restored and all three seed shops read back as `modern`.
+- Darshan explicitly waived the integration-versus-Wave 6 pixel comparison
+  because an intentional Storefront reskin is next. This is a waiver, not a
+  pixel-equivalence result.
+- Exact merged integration preview is READY and staging-only with empty queried
+  runtime errors. Temporary Wave 6 branch variables were removed and verified
+  absent. Production was untouched.
+
 The complete commit, PR, preview, browser, visual, cleanup, and rollback evidence
 is in `quality/DECOMPOSITION_LOG.md`.
 
-## 8. Current stage and exact next work: Wave 6 Storefront
+## 8. Current stage and exact next work: Wave 7 data access
 
-Wave 6 has not started. The documentation branch preparing this handoff contains
-no application-source change. Start Wave 6 only after this docs PR is merged
-into integration and the live state below is re-derived.
+Wave 6 is merged and staging-smoked. The documentation branch preparing this
+handoff contains no application-source change. Start Wave 7 only after this docs
+PR is merged into integration and the live state below is re-derived.
 
-### Wave 6 branch and base
+### Wave 7 branch and base
 
-- Create `codex/decompose-storefront` from the freshly verified remote
+- Create `codex/decompose-data-access` from the freshly verified remote
   `codex/production-hardening-baseline` head.
-- Confirm the application tree beneath any docs-only merge still matches
-  application checkpoint `907dfe3`.
+- Confirm `src/` and `supabase/` beneath the docs-only merge still match exact
+  Wave 6 application checkpoint `145437b`.
 - Confirm production `main` is still `8c38909`.
-- Recheck PR #1/#6 state, staging project/migrations, and latest exact-commit
+- Recheck PR #1/#8 state, staging project/migrations, and latest exact-commit
   integration Vercel preview before any source edit.
 
-### Characterization checkpoint before extraction
+### In-scope compatibility facades
 
-Add focused tests against unchanged Storefront behavior and commit them before
-editing Storefront application source. At minimum freeze:
+- `src/lib/billing/billingQueries.ts` — 408 lines;
+- `src/lib/orders/orderQueries.ts` — 431 lines;
+- `src/lib/dashboard/dashboardQueries.ts` — 672 lines;
+- `src/lib/storefront/queries.ts` — 129 lines.
 
-- loader states, selected shop/product/owner-field mapping through the current
-  compatibility policies, tracked/untracked/missing
-  inventory semantics, document title, and modern/industrial/festive dispatch;
-- category collection/sorting, name/category search, deterministic placeholder,
-  price/unit output, and empty state;
-- cart add/increment/decrement/removal, count/total, zero stock, stock clamp,
-  toast, and plus-button states;
-- checkout drawer/scroll lock, required fields, consent distinction, payment
-  modes, exact payload/item order, idempotency-key reuse/retirement, loading and
-  errors;
-- network/non-2xx hard stop with no WhatsApp navigation;
-- success clearing and same-tab WhatsApp URL/message using server-confirmed
-  order number/total;
-- Industrial/Festive grouping and their per-product WhatsApp-only behavior;
-- exact copy and visual/DOM-visible output needed for comparison.
+The original four module paths and every current exported function, interface,
+type, constant, parameter default, and return contract remain compatibility
+boundaries. Existing callers should not need behavioral changes.
 
-Record the pre-extraction Storefront source diff as zero and the characterization
-commit as the rollback boundary.
+### Characterization checkpoint before implementation movement
 
-### Extraction order
+Add focused tests against the unchanged facades and commit them before moving
+implementation. At minimum freeze:
 
-1. **Pure transforms:** characterization-backed category/filter/price,
-   placeholder, cart math/updates, and WhatsApp/payload builders. Do not move
-   provider or data effects into “pure” code.
-2. **Controllers/hooks:** cart and checkout state/effects, idempotency lifecycle,
-   loader orchestration only where query shapes stay byte-for-byte compatible.
-   Do not change `src/lib/storefront/queries.ts` as a query-facade refactor; that
-   belongs to Wave 7.
-3. **Focused views:** Modern header/category/search, catalog cards, cart bar, and
-   checkout drawer. Extract shared theme sections only when the existing output
-   for all three themes is unchanged. Industrial and Festive are already
-   focused; do not mechanically unify them or give them Modern cart behavior.
+- authenticated browser client versus server public client creation and reuse;
+- exact table/RPC/storage names, selected columns/joins, filter and call order,
+  pagination/ranges/limits, sorting/null behavior, payload construction, and
+  optional-argument omission;
+- Billing search sanitization, lazy loyalty, barcode, invoice/repayment RPCs,
+  refresh, customer image/create/consent flow, and shop context;
+- Orders header-then-item loading/grouping, 50-row `hasMore`, create/convert
+  RPCs, guarded cancellation, error/fallback output, and logs;
+- Dashboard IST ranges, parallel orchestration, KPI/aggregation/rounding,
+  retention mapping, khata/stock reads, and GST row order/output;
+- Storefront public shop plus owner-phone RPC behavior, active catalog ordering,
+  tracked/untracked/missing inventory mapping, and non-fatal owner/product
+  failures;
+- exact thrown-versus-returned errors, empty/null defaults, warning/error side
+  effects, result shaping, tenant scoping, and call sequencing.
 
-### Wave 6 prohibited changes
+Record the four in-scope facade files as unchanged at the checkpoint. The
+characterization commit is the Wave 7 rollback boundary.
 
-No feature, schema, migration, query-facade, copy, style, layout, animation,
-theme, cart, stock, checkout, consent, payload, public boundary, focus, keyboard,
-WhatsApp message, navigation, error-ordering, or workflow change. Do not fix
-auth formatting, payment gateway, provider configuration, rate limiting,
-monitoring, or sale-readiness backlog inside this wave.
+### Implementation order
 
-### Wave 6 closeout gates
+1. **Shared types where cohesive:** move types only when their original exports
+   and module identity remain compatible.
+2. **Billing and Orders use cases:** split reads/writes/RPCs without changing
+   any query, mutation, error path, or caller behavior.
+3. **Dashboard and Storefront use cases:** split analytics, retention, stock,
+   GST, public shop/contact, and catalog access under the same trust boundaries.
+4. **Compatibility facades last:** leave the original four modules as explicit
+   re-export facades and prove every current caller resolves the same symbols.
 
-- Focused characterization and full 94+ tests pass.
-- Strict typecheck, zero-warning lint, optimized 25-route build, and
-  `git diff --check` pass.
+### Wave 7 prohibited changes
+
+No feature, schema, migration, SQL, RLS, policy, grant, function, API, payload,
+copy, style, DOM, visual, focus, keyboard, stock, consent, Auth, provider,
+Storefront public-boundary hardening, route, error-ordering, call-ordering, or
+workflow change. Do not start migration 049, the intentional reskin, auth/
+payment work, rate limiting, monitoring, or sale-readiness fixes inside Wave 7.
+
+### Wave 7 closeout gates
+
+- Focused pre-movement characterization and the complete final suite pass.
+- Strict typecheck, zero-warning lint, optimized 25-route build,
+  `git diff --check`, compatibility-export checks, and credential scans pass.
+- `supabase/`, route/component/hook UI source, API boundaries, and existing
+  caller imports have no unintended diff.
 - Draft PR targets only integration and has exact green GitHub checks.
 - Branch-scoped preview proves staging Supabase and excludes production.
-- Public smoke covers UUID validation, loader/error states, all three themes,
-  search/categories, strict stock, cart, checkout validation, and a bounded
-  non-destructive path. Do not place an order unless Darshan separately approves
-  the exact synthetic staging mutation.
-- Same fixture, viewport, state, browser, and route are used for integration and
-  Wave 6 visual captures. Copy/DOM and pixel output must match.
+- Public Storefront plus bounded protected Billing, Orders, and Dashboard reads
+  prove representative real staging data flows that mocks cannot prove. Do not
+  invoke write RPCs, provider actions, Auth/OTP, or create fixtures unless a
+  separate exact need and approval appears.
+- When no TSX/CSS/DOM source changes, do not manufacture a duplicate pixel
+  comparison. Record zero UI-source diff and exact rendered data-flow/console
+  evidence; browser checks remain limited to otherwise-unprovable behavior.
 - Runtime errors are inspected.
-- Temporary preview variables, workaround previews, sessions, fixtures, and
-  evidence artifacts are removed and cleanup is verified.
+- Temporary preview variables, sessions, fixtures, and evidence artifacts are
+  removed and cleanup is verified.
 - Repository docs, Google handoff, and `#bharatgrowth` reflect exact results.
 - Merge only into integration, then verify remote head and post-merge preview.
 
-## 9. Wave 7 and pre-launch work
-
-After Wave 6 is fully merged and staging-smoked, Wave 7 decomposes data-access
-modules by use case behind compatibility exports. It must not change SQL,
-filters, selections, ordering, RPC arguments, error mapping, tenant rules, or
-call sequencing.
+## 9. Post-Wave 7 and pre-launch work
 
 After all seven waves, remaining work is not “just deploy”:
 
@@ -390,13 +440,14 @@ Stop before source or external writes if any of the following is true:
   commit/state contradicts this handoff;
 - the application tree differs from the expected integration application
   checkpoint for unexplained reasons;
-- the working tree contains anything besides intended branch changes and the
-  three preserved design directories;
+- the working tree contains anything besides intended branch changes, the
+  three preserved design directories, and the known concurrent untracked
+  `docs/bharatgrowth/CLAUDE_HANDOFF.md`;
 - preview isolation cannot prove staging-only use;
 - the user-owned test Auth identity or any temporary row cannot be safely
   distinguished;
-- a Wave 6 change would alter behavior or needs a schema/query-facade/provider
-  change;
+- a Wave 7 change would alter query/RPC/client behavior or needs a schema,
+  migration, RLS, provider, Auth, UI, or workflow change;
 - a credential, OTP, private fixture, or production action would have to be
   exposed or guessed;
 - any gate fails or cleanup cannot be proven.
@@ -411,15 +462,18 @@ Use this continuation prompt after opening a fresh task:
 > Re-derive local/remote Git, GitHub PR/checks, linked staging Supabase/migrations,
 > and exact-commit integration Vercel state; stop on contradiction. Preserve and
 > exclude `designs/`, `designs_mobile/`, and `docs/bharatgrowth/design/`; never
-> print or invent secrets. Confirm Waves 1–5 are merged only into integration,
-> production remains `8c38909`, and the application tree beneath the handoff-doc
-> update matches Wave 5 application checkpoint `907dfe3`. Then start Wave 6
-> Storefront exactly under `DECOMPOSITION_PLAN.md`: characterization checkpoint
-> before application changes, pure transforms first, controllers/hooks second,
-> focused views last. Preserve every feature and behavior in
-> `FEATURE_AND_BEHAVIOR_INVENTORY.md`; no feature, schema, query-facade, copy,
-> styling, payload, visual, focus, keyboard, RLS, stock, consent, WhatsApp,
-> provider, or workflow change. Complete automated, branch-scoped staging
-> preview, browser, visual, cleanup, repository-doc, Google handoff, Slack, and
-> PR gates before merging only into `codex/production-hardening-baseline`. Do not
-> touch production.
+> print or invent secrets. Confirm Waves 1–6 are merged only into integration,
+> production remains `8c38909`, and `src/` plus `supabase/` beneath the handoff-
+> doc update match Wave 6 application checkpoint `145437b`. Then start Wave 7
+> data access exactly under `DECOMPOSITION_PLAN.md`: characterize the unchanged
+> Billing, Orders, Dashboard, and Storefront query facades before moving any
+> implementation; split by cohesive use case behind compatibility exports; keep
+> original module paths and callers stable. Preserve every feature and behavior
+> in `FEATURE_AND_BEHAVIOR_INVENTORY.md`; do not change SQL selections, filters,
+> ordering, pagination, RPC arguments, result/error mapping, tenant/client trust
+> boundaries, call sequencing, schema, migrations, RLS, API/payloads, UI/copy,
+> Auth, providers, or workflows. Complete automated, branch-scoped staging
+> preview, representative data-flow browser, runtime, cleanup, repository-doc,
+> Google handoff, Slack, and PR gates before merging only into
+> `codex/production-hardening-baseline`. Do not start migration 049, the reskin,
+> or production work.

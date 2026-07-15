@@ -1,7 +1,8 @@
 # BharatGrowth Feature and Behavior Inventory
 
-Last source verification: 2026-07-15 (Asia/Kolkata), integration commit
-`907dfe3b4f02bc872264c4b983d6a59aab747423`.
+Last source verification: 2026-07-15 (Asia/Kolkata), Wave 6 application
+checkpoint `145437b13eeff1d1cd4f7eebfe86d06611805dfb`, merged only into
+integration at `6255234937a79b2d74d2a3a577a8065d167d911f`.
 
 This is the product map for behavior-preserving engineering work. It explains
 what BharatGrowth is, why each current surface exists, and what a decomposition
@@ -455,12 +456,14 @@ Preserve:
 
 ## 15. Current automated coverage
 
-At integration `907dfe3`, 94 tests across 19 files pass together with strict
-typecheck, zero-warning lint, and the 25-route optimized build. Characterization
-currently covers the critical Billing, Orders, Products, Dashboard, and
-Purchases decompositions plus validators, campaign defaults, date behavior, and
-migration safety. Storefront characterization is the first mandatory Wave 6
-checkpoint; its absence is not permission to infer behavior.
+At Wave 6 application checkpoint `145437b`, 116 tests across 24 files pass
+together with strict typecheck, zero-warning lint, and the 25-route optimized
+build. Characterization covers Billing, Orders, Products, Dashboard, Purchases,
+Storefront loader/theme output, and the Modern catalog/cart/checkout contracts,
+plus validators, campaign defaults, date behavior, and migration safety. Exact
+data-access compatibility characterization is the first mandatory Wave 7
+checkpoint; existing page-level coverage is not permission to infer query
+behavior.
 
 ## 16. Planned or externally incomplete—not current decomposition work
 

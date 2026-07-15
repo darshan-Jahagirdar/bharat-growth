@@ -39,8 +39,8 @@ Verified on 2026-07-15:
   recorded here. Remaining credential rotation is a pre-sale owner gate, not a
   decomposition action.
 
-Before each remaining wave, repeat the linked ref and migration-list readback.
-Wave 6/7 should not apply a migration.
+Before Wave 7, repeat the linked ref and migration-list readback. Wave 7 must
+not apply a migration.
 
 ## Migration 049 staging gate
 

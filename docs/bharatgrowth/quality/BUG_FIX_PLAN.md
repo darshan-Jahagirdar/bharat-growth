@@ -19,14 +19,15 @@ current status.
 - Continuous staging migrations 001–048, synthetic seed, tenant/RLS smoke, CI,
   and isolated Vercel preview flow.
 
-Evidence at the Wave 5 integration checkpoint:
+Evidence at the Wave 6 integration checkpoint:
 
 - linked staging `qokaaggeqahayxsybgds`, local/remote migrations 001–048 match;
-- 94 tests across 19 files, strict typecheck, zero-warning lint, and 25-route
+- 116 tests across 24 files, strict typecheck, zero-warning lint, and 25-route
   optimized build pass;
 - GitHub `quality` and `public-smoke` pass;
-- integration deployment `dpl_5HprXDZjfavK1vGGYbtzZnGweWaB` is READY for exact
-  application checkpoint `907dfe3` and has no queried error-level runtime logs.
+- integration deployment `dpl_3cu9JfBqjAgB929LQbmvAC2bEmmh` is READY and
+  Preview-only for exact integration commit `6255234`; its compiled bundle is
+  staging-only and its error/warning/fatal runtime query returned no entries.
 
 These facts do not mean production is updated. Production remains `8c38909`.
 
@@ -55,7 +56,7 @@ These facts do not mean production is updated. Production remains `8c38909`.
 
 ## Decomposition status
 
-Waves 1 Billing, 2 Orders, 3 Products, 4 Dashboard/progress, and 5 Purchases are
-merged only into integration. Wave 6 Storefront is next; Wave 7 data access is
-last. Structural work must preserve the feature/behavior inventory and cannot
-absorb any open blocker or backlog item.
+Waves 1 Billing, 2 Orders, 3 Products, 4 Dashboard/progress, 5 Purchases, and 6
+Storefront are merged only into integration. Wave 7 data access is last.
+Structural work must preserve the feature/behavior inventory and cannot absorb
+any open blocker or backlog item.

@@ -3,8 +3,8 @@
 This reconciles `docs/FIX_CHECKLIST.md` with the current checkpoint. Checked
 items require evidence; code presence alone is not completion.
 
-Last reconciled: 2026-07-15 at integration application checkpoint `907dfe3`.
-Production remains unchanged at `8c38909`.
+Last reconciled: 2026-07-15 at Wave 6 application checkpoint `145437b`, merged
+only into integration at `6255234`. Production remains unchanged at `8c38909`.
 
 ## Release blockers
 
@@ -24,21 +24,23 @@ Production remains unchanged at `8c38909`.
 
 ## Engineering gates
 
-- [x] CI requires typecheck, lint, tests, build, and public smoke; Wave 5 exact
+- [x] CI requires typecheck, lint, tests, build, and public smoke; Wave 6 exact
   checks are green.
 - [ ] Characterization tests cover every decomposition domain. Billing, Orders,
-  Products, Dashboard, and Purchases are covered; Storefront characterization is
-  the first Wave 6 gate and data-access compatibility is the Wave 7 gate.
+  Products, Dashboard, Purchases, and Storefront are covered; exact data-access
+  compatibility is the remaining Wave 7 gate.
 - [x] GSTIN mod-36 checksum validation is implemented and unit-tested.
 - [ ] Full manual regression checklist passes before paid/public launch.
 - [ ] Production logs and monitoring show no new blocking error after rollout.
 
 ## Decomposition gates
 
-- [x] Waves 1–5 merged only into integration with automated, staging, visual,
-  cleanup, repository-doc, Google handoff, and Slack evidence.
-- [ ] Wave 6 Storefront completes the same gates without changing theme, cart,
-  checkout, stock, consent, payload, copy, or visual behavior.
+- [x] Waves 1–6 merged only into integration with automated, staging, visual or
+  explicitly approved visual-waiver, cleanup, repository-doc, Google handoff,
+  and Slack evidence.
+- [x] Wave 6 Storefront completed with zero theme/cart/checkout/stock/consent/
+  payload/copy/UI-source drift. Darshan waived the pixel comparison because an
+  intentional reskin is next; the waiver is not a visual-equivalence result.
 - [ ] Wave 7 data access completes behind compatibility exports without query or
   RPC behavior change.
 - [ ] Full integration application and migration candidate pass the complete

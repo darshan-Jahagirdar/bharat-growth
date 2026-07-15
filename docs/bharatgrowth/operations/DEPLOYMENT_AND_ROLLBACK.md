@@ -43,22 +43,23 @@ application tree.
 
 ## Latest verified integration evidence
 
-- Application checkpoint / Wave 5 merge:
-  `907dfe3b4f02bc872264c4b983d6a59aab747423`.
-- PR [#6](https://github.com/darshan-Jahagirdar/bharat-growth/pull/6)
+- Integration merge / Wave 6 application checkpoint:
+  `6255234937a79b2d74d2a3a577a8065d167d911f` / `145437b13eeff1d1cd4f7eebfe86d06611805dfb`.
+- PR [#8](https://github.com/darshan-Jahagirdar/bharat-growth/pull/8)
   merged only into integration with all required checks successful.
-- Vercel integration deployment: `dpl_5HprXDZjfavK1vGGYbtzZnGweWaB`, READY for
-  exact integration branch/commit `907dfe3`, Mumbai region.
+- Vercel integration deployment: `dpl_3cu9JfBqjAgB929LQbmvAC2bEmmh`, READY and
+  Preview-only for exact integration branch/commit `6255234`, Mumbai region.
 - Linked Supabase target: staging `qokaaggeqahayxsybgds`, migrations 001–048
   matching.
-- 94 tests/19 files, strict typecheck, zero-warning lint, and 25-route build.
-- Error-level runtime-log query returned no entries for the latest 24 hours at
-  handoff verification.
+- 116 tests/24 files, strict typecheck, zero-warning lint, and 25-route build.
+- Error/warning/fatal runtime-log query returned no entries for the verified
+  post-merge deployment.
 - Production `main` remains `8c38909`; no production app, database, Auth,
   environment, alias, or data changed.
 
-A docs-only handoff PR may move the integration head. Re-derive it and confirm
-the application tree remains based on `907dfe3` before Wave 6.
+A docs-only Wave 7 handoff PR may move the integration head. Re-derive it and
+confirm `src/` and `supabase/` remain identical to application checkpoint
+`145437b` before Wave 7.
 
 ## Staging authentication gate
 
