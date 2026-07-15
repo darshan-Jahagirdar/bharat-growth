@@ -659,6 +659,90 @@
   closed. The obsolete deployment was not deleted because the user prohibited
   destructive actions.
 
+## Wave 6 complete — 2026-07-15 — Storefront
+
+- Verified base and extraction order: `codex/decompose-storefront` was created
+  from exact remote integration commit
+  `d9d7b4f52e4ffc429b805b8eaed4bf9307bca20b`. Documentation PR #7 had changed
+  no `src/` or `supabase/` file, so the application-source checkpoint remained
+  Wave 5 at `907dfe3`. Characterization commit `ac7fe57` preceded every
+  application-source edit; pure catalog/cart transforms followed in `cedec19`,
+  controllers/hooks in `675d106`, and focused views in `145437b`.
+- Ownership and LOC: `ModernTheme.tsx` is reduced from 717 to 77 lines and now
+  composes focused header, product-grid, cart-bar, and checkout-drawer views.
+  Every new transform, hook, and focused view remains under 250 lines.
+  Industrial and Festive source, the Storefront page/loader, checkout route,
+  Storefront query facade, Auth, schema, migrations, RLS, and payload boundaries
+  have zero Wave 6 diff.
+- Characterization and automated gates: 16 pre-extraction Storefront tests
+  across four files freeze UUID metadata/404 handling, loader query/mapping/error
+  behavior, all three theme outputs, and the complete Modern catalog, stock,
+  cart, checkout, payload, idempotency, hard-stop, and WhatsApp contracts.
+  Direct transform coverage was added after the checkpoint. The final branch
+  gate at `145437b` has 116 passing tests across 24 files; strict TypeScript,
+  repository ESLint with zero warnings, the optimized 25-route build,
+  `git diff --check`, protected-boundary checks, and the credential-shape scan
+  all pass. The application suite was not repeated after this documentation-only
+  evidence update.
+- Pull request and GitHub checks: draft PR
+  [#8](https://github.com/darshan-Jahagirdar/bharat-growth/pull/8) targets only
+  `codex/production-hardening-baseline`; its exact application head is
+  `145437b13eeff1d1cd4f7eebfe86d06611805dfb`. GitHub `quality`,
+  `public-smoke`, Vercel, and Vercel Preview Comments checks are successful and
+  the merge state is clean.
+- Preview isolation blockers and resolution: automatic deployment
+  `dpl_gwCS4nC4zPdL8v8MecsK6jGbKySG` inherited a non-staging Supabase ref, so
+  verification stopped before browser, Auth, checkout, or data access. The next
+  staging-ref-correct deployment `dpl_7A34c3W2AQoa3kNPuUHUHWwnHyPF` used the
+  disabled legacy anon key and the first public shop request hard-stopped with
+  `Legacy API keys are disabled`; no shop data rendered. Final deployment
+  `dpl_9Xx9XKEV7rQNXT4r1E5RaP5QjwsN` uses staging's active publishable-key shape
+  under the unchanged committed variable name. It is READY and Preview-only for
+  exact branch `codex/decompose-storefront`, commit `145437b`, and PR #8. Its
+  eight login-page chunks contain exact staging ref `qokaaggeqahayxsybgds`, no
+  unexpected Supabase ref, no legacy JWT key shape, and no framework-overlay
+  marker. The obsolete deployments remain retained under the existing
+  non-destructive constraint and were never promoted or used for Auth/data.
+- Modern mobile browser smoke: at 390x844, the public Ganesh Tyres fixture
+  loaded all eight active products. Search, keyboard clearing, combined category
+  filtering, cart add/plus/minus, paise totals, floating cart bar, drawer,
+  UPI/Khata selection, required order-data consent, optional marketing consent,
+  body scroll lock, close button, backdrop close, and the missing-contact hard
+  stop all passed. No checkout submission, WhatsApp navigation, Auth/OTP flow,
+  or data mutation occurred.
+- Industrial and Festive mobile browser smoke: Darshan explicitly approved a
+  temporary staging-only theme change for the two other synthetic seed shops.
+  Industrial rendered its dark theme root, `Our Products (8)`, SKU/unit output,
+  and three grouped categories with no Modern search/cart. Festive rendered its
+  warm theme root, exact browse-via-WhatsApp copy, six grouped categories, and
+  eight products with no Modern search/cart. Missing owner contact correctly
+  produced no outbound WhatsApp action in either fixture. Exact-deployment
+  browser error/warning counts remained zero.
+- Visual-gate decision: Darshan explicitly waived the integration-versus-Wave 6
+  pixel comparison because an intentional Storefront reskin is next and the
+  comparison evidence would immediately become obsolete. This is a user-approved
+  waiver, not a passing pixel-equivalence claim. DOM-visible theme markers,
+  mobile interaction evidence, characterization, and automated gates remain the
+  preservation evidence for this wave.
+- Cleanup and runtime result: both temporarily changed seed shops were restored
+  to `modern`; readback confirmed all three staging seed shops are `modern`, and
+  browser reload confirmed Modern dispatch after restoration. Verification tabs
+  and the temporary viewport were closed/reset. No screenshot or helper artifact
+  was retained. Final exact-deployment Vercel error/warning/fatal runtime counts
+  and exact-host browser error/warning counts are empty. Branch-scoped Preview
+  variables remain only until the integration merge and post-merge verification
+  are complete, then must be removed and verified absent.
+- Production result and rollback: production `main` remains
+  `8c389098db7e31180b5bdd6f1661adfd4bdc902b`. Production Supabase, Vercel,
+  Auth, data, aliases, configuration, and environment values were untouched.
+  Rollback points are integration `d9d7b4f` for the whole wave and
+  characterization checkpoint `ac7fe57` for the pre-extraction Storefront.
+  User-owned `designs/`, `designs_mobile/`, `docs/bharatgrowth/design/`, and the
+  concurrent untracked Claude handoff remain untracked, unstaged, and excluded.
+- Known follow-ups kept out of scope: Storefront query-facade/RLS hardening,
+  migration 049, Auth/provider work, payment-gateway work, intentional reskin,
+  production rollout, and the full pre-sale hard-test checklist.
+
 ## Wave entry template
 
 ```text
