@@ -1,5 +1,13 @@
 # BharatGrowth — Execution Roadmap
 
+> Historical product-planning backlog. The unchecked boxes below are not a
+> reliable implementation-status report. Current source-backed features and
+> planned gaps are separated in
+> [`docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md`](docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md);
+> current execution state is in
+> [`docs/bharatgrowth/CODEX_HANDOFF.md`](docs/bharatgrowth/CODEX_HANDOFF.md).
+> Do not add a roadmap item inside behavior-preserving decomposition.
+
 ---
 
 ## Phase 1: Speed-Billing Desktop Engine (Weeks 1–6)

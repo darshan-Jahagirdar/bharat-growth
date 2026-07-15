@@ -1,5 +1,10 @@
 # BharatGrowth Mac Migration Checklist
 
+> Historical machine-move detail. Current task continuation and Google/Slack
+> operating rules live in
+> [`docs/bharatgrowth/CODEX_HANDOFF.md`](bharatgrowth/CODEX_HANDOFF.md) and
+> [`docs/bharatgrowth/COLLABORATION_WORKFLOW.md`](bharatgrowth/COLLABORATION_WORKFLOW.md).
+
 Use GitHub as the source of truth for code and cleaned docs. Use a password manager or secure secret handoff for environment variables. Avoid moving local build artifacts or generated repo dumps.
 
 ## 1. Freeze The Windows Source

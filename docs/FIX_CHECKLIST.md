@@ -1,6 +1,8 @@
 # BharatGrowth — Fix Checklist
 
-> Historical review checklist. Canonical current release gates live in
+> Historical review checklist. Unchecked boxes below do not imply the current
+> state; several staging/CI items have since passed. Canonical current release
+> gates live in
 > [`docs/bharatgrowth/quality/FIX_CHECKLIST.md`](bharatgrowth/quality/FIX_CHECKLIST.md).
 
 Prioritized action list from the July 7, 2026 code review. Ordered by risk: P0 items are
