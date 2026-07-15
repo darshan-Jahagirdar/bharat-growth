@@ -1,42 +1,19 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRef } from 'react';
 import type { StorefrontShop, StorefrontProduct } from '@/lib/storefront/queries';
 import {
-  addStorefrontCartItem,
-  buildStorefrontCheckoutPayload,
-  buildStorefrontWhatsAppLink,
-  filterStorefrontProducts,
   formatStorefrontPrice,
-  getStorefrontCartItems,
-  getStorefrontCartQuantity,
-  getStorefrontCategories,
   getStorefrontPlaceholderColor,
-  getStorefrontStockMessage,
-  removeStorefrontCartItem,
-  summarizeStorefrontCart,
-  type StorefrontCart,
-  type StorefrontCheckoutResult,
-  type StorefrontPaymentMethod,
 } from '@/lib/storefront/modernStorefrontTransforms';
+import { useModernStorefrontCatalog } from '@/lib/storefront/useModernStorefrontCatalog';
+import { useModernStorefrontCart } from '@/lib/storefront/useModernStorefrontCart';
+import { useModernStorefrontCheckout } from '@/lib/storefront/useModernStorefrontCheckout';
 import Image from 'next/image';
 
 interface ModernThemeProps {
   shop: StorefrontShop;
   products: StorefrontProduct[];
-}
-
-// RFC4122 v4 key for storefront checkout idempotency. Uses crypto.randomUUID
-// when available (secure contexts) and falls back for non-secure dev origins.
-function genIdempotencyKey(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
 }
 
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -48,139 +25,50 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 export function ModernTheme({ shop, products }: ModernThemeProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [cart, setCart] = useState<StorefrontCart>(new Map());
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutName, setCheckoutName] = useState('');
-  const [checkoutPhone, setCheckoutPhone] = useState('');
-  const [checkoutAddress, setCheckoutAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<StorefrontPaymentMethod>('upi');
-  const [dataConsent, setDataConsent] = useState(false);
-  const [marketingConsent, setMarketingConsent] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [stockToast, setStockToast] = useState('');
   const pillsRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  // Persists across retries of the same checkout attempt; cleared on success.
-  const idempotencyKeyRef = useRef<string | null>(null);
-
-  const categories = getStorefrontCategories(products);
-  const filtered = filterStorefrontProducts(products, activeCategory, searchQuery);
-  const cartItems = getStorefrontCartItems(cart);
-  const { count: cartCount, totalPaise: cartTotal } = summarizeStorefrontCart(cartItems);
-
-  const addToCart = useCallback((product: StorefrontProduct) => {
-    const stockMessage = getStorefrontStockMessage(cart, product);
-    if (stockMessage) {
-      setStockToast(stockMessage);
-      setTimeout(() => setStockToast(''), 2500);
-      return;
-    }
-    setCart((previous) => addStorefrontCartItem(previous, product));
-  }, [cart]);
-
-  const removeFromCart = useCallback((productId: string) => {
-    setCart((previous) => removeStorefrontCartItem(previous, productId));
-  }, []);
-
-  const getQty = useCallback((productId: string): number => {
-    return getStorefrontCartQuantity(cart, productId);
-  }, [cart]);
-
-  useEffect(() => {
-    if (showCheckout) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [showCheckout]);
-
-  const handlePlaceOrder = async () => {
-    if (!checkoutName.trim() || !checkoutPhone.trim() || !dataConsent) return;
-    setIsSubmitting(true);
-    setSubmitError('');
-
-    // Reuse the same key across retries of this attempt so a lost response or
-    // rapid double-submit collapses to a single order server-side.
-    if (!idempotencyKeyRef.current) {
-      idempotencyKeyRef.current = genIdempotencyKey();
-    }
-
-    const payload = buildStorefrontCheckoutPayload({
-      shopId: shop.id,
-      checkoutName,
-      checkoutPhone,
-      checkoutAddress,
-      paymentMethod,
-      dataConsent,
-      marketingConsent,
-      idempotencyKey: idempotencyKeyRef.current,
-      cartItems,
-    });
-
-    let res: Response;
-    try {
-      res = await fetch('/api/storefront/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    } catch (networkErr) {
-      const msg = networkErr instanceof Error ? networkErr.message : 'Network error';
-      setSubmitError(`Network error: ${msg}`);
-      setIsSubmitting(false);
-      return; // ← HARD STOP, no WhatsApp
-    }
-
-
-    if (!res.ok) {
-      let errorMsg = `Order failed (HTTP ${res.status})`;
-      try {
-        const errBody = await res.json();
-        errorMsg = errBody.error || errorMsg;
-      } catch {
-        errorMsg = `Order failed (HTTP ${res.status})`;
-      }
-      setSubmitError(errorMsg);
-      setIsSubmitting(false);
-      return; // ← HARD STOP, no WhatsApp
-    }
-
-    let orderResult: StorefrontCheckoutResult | undefined;
-
-    // Only reach here on 200 OK
-    try {
-      orderResult = await res.json();
-    } catch {
-      // Response was 200 but no JSON body — still success
-    }
-
-    const waUrl = buildStorefrontWhatsAppLink({
-      shop,
-      checkoutName,
-      checkoutPhone,
-      checkoutAddress,
-      paymentMethod,
-      cartItems,
-      cartTotal,
-      order: orderResult,
-    });
-    // Order created - retire this key so the next cart starts a fresh attempt.
-    idempotencyKeyRef.current = null;
-    setCart(new Map());
-    setShowCheckout(false);
-    setCheckoutName('');
-    setCheckoutPhone('');
-    setCheckoutAddress('');
-    setDataConsent(false);
-    setIsSubmitting(false);
-    // Use location.href instead of window.open to avoid popup blockers
-    // on mobile browsers after async fetch
-    window.location.href = waUrl;
-  };
+  const {
+    activeCategory,
+    categories,
+    filteredProducts: filtered,
+    searchQuery,
+    setActiveCategory,
+    setSearchQuery,
+  } = useModernStorefrontCatalog(products);
+  const {
+    addToCart,
+    cartCount,
+    cartItems,
+    cartTotal,
+    clearCart,
+    getQty,
+    removeFromCart,
+    stockToast,
+  } = useModernStorefrontCart();
+  const {
+    checkoutAddress,
+    checkoutName,
+    checkoutPhone,
+    dataConsent,
+    handlePlaceOrder,
+    isSubmitting,
+    marketingConsent,
+    paymentMethod,
+    setCheckoutAddress,
+    setCheckoutName,
+    setCheckoutPhone,
+    setDataConsent,
+    setMarketingConsent,
+    setPaymentMethod,
+    setShowCheckout,
+    showCheckout,
+    submitError,
+  } = useModernStorefrontCheckout({
+    cartItems,
+    cartTotal,
+    clearCart,
+    shop,
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
