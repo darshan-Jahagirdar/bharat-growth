@@ -606,6 +606,46 @@
   all sale-ready features, production rollout, and the full pre-sale manual
   hard-test checklist.
 
+## Wave 5 post-merge integration verification — 2026-07-15
+
+- PR #6 merged only into `codex/production-hardening-baseline`; exact merge
+  commit is `907dfe3b4f02bc872264c4b983d6a59aab747423`. Remote production `main`
+  remains `8c389098db7e31180b5bdd6f1661adfd4bdc902b`.
+- GitHub reports the PR merged with successful `quality`, `public-smoke`,
+  Vercel, and Vercel Preview Comments checks.
+- Linked Supabase remains staging `qokaaggeqahayxsybgds`; fresh migration
+  readback returns matching local/remote versions 001–048.
+- Integration deployment `dpl_5HprXDZjfavK1vGGYbtzZnGweWaB` is READY for
+  exact branch `codex/production-hardening-baseline` and exact commit `907dfe3`.
+  A 24-hour error-level runtime-log query returned no entries.
+- The temporary raw-ten-digit staging auth workaround was not committed or
+  merged. The temporary tagged `public.users` mapping was removed; the
+  user-owned staging Auth test identity remains. Temporary workaround previews,
+  browser sessions, local evidence, and helper artifacts had already been
+  removed and verified.
+- Final Wave 5 Google handoff and the actual merge message in `#bharatgrowth`
+  were verified. Production application, Supabase, Vercel, environment
+  variables, Auth, and data were not changed.
+
+## Durable Wave 6 handoff preparation — 2026-07-15
+
+- Branch `codex/prepare-wave6-handoff` was created non-destructively from remote
+  integration application checkpoint `907dfe3`.
+- Re-read the canonical handoff and required engineering docs, re-derived local
+  and remote Git/GitHub/Supabase/Vercel state, and audited current routes,
+  modules, migrations, tests, and source behavior.
+- Added a source-backed product/feature/behavior inventory and a durable
+  repository/Google/Slack collaboration workflow. Reconciled current versus
+  planned capabilities so roadmap/landing claims cannot be mistaken for
+  implemented behavior during decomposition.
+- Rewrote the continuation handoff around Wave 6 Storefront, including exact
+  characterization scope, pure/controller/view extraction order, query-facade
+  boundary, visual/browser/cleanup gates, and a paste-ready next-task prompt.
+- This branch is documentation-only. No application source, migration, schema,
+  Vercel/Supabase configuration, staging data, or production state changed.
+- User-owned untracked `designs/`, `designs_mobile/`, and
+  `docs/bharatgrowth/design/` remain preserved and excluded.
+
 ## Wave entry template
 
 ```text

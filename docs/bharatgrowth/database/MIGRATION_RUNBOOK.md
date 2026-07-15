@@ -1,81 +1,122 @@
 # Supabase Migration Runbook
 
-Production project ref: `vyycczqhvsgkiqtxxxos`.
+Last reconciled: 2026-07-15.
+
+- Production project ref: `vyycczqhvsgkiqtxxxos`.
+- Decomposition staging project ref: `qokaaggeqahayxsybgds`.
+
+Project refs are identifiers, not authorization. Recheck the CLI link and exact
+remote migration history before every database command.
 
 ## Hard stops
 
-- Do not print access tokens, database passwords, service-role keys, or pulled
-  environment values.
-- Do not run a push until the CLI-displayed project ref matches the intended
-  target and a dry run has been reviewed.
-- Stop on migration history drift, duplicate versions, destructive statements,
-  unexpected policy/grant removal, or an unreviewed target.
+- Do not print access tokens, database passwords, service-role/secret keys, OTPs,
+  or pulled environment values.
+- Do not run a push until the CLI-displayed project ref matches the explicitly
+  intended target and a dry run has been reviewed.
+- Stop on migration-history drift, duplicate versions, destructive statements,
+  unexpected policy/grant removal, changed function signatures, or an
+  unreviewed target.
 - Never test destructive behavior with production customer data.
+- No schema/migration/RLS/grant/policy/function change belongs in a
+  decomposition wave.
+- Production work requires a new explicit Darshan approval at the final gate.
 
-## Pre-launch production identity gate
+## Current staging baseline
 
-- Before the production application/database rollout, delete
-  `dev@bharatgrowth.in` from production `auth.users` and delete its matching
-  `public.users` row.
-- Resolve and verify the exact production user ID before either deletion; do not
-  identify the row by a guessed ID.
-- Verify that neither table contains the account after deletion and record the
-  evidence in the decomposition log. Do not print credentials or tokens.
+Verified on 2026-07-15:
 
-## Staging preparation
+- CLI link resolves to staging `qokaaggeqahayxsybgds`.
+- Fresh `supabase migration list --linked` returns matching continuous local and
+  remote migrations 001–048.
+- The staging project was rebuilt from migrations with synthetic/shared test
+  data; no production/customer data was copied.
+- Constrained receipt and owner-phone RPCs, tenant isolation outside the known
+  legacy public policies, transactional cases, and migration safety were
+  verified during hardening. Migrations 013/014 anonymous compatibility policies
+  intentionally remain because the current Storefront loader still uses them.
+- Legacy exposed staging credentials are disabled/revoked; no key material is
+  recorded here. Remaining credential rotation is a pre-sale owner gate, not a
+  decomposition action.
 
-1. The owner selects which non-production Free Plan project to pause.
-2. Create `bharat-growth-staging`; production remains active.
-3. Authenticate Supabase CLI and link explicitly to the staging project.
-4. Apply the historical migrations to an empty staging database.
-5. Load only synthetic/sanitized fixtures and create dedicated test users.
-6. Verify migration history before testing the new migrations.
+Before each remaining wave, repeat the linked ref and migration-list readback.
+Wave 6/7 should not apply a migration.
 
-### Verified staging baseline — 2026-07-12
+## Migration 049 staging gate
 
-- Project ref: `qokaaggeqahayxsybgds`; production was not linked or changed.
-- Migrations 001-048 reproduced successfully from an empty project.
-- Synthetic seed loaded; no production/customer data was copied.
-- The deployed preview uses publishable and secret API keys. Legacy JWT-based
-  API keys are disabled and the previous HS256 signing key is revoked.
-- Read-only verification: legacy service-role access returns HTTP 401, modern
-  secret admin access passes, public receipt RPC passes, and anonymous customer
-  reads remain blocked.
+Only after all seven decomposition waves are merged and staging-smoked:
 
-## Expand / application / contract
+1. Re-read the approved `CODEX_BRIEF.md` and current handoff.
+2. Re-derive production and staging histories; stop if the assumed production
+   pending range is not exact.
+3. Prove every Receipt/Storefront consumer no longer depends on the legacy
+   anonymous table policies. The current browser Storefront loader is a named
+   dependency to resolve or replace in a separately approved behavior-preserving
+   hardening change; do not assume it is already safe.
+4. Write the reviewed contract migration 049 that removes only access proven
+   obsolete by that consumer audit.
+5. Review SQL for destructive statements, grants/policies, function ownership,
+   stable/security-definer attributes, `search_path`, and public shapes.
+6. Run `supabase db push --dry-run` against staging and review every pending
+   statement.
+7. Apply only to staging.
+8. Re-run the complete required database cases and public app smoke. Record exact
+   migration and result evidence.
 
-1. **Expand:** migration 042 creates constrained public RPCs without removing the
-   old compatible grants/policies. Migrations 043-046 add compatible fixes.
-2. Run `supabase db push --dry-run`, inspect the exact SQL, apply to staging, and
-   verify function signatures, ownership, `search_path`, grants, RLS, tenant
-   isolation, concurrency, and idempotency.
-3. Deploy the compatible app against staging and run receipt/storefront plus
-   transactional smoke tests.
-4. Repeat the dry run against production and apply only the expand set.
-5. Deploy the application and verify production.
-6. **Contract:** create a later migration 049 that removes obsolete anonymous
-   access only after the new app is healthy. Dry-run, apply, and reverify.
+Do not create migration 049 early in a branch whose ordinary staging push should
+apply only existing history; `supabase db push` applies all pending migrations.
 
-The contract migration must not exist in the branch used for the expand push;
-`supabase db push` applies every pending migration.
+## Required staging database cases
 
-## Required database cases
-
-- Anonymous full-table and sensitive-column reads are denied.
-- Public receipt by UUID and storefront contact/catalog still work.
-- Cross-shop identifiers fail.
-- Fractional sales-order conversion produces correct totals and stock movement.
-- Composition conversion produces a bill of supply with zero tax.
-- Concurrent credit sale/repayment leaves balance equal to ledger history.
+- Anonymous customer/invoice/user/loyalty and sensitive-column reads are denied.
+- Public receipt by UUID and public storefront contact/catalog still work.
+- Invalid and cross-shop identifiers fail.
+- Online checkout enforces current price, strict stock, idempotency, and consent.
+- POS negative stock remains allowed.
+- Fractional Sales Order conversion produces correct totals and stock movement.
+- Composition conversion produces a Bill of Supply with zero tax.
+- Purchase bill atomically records header/movements/stock; draft PO does not
+  receive stock.
+- Concurrent credit sale/repayment leaves balance equal to ledger history and
+  rejects overpayment.
 - Loyalty balance cannot be overwritten by stale client state.
 - Concurrent AI scans cannot consume quota below zero.
+- Campaign matching respects consent, daily cap, duplicate claim, and provider
+  result rules.
+
+## Approved pre-launch production rollout model
+
+There are no real users and the production database contains test data, so the
+approved brief intentionally removes a long compatibility window. This changes
+the final release choreography, not the staging-first or verification rules.
+
+At the separately approved production gate:
+
+1. Resolve and verify the exact production Auth identity for
+   `dev@bharatgrowth.in` and its `public.users` membership. Delete both during
+   the controlled gate; never identify the row by a guessed UUID and never print
+   credentials.
+2. Reconfirm the exact reviewed application commit, migration range, Vercel
+   production project, and Supabase production ref.
+3. Run and review a production dry run. The approved brief expects migrations
+   036–049 pending, but live history—not this sentence—decides the actual range.
+4. Apply the reviewed migrations and exact application release as one
+   staged-then-production rollout, with the bounded checks and rollback assets
+   ready. Do not insert an unapproved gradual/compatibility choreography.
+5. Verify Auth cleanup, migration history, public/private boundaries,
+   transactions, routes, logs, monitoring, and provider dependencies.
+6. Record exact evidence in the engineering log, Google handoff, and Slack only
+   after the gate is true.
+
+This section is not authorization to perform the rollout now.
 
 ## Recovery
 
-- Leave compatible additive functions/columns in place during application
-  rollback.
-- Revert application by promoting the recorded last-known-good Vercel artifact or
-  reverting the merge.
-- Reverse a contract permission change only through a reviewed forward recovery
-  migration that restores the minimum prior grants/policies.
-- Record every applied migration and result in the decomposition log.
+- Prefer application rollback to the recorded last-known-good Vercel artifact or
+  a reviewed revert.
+- Keep compatible additive database changes when rolling back code unless a
+  reviewed forward recovery migration is required.
+- Restore a restrictive permission only through a reviewed forward migration
+  that grants the minimum prior access.
+- Stop scheduled campaigns/provider actions if their dependencies are unhealthy.
+- Record every applied migration, recovery action, and final verification.

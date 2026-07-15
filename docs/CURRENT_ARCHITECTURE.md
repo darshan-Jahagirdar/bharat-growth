@@ -1,7 +1,10 @@
 # BharatGrowth Current Architecture
 
-> Historical architecture detail. The maintained overview is
-> [`docs/bharatgrowth/architecture/CURRENT_ARCHITECTURE.md`](bharatgrowth/architecture/CURRENT_ARCHITECTURE.md).
+> Historical architecture detail from July 7. Its project refs, routes, and
+> readiness statements may be stale. The maintained overview is
+> [`docs/bharatgrowth/architecture/CURRENT_ARCHITECTURE.md`](bharatgrowth/architecture/CURRENT_ARCHITECTURE.md),
+> with full behavior in
+> [`docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md`](bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md).
 
 Last verified from local code: July 7, 2026.
 

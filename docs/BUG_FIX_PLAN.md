@@ -1,7 +1,11 @@
 # BharatGrowth — Bug Fix Plan
 
-> Historical detailed audit. Canonical current status and rollout evidence live
-> in [`docs/bharatgrowth/quality/BUG_FIX_PLAN.md`](bharatgrowth/quality/BUG_FIX_PLAN.md).
+> Historical detailed audit. Its dates, project state, and unchecked items are
+> preserved as review evidence, not current truth. Canonical current status and
+> rollout evidence live in
+> [`docs/bharatgrowth/quality/BUG_FIX_PLAN.md`](bharatgrowth/quality/BUG_FIX_PLAN.md),
+> and product behavior lives in
+> [`docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md`](bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md).
 
 Source: deep code audit (commit `8c38909` + Bring-Back branch), verified against all 41 migrations.
 Scope note: three audit items were resolved as **not bugs** by product decision —
@@ -10,10 +14,10 @@ loyalty-on-khata timing (earned at sale, intended). They are excluded below.
 
 Legend: **[BLOCKS]** = breaks build / data integrity / security; **[FIX]** = correctness; **[POLISH]** = UX/robustness.
 
-Implementation status (Codex hardening pass, 2026-07-11): checked items are
-implemented in the local codebase and pass TypeScript, ESLint, and production
-build checks. Migrations 042-046 still require application and smoke testing on
-preview/staging before production rollout.
+Historical implementation status (2026-07-11): this paragraph captured the
+pre-staging audit. Current staging migrations 001–048 and Waves 1–5 have since
+been verified; use the canonical status document above. Production remains
+unchanged.
 
 ---
 

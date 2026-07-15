@@ -105,3 +105,29 @@ branch. Each decomposition wave merges through its own PR into that branch and
 is staging-smoked before the next wave. Production `main` remains unchanged
 until all seven waves and approved launch features pass staging, followed by the
 single controlled pre-launch production rollout.
+
+## Status addendum — 2026-07-15
+
+This brief remains the approved decision record, but its “next actions” and
+33-test baseline are historical checkpoints, not the current stage. Do not redo
+completed setup actions.
+
+- Waves 1–5 are merged only into integration; application checkpoint is
+  `907dfe3`. Wave 6 Storefront is next, then Wave 7 data access.
+- The current suite is 94 tests across 19 files, with strict typecheck,
+  zero-warning lint, 25-route build, GitHub checks, staging browser/visual gates,
+  and cleanup evidence passing through Wave 5.
+- Production remains `8c38909` and untouched.
+- The exact existing Google handoff and `#bharatgrowth` channel are now resolved.
+  Use [`COLLABORATION_WORKFLOW.md`](COLLABORATION_WORKFLOW.md); do not fall back to
+  `#general` or search for a second handoff.
+- Product/behavior truth is now mapped in
+  [`product/FEATURE_AND_BEHAVIOR_INVENTORY.md`](product/FEATURE_AND_BEHAVIOR_INVENTORY.md).
+- The approved one-rollout production decision still applies only after all
+  decomposition, migration 049 staging, sale-readiness, and explicit production
+  gates. It is not current authorization.
+- Migration 049 must be preceded by a live-consumer audit: migration 042 is
+  additive, and the current browser Storefront loader still uses the legacy
+  anonymous compatibility policies. Do not remove them until a separate
+  reviewed application hardening change proves the constrained path preserves
+  Storefront behavior.

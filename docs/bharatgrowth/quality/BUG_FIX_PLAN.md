@@ -1,43 +1,61 @@
-# Bug-Fix Status
+# Bug-Fix and Hardening Status
 
-Canonical status derived from the detailed audit in `docs/BUG_FIX_PLAN.md` and
-the code checkpoint `4b7424a`.
+Last reconciled: 2026-07-15. The detailed July audit remains at
+[`../../BUG_FIX_PLAN.md`](../../BUG_FIX_PLAN.md); this file is the canonical
+current status.
 
-## Implemented locally; not production-proven
+## Implemented and staging-proven
 
-- WhatsApp failure classification and campaign claim release.
-- Receipt/storefront public-data access through constrained RPCs.
-- Atomic credit repayment.
+- WhatsApp provider-failure classification and campaign claim release.
+- Constrained public receipt and owner-phone RPCs, with additive compatibility
+  preserved for the current Storefront loader. Legacy anonymous policies are not
+  closed until migration 049 and consumer verification.
+- Atomic credit repayment, loyalty balance locking, and AI scan quota.
 - Sales-order fractional quantity and composition-GST fixes.
-- Loyalty selection race, IST invoice date, demo-save, search escaping, UPI
-  modal/keyboard, and repayment-modal fixes.
-- Authenticated and atomic AI scan quota handling with file validation.
-- Loyalty balance locking and stale-search protection.
+- IST invoice/date behavior, stale-search protection, GSTIN checksum, UPI
+  amount/modal/keyboard behavior, demo-save, and repayment-modal fixes.
+- Neutralized dev-auth migration/hardcoded login path.
+- Bearer-header cron authorization and migration safety guards.
+- Continuous staging migrations 001–048, synthetic seed, tenant/RLS smoke, CI,
+  and isolated Vercel preview flow.
 
-These remain incomplete until migrations 042-046 are applied to staging and the
-transactional/RLS smoke cases pass.
+Evidence at the Wave 5 integration checkpoint:
 
-## Explicitly deferred product decisions
+- linked staging `qokaaggeqahayxsybgds`, local/remote migrations 001–048 match;
+- 94 tests across 19 files, strict typecheck, zero-warning lint, and 25-route
+  optimized build pass;
+- GitHub `quality` and `public-smoke` pass;
+- integration deployment `dpl_5HprXDZjfavK1vGGYbtzZnGweWaB` is READY for exact
+  application checkpoint `907dfe3` and has no queried error-level runtime logs.
 
-- Inter-state sales-order conversion needs buyer-state data and UX.
+These facts do not mean production is updated. Production remains `8c38909`.
+
+## External or release blockers still open
+
+- Rotate `CRON_SECRET` without exposing it.
+- Configure and test production Meta webhook/provider settings.
+- Obtain approved production WhatsApp marketing templates and opt-out wording.
+- Add production error monitoring and verify a test event.
+- Add rate limiting to public checkout and outbound messaging.
+- Perform an approved real staging AI bill scan.
+- Write/review/apply migration 049 on staging after all decomposition waves.
+- Complete full manual sale-readiness regression and the explicit production
+  identity/rollout gate.
+
+## Explicit product backlog, not decomposition bugs
+
+- Auth/provider redesign and payment gateway/subscriptions.
+- Inter-state Sales Order conversion needing buyer-state UX.
 - Discount engine behavior and UI.
 - Sales-order conversion loyalty/campaign attribution.
-- Server-authoritative POS totals and GST recomputation.
+- Server-authoritative POS totals/GST recomputation.
+- Loyalty redemption.
+- Offline billing, bilingual UI, e-invoicing, and full DPDP
+  erasure/anonymization.
 
-## Evidence required to close the baseline
+## Decomposition status
 
-- Clean lint, typecheck, unit tests, and production build.
-- Staging migration dry run and application with no drift.
-- Anonymous access denial plus working public receipt/storefront flows.
-- Concurrent sale/repayment, loyalty, and AI-quota checks.
-- Fractional sales-order conversion and composition bill-of-supply checks.
-- Vercel preview smoke with no blocking console/server errors.
-
-## Local and staging evidence — 2026-07-12
-
-- 33 Vitest characterization/security tests pass across 7 files.
-- `npm run typecheck`, `npm run lint`, and `npm run build` pass.
-- The production build generated all 25 application routes.
-- Playwright and direct browser content/overlay checks pass in installed Chrome.
-- Fresh staging migrations 001-048 and the inactive-campaign synthetic seed apply
-  successfully; linked-schema lint has no errors.
+Waves 1 Billing, 2 Orders, 3 Products, 4 Dashboard/progress, and 5 Purchases are
+merged only into integration. Wave 6 Storefront is next; Wave 7 data access is
+last. Structural work must preserve the feature/behavior inventory and cannot
+absorb any open blocker or backlog item.
