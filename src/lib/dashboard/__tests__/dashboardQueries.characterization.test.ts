@@ -14,6 +14,26 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: mocks.createClient,
 }));
 
+const GST_SELECT = `
+      id,
+      invoice_number,
+      created_at,
+      total_paise,
+      payment_mode,
+      customer_gstin,
+      customers ( name, phone_number ),
+      invoice_items (
+        product_name,
+        hsn_code,
+        quantity,
+        taxable_amount_paise,
+        cgst_paise,
+        sgst_paise,
+        igst_paise,
+        total_paise
+      )
+    `;
+
 function queuedClient(queues: Record<string, QueryBuilder[]>) {
   const from = vi.fn((table: string) => {
     const builder = queues[table]?.shift();
@@ -314,6 +334,27 @@ describe('dashboardQueries characterization', () => {
         args: ['created_at', '2026-07-15T23:59:59+05:30'],
       },
     ]);
+    expect(expectQueryCalls(creditQuery)).toEqual([
+      { method: 'select', args: ['credit_balance_paise'] },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'gt', args: ['credit_balance_paise', 0] },
+    ]);
+    expect(expectQueryCalls(inventoryValueQuery)).toEqual([
+      {
+        method: 'select',
+        args: ['quantity_in_stock, products!inner(selling_price_paise)'],
+      },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'gt', args: ['quantity_in_stock', 0] },
+    ]);
+    expect(expectQueryCalls(stockCostQuery)).toEqual([
+      {
+        method: 'select',
+        args: ['quantity_in_stock, products!inner(purchase_price_paise)'],
+      },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'gt', args: ['quantity_in_stock', 0] },
+    ]);
     expect(expectQueryCalls(trendQuery)).toEqual([
       { method: 'select', args: ['total_paise, created_at'] },
       { method: 'eq', args: ['shop_id', 'shop-1'] },
@@ -384,11 +425,16 @@ describe('dashboardQueries characterization', () => {
         args: ['quantity_in_stock', { ascending: true }],
       },
     ]);
-    expect(client.rpc).toHaveBeenCalledWith('get_retention_stats', {
-      p_shop_id: 'shop-1',
-      p_start: '2026-07-01T00:00:00+05:30',
-      p_end: '2026-07-15T12:00:00.000Z',
-    });
+    expect(client.rpc.mock.calls).toEqual([
+      [
+        'get_retention_stats',
+        {
+          p_shop_id: 'shop-1',
+          p_start: '2026-07-01T00:00:00+05:30',
+          p_end: '2026-07-15T12:00:00.000Z',
+        },
+      ],
+    ]);
     expect(mocks.createClient).toHaveBeenCalledTimes(1);
   });
 
@@ -414,11 +460,16 @@ describe('dashboardQueries characterization', () => {
       activeRulesCount: 0,
       perRule: [],
     });
-    expect(client.rpc).toHaveBeenCalledWith('get_retention_stats', {
-      p_shop_id: 'shop-1',
-      p_start: '2026-01-01T00:00:00+05:30',
-      p_end: '2026-01-31T23:59:59+05:30',
-    });
+    expect(client.rpc.mock.calls).toEqual([
+      [
+        'get_retention_stats',
+        {
+          p_shop_id: 'shop-1',
+          p_start: '2026-01-01T00:00:00+05:30',
+          p_end: '2026-01-31T23:59:59+05:30',
+        },
+      ],
+    ]);
     expect(warn).toHaveBeenCalledWith(
       '[Dashboard] Retention stats failed:',
       'retention unavailable'
@@ -436,10 +487,21 @@ describe('dashboardQueries characterization', () => {
 
     const { fetchKhataCustomers } = await import('../dashboardQueries');
     await expect(fetchKhataCustomers('shop-1', 7)).resolves.toEqual([]);
-    expect(expectQueryCalls(khataQuery).at(-1)).toEqual({
-      method: 'limit',
-      args: [7],
-    });
+    expect(expectQueryCalls(khataQuery)).toEqual([
+      {
+        method: 'select',
+        args: [
+          'id, name, phone_number, photo_url, credit_balance_paise, last_visit_at',
+        ],
+      },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'gt', args: ['credit_balance_paise', 0] },
+      {
+        method: 'order',
+        args: ['credit_balance_paise', { ascending: false }],
+      },
+      { method: 'limit', args: [7] },
+    ]);
     expect(error).toHaveBeenCalledWith(
       '[Dashboard] Khata query error:',
       'khata failed'
@@ -542,13 +604,8 @@ describe('dashboardQueries characterization', () => {
       },
     ]);
 
-    const calls = expectQueryCalls(gstQuery);
-    expect(
-      String(calls[0].args[0]).replace(/\s+/g, ' ').trim()
-    ).toBe(
-      'id, invoice_number, created_at, total_paise, payment_mode, customer_gstin, customers ( name, phone_number ), invoice_items ( product_name, hsn_code, quantity, taxable_amount_paise, cgst_paise, sgst_paise, igst_paise, total_paise )'
-    );
-    expect(calls.slice(1)).toEqual([
+    expect(expectQueryCalls(gstQuery)).toEqual([
+      { method: 'select', args: [GST_SELECT] },
       { method: 'eq', args: ['shop_id', 'shop-1'] },
       { method: 'eq', args: ['status', 'completed'] },
       {
@@ -576,6 +633,20 @@ describe('dashboardQueries characterization', () => {
     await expect(exportGstReport('shop-1')).rejects.toThrow(
       'Failed to fetch invoices: gst failed'
     );
+    expect(expectQueryCalls(gstQuery)).toEqual([
+      { method: 'select', args: [GST_SELECT] },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'eq', args: ['status', 'completed'] },
+      {
+        method: 'gte',
+        args: ['created_at', '2026-07-01T00:00:00+05:30'],
+      },
+      {
+        method: 'lte',
+        args: ['created_at', '2026-07-15T23:59:59+05:30'],
+      },
+      { method: 'order', args: ['created_at', { ascending: true }] },
+    ]);
     expect(error).toHaveBeenCalledWith(
       '[GST Export] Query error:',
       'gst failed'

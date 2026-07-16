@@ -177,6 +177,10 @@ describe('billingQueries characterization', () => {
     await expect(fetchCustomerLoyalty('customer-1', 'shop-1')).resolves.toBe(37);
     await expect(lookupBarcode('890123', 'shop-1')).resolves.toBeNull();
 
+    expect(client.from.mock.calls.map(([table]) => table)).toEqual([
+      'loyalty_ledger',
+      'products',
+    ]);
     expect(expectQueryCalls(loyaltyQuery)).toEqual([
       { method: 'select', args: ['running_balance'] },
       { method: 'eq', args: ['shop_id', 'shop-1'] },
@@ -303,6 +307,13 @@ describe('billingQueries characterization', () => {
       { method: 'eq', args: ['shop_id', 'shop-1'] },
       { method: 'single', args: [] },
     ]);
+    expect(expectQueryCalls(loyaltyQuery)).toEqual([
+      { method: 'select', args: ['running_balance'] },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'eq', args: ['customer_id', 'customer-1'] },
+      { method: 'order', args: ['created_at', { ascending: false }] },
+      { method: 'limit', args: [1] },
+    ]);
   });
 
   it('validates customer images before client creation and preserves upload/update order', async () => {
@@ -362,6 +373,8 @@ describe('billingQueries characterization', () => {
     expect(bucket.getPublicUrl).toHaveBeenCalledWith(
       'shop-1/customer-1.png'
     );
+    expect(client.from).toHaveBeenCalledTimes(1);
+    expect(client.from).toHaveBeenCalledWith('customers');
     expect(expectQueryCalls(updateQuery)).toEqual([
       {
         method: 'update',
@@ -422,6 +435,19 @@ describe('billingQueries characterization', () => {
       '[Billing] Photo upload failed:',
       'Upload failed: storage unavailable'
     );
+    expect(client.storage.from).toHaveBeenCalledTimes(1);
+    expect(client.storage.from).toHaveBeenCalledWith('customer-images');
+    expect(bucket.upload).toHaveBeenCalledWith(
+      `shop-1/${uuid}.webp`,
+      photo,
+      {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: 'image/webp',
+      }
+    );
+    expect(client.from).toHaveBeenCalledTimes(1);
+    expect(client.from).toHaveBeenCalledWith('customers');
     expect(expectQueryCalls(customerQuery)).toEqual([
       {
         method: 'insert',
@@ -499,16 +525,34 @@ describe('billingQueries characterization', () => {
       'customers',
       'consent_logs',
     ]);
-    expect(expectQueryCalls(customerQuery)[0]).toEqual({
-      method: 'insert',
-      args: [
-        expect.objectContaining({
-          id: uuid,
-          dpdp_marketing_consent: true,
-          consent_collected_at: '2026-07-15T10:00:00.000Z',
-        }),
-      ],
-    });
+    expect(expectQueryCalls(customerQuery)).toEqual([
+      {
+        method: 'insert',
+        args: [
+          {
+            id: uuid,
+            shop_id: 'shop-1',
+            name: 'Asha',
+            phone_number: 'customer-phone',
+            segment: 'new',
+            total_spent_paise: 0,
+            visit_count: 0,
+            credit_balance_paise: 0,
+            photo_url: null,
+            dpdp_marketing_consent: true,
+            consent_collected_at: '2026-07-15T10:00:00.000Z',
+          },
+        ],
+      },
+      {
+        method: 'select',
+        args: [
+          'id, phone_number, name, gstin, segment, credit_balance_paise, photo_url',
+        ],
+      },
+      { method: 'single', args: [] },
+    ]);
+    expect(client.auth.getUser).toHaveBeenCalledTimes(1);
     expect(expectQueryCalls(consentQuery)).toEqual([
       {
         method: 'insert',

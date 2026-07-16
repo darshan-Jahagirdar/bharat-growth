@@ -73,9 +73,9 @@ describe('storefront queries characterization', () => {
       { method: 'eq', args: ['id', 'shop-1'] },
       { method: 'single', args: [] },
     ]);
-    expect(client.rpc).toHaveBeenCalledWith('get_storefront_owner_phone', {
-      p_shop_id: 'shop-1',
-    });
+    expect(client.rpc.mock.calls).toEqual([
+      ['get_storefront_owner_phone', { p_shop_id: 'shop-1' }],
+    ]);
   });
 
   it('keeps owner-phone failure non-fatal and rejects non-string RPC data', async () => {
@@ -105,6 +105,20 @@ describe('storefront queries characterization', () => {
     const { getStorefrontShop } = await import('../queries');
     const result = await getStorefrontShop('shop-1');
     expect(result?.owner_phone).toBeNull();
+    expect(client.from).toHaveBeenCalledWith('shops');
+    expect(expectQueryCalls(shopQuery)).toEqual([
+      {
+        method: 'select',
+        args: [
+          'id, business_name, business_type, city, state_code, logo_url, theme_preference, primary_color',
+        ],
+      },
+      { method: 'eq', args: ['id', 'shop-1'] },
+      { method: 'single', args: [] },
+    ]);
+    expect(client.rpc.mock.calls).toEqual([
+      ['get_storefront_owner_phone', { p_shop_id: 'shop-1' }],
+    ]);
     expect(warn).toHaveBeenCalledWith(
       '[Storefront] Owner phone query failed (non-fatal):',
       'owner hidden'
@@ -125,6 +139,17 @@ describe('storefront queries characterization', () => {
 
     const { getStorefrontShop } = await import('../queries');
     await expect(getStorefrontShop('shop-1')).resolves.toBeNull();
+    expect(client.from).toHaveBeenCalledWith('shops');
+    expect(expectQueryCalls(shopQuery)).toEqual([
+      {
+        method: 'select',
+        args: [
+          'id, business_name, business_type, city, state_code, logo_url, theme_preference, primary_color',
+        ],
+      },
+      { method: 'eq', args: ['id', 'shop-1'] },
+      { method: 'single', args: [] },
+    ]);
     expect(client.rpc).not.toHaveBeenCalled();
     expect(error).toHaveBeenCalledWith(
       '[Storefront] Shop query error:',
@@ -240,6 +265,22 @@ describe('storefront queries characterization', () => {
 
     const { getStorefrontProducts } = await import('../queries');
     await expect(getStorefrontProducts('shop-1')).resolves.toEqual([]);
+    expect(client.from).toHaveBeenCalledWith('products');
+    expect(expectQueryCalls(productQuery)).toEqual([
+      {
+        method: 'select',
+        args: [
+          'id, name, sku, hsn_code, selling_price_paise, gst_rate_percent, unit, category, image_url, vertical_attrs, is_stock_tracked, inventory(quantity_in_stock)',
+        ],
+      },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'eq', args: ['is_active', true] },
+      {
+        method: 'order',
+        args: ['category', { ascending: true, nullsFirst: false }],
+      },
+      { method: 'order', args: ['name', { ascending: true }] },
+    ]);
     expect(error).toHaveBeenCalledWith(
       '[Storefront] Products query error:',
       'catalog failed',

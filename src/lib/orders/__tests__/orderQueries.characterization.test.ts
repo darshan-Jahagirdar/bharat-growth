@@ -145,6 +145,18 @@ describe('orderQueries characterization', () => {
       hasMore: false,
     });
     expect(client.from).toHaveBeenCalledTimes(1);
+    expect(client.from).toHaveBeenCalledWith('purchase_orders');
+    expect(expectQueryCalls(headerQuery)).toEqual([
+      {
+        method: 'select',
+        args: [
+          'id, po_number, po_sequence, financial_year, supplier_name, status, expected_date, total_amount_paise, notes, created_at, updated_at',
+        ],
+      },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'order', args: ['created_at', { ascending: false }] },
+      { method: 'range', args: [0, 49] },
+    ]);
     expect(error).toHaveBeenCalledWith(
       '[Orders] PO fetch error:',
       'headers failed'
@@ -206,6 +218,10 @@ describe('orderQueries characterization', () => {
       ],
       hasMore: false,
     });
+    expect(client.from.mock.calls.map(([table]) => table)).toEqual([
+      'sales_orders',
+      'sales_order_items',
+    ]);
     expect(expectQueryCalls(headerQuery)).toEqual([
       {
         method: 'select',
@@ -340,6 +356,7 @@ describe('orderQueries characterization', () => {
         { p_so_id: 'so-1', p_payment_mode: 'upi' },
       ],
     ]);
+    expect(mocks.createClient).toHaveBeenCalledTimes(4);
     expect(error).toHaveBeenCalledWith(
       '[Orders] create_sales_order error:',
       'sales create failed'
@@ -354,10 +371,16 @@ describe('orderQueries characterization', () => {
     const { convertPurchaseOrder } = await import('../orderQueries');
 
     await convertPurchaseOrder('po-2', 'BILL-9');
-    expect(client.rpc).toHaveBeenCalledWith('convert_po_to_bill', {
-      p_po_id: 'po-2',
-      p_bill_number: 'BILL-9',
-    });
+    expect(client.rpc.mock.calls).toEqual([
+      [
+        'convert_po_to_bill',
+        {
+          p_po_id: 'po-2',
+          p_bill_number: 'BILL-9',
+        },
+      ],
+    ]);
+    expect(mocks.createClient).toHaveBeenCalledTimes(1);
   });
 
   it('guards cancellations by tenant and status and distinguishes no-match from query errors', async () => {
@@ -400,6 +423,11 @@ describe('orderQueries characterization', () => {
       error: 'update failed',
     });
 
+    expect(client.from.mock.calls.map(([table]) => table)).toEqual([
+      'sales_orders',
+      'purchase_orders',
+      'sales_orders',
+    ]);
     expect(expectQueryCalls(salesQuery)).toEqual([
       { method: 'update', args: [{ status: 'cancelled' }] },
       { method: 'eq', args: ['id', 'so-1'] },
@@ -407,6 +435,14 @@ describe('orderQueries characterization', () => {
       { method: 'in', args: ['status', ['draft', 'reserved']] },
       { method: 'select', args: ['id'] },
     ]);
+    expect(expectQueryCalls(failedSalesQuery)).toEqual([
+      { method: 'update', args: [{ status: 'cancelled' }] },
+      { method: 'eq', args: ['id', 'so-2'] },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'in', args: ['status', ['draft', 'reserved']] },
+      { method: 'select', args: ['id'] },
+    ]);
+    expect(mocks.createClient).toHaveBeenCalledTimes(3);
     expect(expectQueryCalls(purchaseQuery)).toEqual([
       { method: 'update', args: [{ status: 'cancelled' }] },
       { method: 'eq', args: ['id', 'po-1'] },
