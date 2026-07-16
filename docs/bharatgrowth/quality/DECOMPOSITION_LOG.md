@@ -800,6 +800,86 @@
   concurrent `docs/bharatgrowth/CLAUDE_HANDOFF.md` remain untracked, unstaged,
   preserved, and excluded.
 
+## Wave 7 complete — 2026-07-16 — data access
+
+- Before ownership and LOC: Billing `billingQueries.ts` was 408 lines, Orders
+  `orderQueries.ts` 431, Dashboard `dashboardQueries.ts` 672, and Storefront
+  `queries.ts` 129 (1,640 lines total across the four compatibility facades).
+- After ownership and LOC: the original compatibility facades are 21, 24, 21,
+  and 7 lines respectively. Implementation now lives in focused type, client,
+  constant/date-range, and use-case modules. Every extracted facade or use-case
+  module remains below the 250-line decomposition limit.
+- Behavior contracts exercised: 24 characterization tests pin exact Supabase
+  query shape, including `.select()` column strings, every filter and argument,
+  sort column/direction/null behavior, limits and ranges, RPC names and complete
+  argument objects, table/client/call order, errors, fallbacks, and result
+  shaping. Checkpoints are characterization `c4623cc`, strengthened query-shape
+  coverage `cb0e1b3`, shared types `eeab805`, Billing/Orders extraction
+  `97aa317`, Dashboard/Storefront extraction `672360f`, and preserved follow-up
+  candidates `bdea90d`.
+- Compatibility evidence: all 32 consumers present at base commit `a81a7d1`
+  have zero diff. Route, hook, component, TSX, CSS, Supabase, Auth, and provider
+  files also have zero diff. The four original module paths continue to export
+  the same names and signatures while delegating to the focused use cases.
+- Automated checks: repository lint passed; isolated strict typecheck passed;
+  all 140 tests across 28 files passed; the optimized production build passed
+  with 25 routes; `git diff --check` passed; branch credential, sensitive-value,
+  and phone-shape scans were clean. One typecheck invocation was initially run
+  concurrently with `next build` and saw only transient missing generated
+  `.next/types` files; the isolated rerun passed without a code change.
+- Manual/runtime scope: no browser, screenshot, pixel, visual, login, OTP, or
+  authenticated-UI gate was run, per the explicit Wave 7 data-access steer.
+  GitHub `public-smoke` passed for route health. Non-browser inspection of the
+  exact staging preview loaded all eight login assets, found only the staging
+  Supabase project reference and active publishable-key shape, found no legacy
+  JWT or server-secret shape, and returned no Vercel error/warning/fatal runtime
+  entries. Zero TSX/CSS diff is preservation evidence, not a visual-equivalence
+  claim.
+- PR / preview: draft PR #10 targets only
+  `codex/production-hardening-baseline`. Preview deployment
+  `dpl_FxnE6FqowYJvVDJU4krezLC8qQau` is READY, Preview-only, in `bom1`, for
+  exact implementation head `bdea90d`; Vercel, Vercel Preview Comments,
+  `public-smoke`, and `quality` checks passed. This evidence-only documentation
+  checkpoint follows and requires only a fresh exact-head deployment/check
+  identity verification, not a repeat of unchanged application tests.
+- Production result and rollback: production `main` remains
+  `8c389098db7e31180b5bdd6f1661adfd4bdc902b`; production application, Supabase,
+  Vercel, Auth, data, aliases, configuration, and environment values were
+  untouched. Whole-wave rollback is integration `a81a7d1`; pre-extraction
+  rollback is characterization checkpoint `c4623cc`.
+- Known follow-ups kept out of scope: the evidence-backed candidates are listed
+  below. Migration 049, Storefront public-boundary/RLS hardening, Auth/provider
+  work, UI/reskin work, and production changes remain separate.
+
+## Wave 7 preserved post-decomposition candidates — 2026-07-16
+
+- These are evidence-backed follow-up candidates, not Wave 7 fixes. The exact
+  characterized queries, payloads, result shaping, and error behavior remain
+  unchanged through implementation commit `672360f`.
+- Date-range consistency: Dashboard defaults mix IST-offset starts with a UTC
+  `toISOString()` retention end, KPI sales/purchases omit the upper bound when
+  no custom range is supplied, and GST export ends at the current IST day even
+  though the operation is described as a current-month export. Unify semantics
+  only in a separately characterized follow-up.
+- Late filtering: top-products completion status, low-stock product activity,
+  and negative-stock tracking are selected from joined rows and filtered in
+  application code. Evaluate safe database-side predicates separately; do not
+  alter the current selections or result mapping inside Wave 7.
+- Index review: migrations contain tenant/order indexes for invoices, order
+  headers/items, loyalty, khata, and inventory joins, but no composite
+  `inventory (shop_id, quantity_in_stock)` index for the low/negative/snapshot
+  reads and no trigram or functional search index for the Billing `ilike`
+  paths. Confirm with staging query plans before proposing any migration.
+- Query fan-out: `fetchAllDashboardData` intentionally preserves a fixed fan-out
+  of eleven table reads plus one retention RPC. No per-row N+1 was found in the
+  four Wave 7 facades; Orders already batch-fetches page items with `.in(...)`.
+  Profile the fixed fan-out before considering consolidation.
+- Pagination semantics: Orders preserves `hasMore = rows.length === 50`, which
+  can report another page when the current page is exactly full. Any look-ahead
+  or count-based change belongs in a later behavior-changing wave.
+- Migration 049, Storefront public-boundary/RLS hardening, Auth/provider work,
+  and all production changes remain explicitly out of scope.
+
 ## Wave entry template
 
 ```text
