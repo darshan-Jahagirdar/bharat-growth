@@ -800,6 +800,35 @@
   concurrent `docs/bharatgrowth/CLAUDE_HANDOFF.md` remain untracked, unstaged,
   preserved, and excluded.
 
+## Wave 7 preserved post-decomposition candidates — 2026-07-16
+
+- These are evidence-backed follow-up candidates, not Wave 7 fixes. The exact
+  characterized queries, payloads, result shaping, and error behavior remain
+  unchanged through implementation commit `672360f`.
+- Date-range consistency: Dashboard defaults mix IST-offset starts with a UTC
+  `toISOString()` retention end, KPI sales/purchases omit the upper bound when
+  no custom range is supplied, and GST export ends at the current IST day even
+  though the operation is described as a current-month export. Unify semantics
+  only in a separately characterized follow-up.
+- Late filtering: top-products completion status, low-stock product activity,
+  and negative-stock tracking are selected from joined rows and filtered in
+  application code. Evaluate safe database-side predicates separately; do not
+  alter the current selections or result mapping inside Wave 7.
+- Index review: migrations contain tenant/order indexes for invoices, order
+  headers/items, loyalty, khata, and inventory joins, but no composite
+  `inventory (shop_id, quantity_in_stock)` index for the low/negative/snapshot
+  reads and no trigram or functional search index for the Billing `ilike`
+  paths. Confirm with staging query plans before proposing any migration.
+- Query fan-out: `fetchAllDashboardData` intentionally preserves a fixed fan-out
+  of eleven table reads plus one retention RPC. No per-row N+1 was found in the
+  four Wave 7 facades; Orders already batch-fetches page items with `.in(...)`.
+  Profile the fixed fan-out before considering consolidation.
+- Pagination semantics: Orders preserves `hasMore = rows.length === 50`, which
+  can report another page when the current page is exactly full. Any look-ahead
+  or count-based change belongs in a later behavior-changing wave.
+- Migration 049, Storefront public-boundary/RLS hardening, Auth/provider work,
+  and all production changes remain explicitly out of scope.
+
 ## Wave entry template
 
 ```text
