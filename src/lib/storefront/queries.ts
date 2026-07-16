@@ -6,37 +6,9 @@
 
 import { createPublicClient } from '@/lib/supabase/public';
 import type { BusinessType, ThemePreference, ProductUnit, GstRatePercent, VerticalAttrs } from '@/lib/types/database';
+import type { StorefrontProduct, StorefrontShop } from './storefrontQueryTypes';
 
-// ── Public-safe shop profile ──
-
-export interface StorefrontShop {
-  id: string;
-  business_name: string;
-  business_type: BusinessType;
-  city: string | null;
-  state_code: string;
-  logo_url: string | null;
-  theme_preference: ThemePreference;
-  primary_color: string;
-  owner_phone: string | null; // For WhatsApp "Buy" button
-}
-
-// ── Public-safe product card ──
-
-export interface StorefrontProduct {
-  id: string;
-  name: string;
-  sku: string | null;
-  hsn_code: string;
-  selling_price_paise: number;
-  gst_rate_percent: GstRatePercent;
-  unit: ProductUnit;
-  category: string | null;
-  image_url: string | null;
-  vertical_attrs: VerticalAttrs;
-  is_stock_tracked: boolean;
-  stock_quantity: number | null; // null = untracked (infinite)
-}
+export type { StorefrontProduct, StorefrontShop } from './storefrontQueryTypes';
 
 // ── Fetch shop profile + owner phone ──
 

@@ -5,82 +5,32 @@
 // =============================================================================
 
 import { createClient } from '@/lib/supabase/client';
+import type {
+  CreditCustomer,
+  DashboardData,
+  DashboardKPIs,
+  DateRange,
+  GstReportRow,
+  LowStockProduct,
+  NegativeStockProduct,
+  RetentionStats,
+  RevenueTrendPoint,
+  TopProduct,
+} from './dashboardQueryTypes';
 
-// ── Types ──
-
-export interface DashboardKPIs {
-  todayRevenuePaise: number;
-  totalUdhaarPaise: number;
-  billsToday: number;
-  inventoryValuePaise: number;
-  monthlySalesPaise: number;
-  monthlyPurchasesPaise: number;
-  stockValueCostPaise: number;
-}
-
-export interface RevenueTrendPoint {
-  date: string;      // 'Mon', 'Tue', etc.
-  fullDate: string;  // '28 Mar'
-  revenue: number;   // in rupees (for chart display)
-}
-
-export interface TopProduct {
-  name: string;
-  sales: number;   // in rupees
-}
-
-export interface CreditCustomer {
-  id: string;
-  name: string | null;
-  phone_number: string;
-  photo_url: string | null;
-  credit_balance_paise: number;
-  last_visit_at: string | null;
-}
-
-export interface LowStockProduct {
-  id: string;
-  name: string;
-  quantity_in_stock: number;
-  unit: string;
-  reorder_level: number | null;
-}
-
-export interface NegativeStockProduct {
-  product_id: string;
-  inventory_id: string;
-  name: string;
-  quantity_in_stock: number;
-  unit: string;
-}
-
-export interface RetentionRuleStats {
-  ruleId: string;
-  ruleName: string;
-  tagName: string;
-  isActive: boolean;
-  sent: number;
-  returned: number;
-  revenuePaise: number;
-}
-
-export interface RetentionStats {
-  messagesSent: number;
-  customersReturned: number;
-  revenueAttributedPaise: number;
-  activeRulesCount: number;
-  perRule: RetentionRuleStats[];
-}
-
-export interface DashboardData {
-  kpis: DashboardKPIs;
-  revenueTrend: RevenueTrendPoint[];
-  topProducts: TopProduct[];
-  khataCustomers: CreditCustomer[];
-  lowStockProducts: LowStockProduct[];
-  negativeStockProducts: NegativeStockProduct[];
-  retentionStats: RetentionStats;
-}
+export type {
+  CreditCustomer,
+  DashboardData,
+  DashboardKPIs,
+  DateRange,
+  GstReportRow,
+  LowStockProduct,
+  NegativeStockProduct,
+  RetentionRuleStats,
+  RetentionStats,
+  RevenueTrendPoint,
+  TopProduct,
+} from './dashboardQueryTypes';
 
 // ── Singleton client ──
 let supabase: ReturnType<typeof createClient> | null = null;
@@ -132,11 +82,6 @@ function getMonthStart(): string {
 }
 
 // ── Date range type for dashboard filters ──
-
-export interface DateRange {
-  start: string; // ISO timestamp with +05:30 offset
-  end: string;
-}
 
 // ── Fetch all dashboard data in parallel ──
 
@@ -540,21 +485,6 @@ async function fetchNegativeStockProducts(
 // ══════════════════════════════════════════════════════════════════════════════
 // Phase 20: "CA Pleaser" GST Export
 // ══════════════════════════════════════════════════════════════════════════════
-
-export interface GstReportRow {
-  'Invoice No': string;
-  'Invoice Date': string;
-  'Customer Name': string;
-  'Customer Phone': string;
-  'Buyer GSTIN': string;
-  'HSN/SAC': string;
-  'Taxable Value (₹)': string;
-  'CGST (₹)': string;
-  'SGST (₹)': string;
-  'IGST (₹)': string;
-  'Invoice Total (₹)': string;
-  'Payment Mode': string;
-}
 
 /**
  * Fetch current month's completed invoices with line-item detail
