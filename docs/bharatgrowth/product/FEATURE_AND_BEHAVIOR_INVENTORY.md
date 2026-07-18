@@ -70,7 +70,7 @@ A decomposition is not permission to repair an inherited behavior.
 | Route or surface | Why it exists | Current behavior to preserve |
 |---|---|---|
 | `/` | Product positioning and conversion | Existing Spline visuals, copy, sections, CTAs, pricing/benefit claims, and responsive output. |
-| `/login` | Shop-user authentication | Phone OTP and email magic-link tabs; `next` redirect; six-digit OTP entry, paste, backspace, auto-advance, and Enter behavior. Phone UI visibly shows `+91`; committed Auth sends `91XXXXXXXXXX` without a literal plus. |
+| `/login` | Shop-user authentication | Phone OTP and email magic-link tabs; `next` redirect; six-digit OTP entry, paste, backspace, auto-advance, and Enter behavior. Phone UI visibly shows `+91`; Auth sends the same number to Supabase in canonical `+91XXXXXXXXXX` E.164 form. |
 | `/auth/callback` | Completes email/magic-link auth | Exchanges the callback code and returns to the validated destination. Root `?code=` is redirected here by middleware. |
 | `/onboarding` | Creates the first shop and owner membership | Auth required; business profile, pincode/state resolution, shop creation, owner row creation, rollback/retry behavior, and inactive default campaign seeding. |
 | `/billing` | High-speed point of sale | Protected desktop billing workspace and the behavior detailed below. |
@@ -100,8 +100,8 @@ application credentials in the client.
 Preserve:
 
 - phone and email tabs, current labels/copy, error display, and redirect rules;
-- the visible `+91` prefix, ten-digit input limit, and current
-  `useAuth.sendOtp` normalization to `91XXXXXXXXXX` without a literal plus;
+- the visible `+91` prefix, ten-digit input limit, and
+  `useAuth.sendOtp` normalization to canonical `+91XXXXXXXXXX` E.164 form;
 - six OTP cells, digit-only handling, full-code paste, forward focus, Backspace
   movement, Enter submit, resend, and loading/disabled states;
 - email magic link callback URL and onboarding-versus-billing routing;
@@ -110,7 +110,11 @@ Preserve:
 Known non-product workaround: a temporary raw-ten-digit staging login variant
 was used only to access a hosted Supabase test phone. It was never committed,
 pushed, or applied to production and is not a behavior to carry forward.
-Provider/auth redesign is deferred to dedicated auth/payment-gateway work.
+Supabase Auth removes the leading plus before lookup, so the staging test-phone
+entry and Auth user store the corresponding `91XXXXXXXXXX` country-code digits.
+That exact normalized match lets the fixed OTP bypass external SMS delivery.
+Broader provider/auth redesign remains deferred to dedicated
+auth/payment-gateway work.
 
 ### Onboarding
 

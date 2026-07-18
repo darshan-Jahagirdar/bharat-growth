@@ -56,9 +56,10 @@ PR.
 - Phone OTP and email magic link remain supported with current redirects and OTP
   input behavior.
 - The phone field visibly renders a `+91` prefix, accepts ten local digits, and
-  committed `useAuth.sendOtp` sends `91XXXXXXXXXX` (country code plus digits,
-  without a literal `+`) to Supabase. The removed workaround instead sent only
-  the raw ten digits and is not a source contract.
+  `useAuth.sendOtp` sends canonical `+91XXXXXXXXXX` E.164 to Supabase. Send,
+  verify, and resend reuse that exact request value. Supabase Auth normalizes it
+  to `91XXXXXXXXXX` country-code digits for Auth-user and hosted test-OTP lookup;
+  the removed raw-ten-digit workaround is not a source contract.
 - `shops.id` / `shop_id` is the tenant boundary.
 - Protected server routes derive/verify tenant membership server-side; browser
   tenant fields are not authoritative.

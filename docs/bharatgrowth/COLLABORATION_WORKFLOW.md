@@ -198,12 +198,13 @@ Vercel sessions are hostname/origin scoped. A second temporary preview hostname
 can require another login even when the underlying Supabase account is the same;
 this is not an account reset. Avoid creating extra login-required previews.
 
-The hosted staging test phone currently exposes a formatting mismatch with the
-committed Auth request. The UI shows `+91`, while `useAuth.sendOtp` sends
-`91XXXXXXXXXX` without a literal plus. The one-time workaround sent only the
-raw ten digits; it was preview-only and removed. Do not reintroduce it into
-source during decomposition; auth/provider design is a separate approved
-workstream.
+The hosted staging test phone and committed Auth request use one canonical
+contract. The UI accepts ten local digits behind a visible `+91` prefix, and
+`useAuth.sendOtp` sends `+91XXXXXXXXXX`. Supabase Auth removes the leading plus
+before lookup, so the hosted staging fixed-OTP entry and Auth user store the
+corresponding `91XXXXXXXXXX` country-code digits. This exact normalized match
+bypasses the external SMS provider. The earlier raw-ten-digit workaround was
+preview-only and must not be reintroduced.
 
 ## 9. End-to-end milestone sequence
 
