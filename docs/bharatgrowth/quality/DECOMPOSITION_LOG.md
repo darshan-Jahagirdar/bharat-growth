@@ -880,6 +880,84 @@
 - Migration 049, Storefront public-boundary/RLS hardening, Auth/provider work,
   and all production changes remain explicitly out of scope.
 
+## Durable post-Wave 7 handoff preparation — 2026-07-18
+
+- Re-read `CODEX_HANDOFF.md` and every file in its required reading order from
+  disk before repository or service verification.
+- Live Git/GitHub verification returned integration
+  `053abca608bfa9e3d95c847b8a9481c847c3a76f`, production
+  `8c389098db7e31180b5bdd6f1661adfd4bdc902b`, PR #10 merged, guarded PR #1
+  open/draft at exact integration head, and all current-head `quality`,
+  `public-smoke`, Vercel, and preview-comment checks successful.
+- Linked Supabase remains staging `qokaaggeqahayxsybgds`; fresh local/remote
+  migration readback is continuous and matching for 001–048. Migration 049 is
+  still absent and unapplied.
+- Integration deployment `dpl_x8Q9n7bkokCVHK2tPYPnyGMpSFtZ` remains READY,
+  Preview-only, Mumbai, and exact commit `053abca`. Prior post-merge evidence
+  records eight staging-only login assets and an empty smoke-window error/
+  warning/fatal query. A later seven-day query exceeded retained log history and
+  was not substituted for that valid evidence.
+- Live environment-scope readback found no variables on
+  `codex/decompose-data-access`; integration retains exactly three encrypted
+  staging Preview variables. No value was printed.
+- Branch `codex/prepare-post-wave7-handoff` was created from exact remote
+  integration `053abca`. This branch reconciles canonical documentation only;
+  application and Supabase trees must remain identical to the base.
+- User-owned `designs/`, `designs_mobile/`, `docs/bharatgrowth/design/`, and the
+  concurrent `docs/bharatgrowth/CLAUDE_HANDOFF.md` remain untracked, unstaged,
+  unread, preserved, and excluded.
+- No completed application, browser, visual, login, staging, or Supabase test
+  was repeated for this documentation-only change. Existing Wave 7 evidence is
+  reused; only documentation scope/link/safety checks and the normal GitHub
+  documentation-branch checks are required.
+- Documentation commit `5718822` was pushed and draft PR #11 opened against
+  integration only. `quality`, `public-smoke`, Vercel, and Vercel Preview
+  Comments passed. Deployment `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` is READY,
+  Preview-only, and exact branch/head, but is not valid staging evidence.
+- Blocker-record commit `533a1f1` also passed those same automatically started
+  checks once; its exact READY/Preview-only deployment is
+  `dpl_2rpPncpEuYU2LzTWMKrk4ep7oDCv`. The final handoff-document commit advances
+  the PR again, so the next session must re-derive its exact head and deployment.
+- Preview isolation is blocked: the docs branch has zero branch-scoped Vercel
+  variables, and the integration branch's three sensitive staging values could
+  not be duplicated with the available safe CLI/API paths without
+  materialization or reliance on a pre-existing ignored local environment. No
+  environment value was displayed, logged, or inspected by Codex.
+- Cleanup is complete. The pre-existing `.env.local` was not modified; an
+  unexpected unread temporary OIDC file/directory and a later FIFO/process pair
+  were removed; three late-created untrusted branch variables were deleted;
+  final readback shows zero branch variables and no temporary path/process. The
+  generated preview is retained but must not be opened, smoked, promoted, or
+  cited as staging-wired.
+- PR #11 remains draft and unmerged. A fresh safe staging-variable path or an
+  explicit Darshan docs-only preview waiver is required before proceeding.
+  Production and integration remain unchanged.
+
+## PR #11 documentation-only preview waiver — 2026-07-18
+
+- Darshan explicitly waived branch-scoped staging-preview isolation for PR #11
+  only. The branch changes Markdown only, has zero `src/` and zero `supabase/`
+  diff from integration `053abca`, exposes no behavior surface, and requires no
+  browser, login, Auth, staging-data, or database smoke. Its application bytes
+  remain the already-proven Wave 7 integration tree.
+- The waiver changes the merge gate, not the evidence classification. PR #11's
+  deployments remain valid only as READY/Preview-only build and route-health
+  evidence; they are not staging-isolation evidence and must not be opened,
+  smoked, promoted, aliased, or cited as staging-wired. This is a user-approved
+  docs-only waiver, not a staging-isolation result.
+- No Vercel, Supabase, or staging environment value is required for the merge.
+  Do not copy, decrypt, pipe, FIFO, pull, materialize, or otherwise move one.
+  The final cleanup evidence remains valid: the branch has zero scoped Preview
+  variables and no matching temporary process or path remains.
+- The authorized merge gate is exact PR head and base, Markdown-only scope,
+  GitHub mergeability, and successful `quality`, `public-smoke`, Vercel, and
+  Vercel Preview Comments checks. After those pass, PR #11 may leave draft and
+  merge only into `codex/production-hardening-baseline`.
+- This waiver does not apply to future application, browser, login, Auth,
+  provider, database, migration, or production work. Production `main` remains
+  `8c389098db7e31180b5bdd6f1661adfd4bdc902b`. Migration 049 remains a separate
+  next gate requiring fresh Darshan scope.
+
 ## Wave entry template
 
 ```text

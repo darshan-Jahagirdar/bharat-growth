@@ -14,7 +14,9 @@ PR.
 - Preserve routes, redirects, query parameters, exports, request/response
   shapes, RPC arguments, field/item ordering, loading/error ordering, and public
   URLs.
-- Query-facade changes belong only to Wave 7.
+- Query-facade implementation movement was limited to completed Wave 7 and
+  remains frozen behind the original compatibility exports. Any later behavior
+  or query change requires a separate approved contract.
 - No schema, migration, policy, grant, RLS, function-signature, provider-config,
   or production change belongs in a decomposition.
 
@@ -85,7 +87,8 @@ PR.
 - Metrics, chart series/colors/units, empty states, GST CSV rows/filename,
   storefront link, khata reminder payload, stock reconciliation RPC/refresh,
   low-stock/anomaly lists, and retention ROI output stay exact.
-- `dashboardQueries.ts` is unchanged until Wave 7.
+- `dashboardQueries.ts` remains the compatibility export surface after Wave 7;
+  its characterized query shape and client boundary remain exact.
 - `/progress` remains the existing localStorage-backed product-build tracker; it
   must not become server-backed business analytics during decomposition.
 

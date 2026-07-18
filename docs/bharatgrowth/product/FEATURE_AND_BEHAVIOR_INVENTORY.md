@@ -1,8 +1,8 @@
 # BharatGrowth Feature and Behavior Inventory
 
-Last source verification: 2026-07-15 (Asia/Kolkata), Wave 6 application
-checkpoint `145437b13eeff1d1cd4f7eebfe86d06611805dfb`, merged only into
-integration at `6255234937a79b2d74d2a3a577a8065d167d911f`.
+Last source verification: 2026-07-18 (Asia/Kolkata), Wave 7 integration
+checkpoint `053abca608bfa9e3d95c847b8a9481c847c3a76f`, merged only into
+integration. Production remains `8c38909`.
 
 This is the product map for behavior-preserving engineering work. It explains
 what BharatGrowth is, why each current surface exists, and what a decomposition
@@ -60,9 +60,10 @@ Every decomposition wave preserves:
 - deliberate asymmetries, especially POS negative stock versus storefront and
   online-order strict stock.
 
-Extraction order is always characterization first, pure transforms second,
-controllers/hooks third, and focused views last. Query facades remain for Wave
-7. A decomposition is not permission to repair an inherited behavior.
+Waves 1–6 used characterization first, pure transforms second,
+controllers/hooks third, and focused views last. Wave 7 characterized exact
+query shape before splitting implementation by use case behind stable facades.
+A decomposition is not permission to repair an inherited behavior.
 
 ## 4. Routes and access model
 
@@ -108,7 +109,7 @@ Preserve:
 
 Known non-product workaround: a temporary raw-ten-digit staging login variant
 was used only to access a hosted Supabase test phone. It was never committed,
-pushed, or applied to production and is not a behavior to carry into Wave 6.
+pushed, or applied to production and is not a behavior to carry forward.
 Provider/auth redesign is deferred to dedicated auth/payment-gateway work.
 
 ### Onboarding
@@ -314,7 +315,8 @@ Preserve:
   state, and the existing refresh behavior after success;
 - retention ROI card values from active campaign rules, sent/returned customers,
   and attributed revenue;
-- `dashboardQueries.ts` remains unchanged until Wave 7.
+- `dashboardQueries.ts` remains the compatibility export surface after Wave 7;
+  its focused implementation modules preserve the characterized query behavior.
 
 The `/progress` route is intentionally different: it groups local product-build
 milestones into foundation/core/retention/growth/scale, cycles milestone state,
@@ -456,14 +458,15 @@ Preserve:
 
 ## 15. Current automated coverage
 
-At Wave 6 application checkpoint `145437b`, 116 tests across 24 files pass
+At Wave 7 integration checkpoint `053abca`, 140 tests across 28 files pass
 together with strict typecheck, zero-warning lint, and the 25-route optimized
 build. Characterization covers Billing, Orders, Products, Dashboard, Purchases,
-Storefront loader/theme output, and the Modern catalog/cart/checkout contracts,
-plus validators, campaign defaults, date behavior, and migration safety. Exact
-data-access compatibility characterization is the first mandatory Wave 7
-checkpoint; existing page-level coverage is not permission to infer query
-behavior.
+Storefront loader/theme output, Modern catalog/cart/checkout, validators,
+campaign defaults, date behavior, migration safety, and exact Billing/Orders/
+Dashboard/Storefront query shape. The 24 data-access tests pin select strings,
+filters and arguments, sorting/null behavior, limits/ranges, RPC names and full
+arguments, client/table/call sequence, errors, fallbacks, and result mapping;
+row-result-only assertions are not an adequate replacement.
 
 ## 16. Planned or externally incomplete—not current decomposition work
 

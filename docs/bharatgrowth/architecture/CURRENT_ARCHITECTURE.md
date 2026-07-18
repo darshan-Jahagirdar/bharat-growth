@@ -1,8 +1,8 @@
 # Current Architecture
 
-Last source verification: 2026-07-15 at Wave 6 application checkpoint
-`145437b`, merged only into integration at `6255234`. Runtime truth must be
-rechecked before every external or production action.
+Last source verification: 2026-07-18 at Wave 7 integration checkpoint
+`053abca`. All seven decomposition waves are merged only into integration.
+Runtime truth must be rechecked before every external or production action.
 
 ## Product shape
 
@@ -55,16 +55,16 @@ credentials; secret values never belong in docs.
 
 ## Route and module map
 
-| Domain | Route/surface | Current ownership after Waves 1–6 |
+| Domain | Route/surface | Current ownership after all seven waves |
 |---|---|---|
 | Auth/onboarding | `/login`, `/auth/callback`, `/onboarding` | Page/API orchestration plus `src/lib/auth/*`. |
-| Billing/POS | `/billing` | Thin page composition over `src/lib/billing/*` hooks/transforms and focused `src/components/billing/*`. |
-| Dashboard | `/dashboard` | 117-line route over presentation transforms, four hooks, and focused Dashboard views; `dashboardQueries.ts` remains the query facade. |
+| Billing/POS | `/billing` | Thin page composition over Billing hooks/transforms and focused views; the stable query facade delegates to focused search, invoice, customer, and shop query modules. |
+| Dashboard | `/dashboard` | 117-line route over presentation transforms, four hooks, and focused views; the stable query facade delegates to KPI, analytics, retention, stock, GST, and orchestration modules. |
 | Products | `/dashboard/products` | Thin page over product form transforms, data/editor hooks, and focused product views. |
 | Purchases | `/dashboard/purchases/new`, `/history` | New Purchase is a 78-line composition over transforms/hooks/views; History remains its existing 317-line route. |
-| Orders | `/dashboard/orders` | Thin tab composition over presentation/controller modules and focused Sales/PO views; `orderQueries.ts` remains the query facade. |
+| Orders | `/dashboard/orders` | Thin tab composition over presentation/controller modules and focused Sales/PO views; the stable query facade delegates to fetch and mutation modules. |
 | Campaigns | `/dashboard/campaigns`, cron/API | Campaign page, default/seed modules, database matcher, scheduled sender, WhatsApp service. |
-| Storefront | `/store/[shop_id]` | Unchanged loader over the existing 129-line query facade; 77-line Modern composition over catalog/cart/checkout transforms, two controller hooks, and focused views; focused Industrial/Festive themes remain unchanged. |
+| Storefront | `/store/[shop_id]` | Unchanged loader over a stable 7-line compatibility facade delegating to public shop/contact and catalog query modules; 77-line Modern composition over catalog/cart/checkout transforms, controllers, and focused views; Industrial/Festive remain unchanged. |
 | Receipt | `/receipt/[id]` | Public page plus mobile `ReceiptLoader` over constrained RPC. |
 | Settings/navigation | `/settings`, `TopNav` | Tax/GST settings and stable protected navigation. |
 | Progress | `/progress` | LocalStorage-backed product-build tracker, independent of shop analytics. |
@@ -85,8 +85,8 @@ stock.
 New Purchase maps manual or scanned supplier rows to catalog products. Saving a
 bill uses the atomic purchase-bill RPC and receives stock. Saving a draft
 Purchase Order does not change stock. Order Management loads Sales Orders first,
-lazy-loads POs, and uses guarded conversions/cancellations. Query modules remain
-unchanged until Wave 7.
+lazy-loads POs, and uses guarded conversions/cancellations. Wave 7 split the
+query implementation without changing those reads, RPCs, guards, or call order.
 
 ### Storefront checkout
 
@@ -116,11 +116,12 @@ configured and handles global marketing opt-out for the shared sender.
 
 ### Dashboard and reporting
 
-`dashboardQueries.ts` fetches selected IST period metrics, charts, stock,
-khata, and retention data. Extracted presentation transforms build date ranges,
-labels, totals, colors, and GST filename. Focused hooks own GST export, khata
-reminder, and stock reconciliation. The `/progress` route does not use this
-data flow.
+The `dashboardQueries.ts` compatibility facade delegates selected IST period
+metrics, charts, stock, khata, retention, GST, and orchestration to focused query
+modules under the same authenticated singleton client. Extracted presentation
+transforms build labels, totals, colors, and GST filename. Focused hooks own GST
+export, khata reminder, and stock reconciliation. The `/progress` route does not
+use this data flow.
 
 ## Database responsibility
 
@@ -157,13 +158,27 @@ transaction authority into the browser.
 - Characterization precedes application extraction.
 - Pure transforms, then controllers/hooks, then focused views.
 - Keep routes/composition thin without inventing abstractions.
-- Preserve query facades and exports through Waves 1–6; split them only in Wave
-  7 behind compatibility exports.
-- Wave 7 covers the current Billing (408 lines), Orders (431), Dashboard (672),
-  and Storefront (129) data-access facades. Their original module paths and
-  exports remain compatibility contracts while implementation is split by use
-  case.
+- Waves 1–6 preserved query facades. Completed Wave 7 split only their
+  implementation behind the same compatibility exports.
+- The original Billing, Orders, Dashboard, and Storefront query module paths,
+  names, signatures, defaults, client trust boundaries, query shapes, call
+  sequence, errors, fallbacks, and result mapping remain contracts.
 - Do not change schema, migrations, RLS, API/RPC contracts, copy, styles, visual
   output, focus, keyboard, stock, consent, or provider workflow.
 - Generated/general UI primitives are outside the decomposition without a
   demonstrated defect.
+
+## Wave 7 data-access ownership
+
+- Billing: `billingQueries.ts` delegates to client, types, search, invoice,
+  customer, and shop modules.
+- Orders: `orderQueries.ts` delegates to shared types/constants plus fetch and
+  mutation modules.
+- Dashboard: `dashboardQueries.ts` delegates to client, date-range, KPI,
+  analytics, retention, stock, GST, and orchestration modules.
+- Storefront: `queries.ts` delegates to public shop/contact and catalog modules.
+
+Twenty-four characterization tests pin exact select strings, filters and
+arguments, sorting/null behavior, limits/ranges, RPC names/full argument
+objects, table/client/call sequence, errors, fallbacks, and result shaping. All
+32 base consumers have zero Wave 7 diff.

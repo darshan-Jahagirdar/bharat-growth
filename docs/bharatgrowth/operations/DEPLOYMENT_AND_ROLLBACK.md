@@ -1,6 +1,6 @@
 # Deployment and Rollback
 
-Last reconciled: 2026-07-15. This runbook separates decomposition previews from
+Last reconciled: 2026-07-18. This runbook separates staging previews from
 the later explicitly approved production rollout.
 
 ## Branch flow
@@ -43,23 +43,26 @@ application tree.
 
 ## Latest verified integration evidence
 
-- Integration merge / Wave 6 application checkpoint:
-  `6255234937a79b2d74d2a3a577a8065d167d911f` / `145437b13eeff1d1cd4f7eebfe86d06611805dfb`.
-- PR [#8](https://github.com/darshan-Jahagirdar/bharat-growth/pull/8)
+- Integration merge / Wave 7 application checkpoint:
+  `053abca608bfa9e3d95c847b8a9481c847c3a76f`.
+- PR [#10](https://github.com/darshan-Jahagirdar/bharat-growth/pull/10)
   merged only into integration with all required checks successful.
-- Vercel integration deployment: `dpl_3cu9JfBqjAgB929LQbmvAC2bEmmh`, READY and
-  Preview-only for exact integration branch/commit `6255234`, Mumbai region.
+- Vercel integration deployment: `dpl_x8Q9n7bkokCVHK2tPYPnyGMpSFtZ`, READY and
+  Preview-only for exact integration branch/commit `053abca`, Mumbai region.
 - Linked Supabase target: staging `qokaaggeqahayxsybgds`, migrations 001–048
   matching.
-- 116 tests/24 files, strict typecheck, zero-warning lint, and 25-route build.
+- 140 tests/28 files, strict typecheck, zero-warning lint, and 25-route build.
 - Error/warning/fatal runtime-log query returned no entries for the verified
   post-merge deployment.
+- All eight login assets contained only staging public wiring. Temporary Wave 7
+  feature-branch variables were removed and read back absent; the integration
+  branch retains its exact three encrypted staging Preview variables.
 - Production `main` remains `8c38909`; no production app, database, Auth,
   environment, alias, or data changed.
 
-A docs-only Wave 7 handoff PR may move the integration head. Re-derive it and
-confirm `src/` and `supabase/` remain identical to application checkpoint
-`145437b` before Wave 7.
+A documentation-only post-Wave 7 handoff PR may move the integration head.
+Re-derive it and confirm `src/` and `supabase/` remain identical to application
+checkpoint `053abca` before new scoped work.
 
 ## Staging authentication gate
 
@@ -73,7 +76,7 @@ because they can force another login even for the same Supabase account.
 
 ## Final production gate
 
-Production work begins only after Waves 6–7, migration 049 staging proof, full
+Production work begins only after migration 049 staging proof, full
 sale-readiness regression, external provider/monitoring gates, and a new
 explicit Darshan approval.
 
