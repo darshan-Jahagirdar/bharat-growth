@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   ownerResult: { data: null, error: null } as QueryResult,
   productsResult: { data: [], error: null } as QueryResult,
   records: [] as QueryRecord[],
+  rpcCalls: [] as Array<[string, { p_shop_id: string }]>,
 }));
 
 function createQueryBuilder(table: string) {
@@ -70,6 +71,10 @@ function createQueryBuilder(table: string) {
 
 const supabase = {
   from: vi.fn((table: string) => createQueryBuilder(table)),
+  rpc: vi.fn((functionName: string, args: { p_shop_id: string }) => {
+    mocks.rpcCalls.push([functionName, args]);
+    return Promise.resolve(mocks.ownerResult);
+  }),
 };
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -152,8 +157,9 @@ const PRODUCTS = [
 
 beforeEach(() => {
   mocks.records.length = 0;
+  mocks.rpcCalls.length = 0;
   mocks.shopResult = { data: SHOP, error: null };
-  mocks.ownerResult = { data: { phone: '+91 98765-43210' }, error: null };
+  mocks.ownerResult = { data: '+91 98765-43210', error: null };
   mocks.productsResult = { data: PRODUCTS, error: null };
   document.title = 'Store | BharatGrowth';
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -192,12 +198,6 @@ describe('Storefront loader behavior contract before decomposition', () => {
         filters: [['id', SHOP.id]],
       }),
       expect.objectContaining({
-        table: 'users',
-        select: 'phone',
-        filters: [['shop_id', SHOP.id], ['role', 'owner'], ['is_active', true]],
-        limit: 1,
-      }),
-      expect.objectContaining({
         table: 'products',
         select: 'id, name, sku, hsn_code, selling_price_paise, gst_rate_percent, unit, category, image_url, vertical_attrs, is_stock_tracked, inventory(quantity_in_stock)',
         filters: [['shop_id', SHOP.id], ['is_active', true]],
@@ -206,6 +206,9 @@ describe('Storefront loader behavior contract before decomposition', () => {
           ['name', { ascending: true }],
         ],
       }),
+    ]);
+    expect(mocks.rpcCalls).toEqual([
+      ['get_storefront_owner_phone', { p_shop_id: SHOP.id }],
     ]);
   });
 

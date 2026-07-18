@@ -52,14 +52,10 @@ export function StorefrontLoader({ shopId }: StorefrontLoaderProps) {
       }
 
       // ── Fetch owner phone (separate, non-blocking) ──
-      const { data: ownerData } = await supabase
-        .from('users')
-        .select('phone')
-        .eq('shop_id', shopId)
-        .eq('role', 'owner')
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
+      const { data: ownerPhone } = await supabase.rpc(
+        'get_storefront_owner_phone',
+        { p_shop_id: shopId }
+      );
 
       if (cancelled) return;
 
@@ -72,7 +68,7 @@ export function StorefrontLoader({ shopId }: StorefrontLoaderProps) {
         logo_url: shopData.logo_url ?? null,
         theme_preference: (shopData.theme_preference ?? 'modern') as ThemePreference,
         primary_color: shopData.primary_color ?? '#2563EB',
-        owner_phone: ownerData?.phone ?? null,
+        owner_phone: typeof ownerPhone === 'string' ? ownerPhone : null,
       };
 
       // ── Fetch products (include inventory for stock clamping) ──
