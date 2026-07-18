@@ -910,6 +910,24 @@
   was repeated for this documentation-only change. Existing Wave 7 evidence is
   reused; only documentation scope/link/safety checks and the normal GitHub
   documentation-branch checks are required.
+- Documentation commit `5718822` was pushed and draft PR #11 opened against
+  integration only. `quality`, `public-smoke`, Vercel, and Vercel Preview
+  Comments passed. Deployment `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` is READY,
+  Preview-only, and exact branch/head, but is not valid staging evidence.
+- Preview isolation is blocked: the docs branch has zero branch-scoped Vercel
+  variables, and the integration branch's three sensitive staging values could
+  not be duplicated with the available safe CLI/API paths without
+  materialization or reliance on a pre-existing ignored local environment. No
+  environment value was displayed, logged, or inspected by Codex.
+- Cleanup is complete. The pre-existing `.env.local` was not modified; an
+  unexpected unread temporary OIDC file/directory and a later FIFO/process pair
+  were removed; three late-created untrusted branch variables were deleted;
+  final readback shows zero branch variables and no temporary path/process. The
+  generated preview is retained but must not be opened, smoked, promoted, or
+  cited as staging-wired.
+- PR #11 remains draft and unmerged. A fresh safe staging-variable path or an
+  explicit Darshan docs-only preview waiver is required before proceeding.
+  Production and integration remain unchanged.
 
 ## Wave entry template
 

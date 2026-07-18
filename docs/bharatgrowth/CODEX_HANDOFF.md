@@ -173,8 +173,12 @@ Supabase tree beneath it must remain identical to `053abca`.
   mergeable, and points from exact integration `053abca` to unchanged `main`.
   Its current-head `quality`, `public-smoke`, Vercel, and preview-comment checks
   pass. It is not permission to merge or touch production.
-- PRs #2–#10 are the completed foundation/decomposition/handoff history. No
-  newer open feature PR was present in the live 2026-07-18 readback.
+- PRs #2–#10 are the completed foundation/decomposition/handoff history. Draft
+  PR [#11](https://github.com/darshan-Jahagirdar/bharat-growth/pull/11) is the
+  documentation-only post-Wave 7 handoff branch targeting integration. Its
+  exact head is `57188229db4991e4c3d545dbe975c2dccc396158`; all four normal
+  checks pass. It remains draft and must not merge while the preview-isolation
+  blocker below is unresolved or explicitly waived by Darshan.
 
 ### Supabase
 
@@ -214,6 +218,34 @@ Supabase tree beneath it must remain identical to `053abca`.
   `codex/production-hardening-baseline`; no values were printed.
 - No preview was promoted. No deployment, alias, obsolete retained preview, or
   retained branch setting was deleted.
+
+### Open documentation-preview blocker — PR #11
+
+- PR #11 deployment `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` is `READY`, Preview-
+  only (`target: null`), and exact branch/commit
+  `codex/prepare-post-wave7-handoff` / `5718822`.
+- GitHub `quality`, `public-smoke`, Vercel, and Vercel Preview Comments passed
+  on that exact head. These are valid docs-branch/build/route-health facts; they
+  do not prove Supabase staging isolation.
+- The branch currently has zero branch-scoped Vercel variables. Integration's
+  three sensitive staging Preview entries could not be duplicated through the
+  available safe CLI/API paths without either materializing a value or relying
+  on the pre-existing ignored local environment. No environment value was
+  displayed, logged, or inspected by Codex.
+- One CLI path loaded the pre-existing ignored `.env.local`; filesystem metadata
+  confirms it was not created or modified. A clean temporary link unexpectedly
+  wrote an OIDC environment file; it was deleted unread with its entire exact
+  temporary directory. A later FIFO attempt was terminated and cleaned. Three
+  untrusted late-created branch entries were individually removed. Final
+  readback shows zero branch variables, no copy process, and no temporary path.
+- The generated deployment is intentionally retained because destructive
+  deletion is prohibited, but it is not valid staging evidence. Do not open,
+  smoke, promote, alias, or cite it as staging-wired.
+- PR #11 is therefore blocked before ready-for-review or merge. Resolution
+  requires either a fresh approved secure method to configure the exact three
+  branch-scoped staging Preview values followed by a new exact-head deployment,
+  or an explicit Darshan waiver for a documentation-only PR. Do not infer the
+  waiver from this handoff.
 
 ### Automated and compatibility verification
 
@@ -425,6 +457,15 @@ Use this continuation prompt after opening a fresh task:
 > identical to the Wave 7 integration checkpoint `053abca`. Confirm the exact
 > integration preview is READY, Preview-only, staging-wired, and that temporary
 > `codex/decompose-data-access` variables remain absent.
+>
+> Re-derive draft PR #11 and its documentation-preview blocker. At handoff it
+> pointed to docs-only head `5718822`; all checks passed, deployment
+> `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` was READY/Preview-only, and final cleanup
+> left zero branch-scoped variables and no temporary process/path. No value was
+> displayed, logged, or inspected; an unexpected temporary OIDC file was
+> deleted unread. The deployment is not staging evidence. Do not make PR #11
+> ready or merge it unless staging isolation is safely established on a new
+> exact-head deployment or Darshan explicitly waives that docs-only gate.
 >
 > Treat `FEATURE_AND_BEHAVIOR_INVENTORY.md` as the product-preservation
 > contract. Preserve the Wave 7 compatibility facades and exact query-shape
