@@ -933,6 +933,31 @@
   explicit Darshan docs-only preview waiver is required before proceeding.
   Production and integration remain unchanged.
 
+## PR #11 documentation-only preview waiver — 2026-07-18
+
+- Darshan explicitly waived branch-scoped staging-preview isolation for PR #11
+  only. The branch changes Markdown only, has zero `src/` and zero `supabase/`
+  diff from integration `053abca`, exposes no behavior surface, and requires no
+  browser, login, Auth, staging-data, or database smoke. Its application bytes
+  remain the already-proven Wave 7 integration tree.
+- The waiver changes the merge gate, not the evidence classification. PR #11's
+  deployments remain valid only as READY/Preview-only build and route-health
+  evidence; they are not staging-isolation evidence and must not be opened,
+  smoked, promoted, aliased, or cited as staging-wired. This is a user-approved
+  docs-only waiver, not a staging-isolation result.
+- No Vercel, Supabase, or staging environment value is required for the merge.
+  Do not copy, decrypt, pipe, FIFO, pull, materialize, or otherwise move one.
+  The final cleanup evidence remains valid: the branch has zero scoped Preview
+  variables and no matching temporary process or path remains.
+- The authorized merge gate is exact PR head and base, Markdown-only scope,
+  GitHub mergeability, and successful `quality`, `public-smoke`, Vercel, and
+  Vercel Preview Comments checks. After those pass, PR #11 may leave draft and
+  merge only into `codex/production-hardening-baseline`.
+- This waiver does not apply to future application, browser, login, Auth,
+  provider, database, migration, or production work. Production `main` remains
+  `8c389098db7e31180b5bdd6f1661adfd4bdc902b`. Migration 049 remains a separate
+  next gate requiring fresh Darshan scope.
+
 ## Wave entry template
 
 ```text

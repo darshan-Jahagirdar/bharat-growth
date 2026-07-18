@@ -179,8 +179,10 @@ Supabase tree beneath it must remain identical to `053abca`.
   opened at `5718822`; blocker record `533a1f1` then passed all four normal
   checks. This file's final documentation commit necessarily advances the PR,
   so re-derive its exact head/checks rather than treating either predecessor as
-  current. It remains draft and must not merge while the preview-isolation
-  blocker below is unresolved or explicitly waived by Darshan.
+  current. Darshan explicitly granted the documentation-only preview waiver
+  below. PR #11 may merge only into integration once its exact current head is
+  mergeable and `quality`, `public-smoke`, Vercel, and Vercel Preview Comments
+  all pass.
 
 ### Supabase
 
@@ -221,16 +223,19 @@ Supabase tree beneath it must remain identical to `053abca`.
 - No preview was promoted. No deployment, alias, obsolete retained preview, or
   retained branch setting was deleted.
 
-### Open documentation-preview blocker — PR #11
+### Documentation-only preview waiver — PR #11
 
-- Blocker-record deployment `dpl_2rpPncpEuYU2LzTWMKrk4ep7oDCv` is `READY`,
+- Exact predecessor deployment `dpl_6WZC5W16cVsu54pX4AyTYqijooXe` is `READY`,
   Preview-only (`target: null`), and exact branch/commit
-  `codex/prepare-post-wave7-handoff` / `533a1f1`. Initial docs deployment
-  `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` is also retained. This file's final commit
+  `codex/prepare-post-wave7-handoff` /
+  `d1da6b81e1746ae354643638b589d09692acce66`. Earlier deployments
+  `dpl_2rpPncpEuYU2LzTWMKrk4ep7oDCv` and
+  `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` are also retained. This waiver commit
   creates another exact-head deployment; re-derive it.
 - GitHub `quality`, `public-smoke`, Vercel, and Vercel Preview Comments passed
-  on that exact head. These are valid docs-branch/build/route-health facts; they
-  do not prove Supabase staging isolation.
+  on predecessor `d1da6b8`. These are valid docs-branch/build/route-health
+  facts; they do not prove Supabase staging isolation. The waiver commit must
+  pass the same four normal checks before merge.
 - The branch currently has zero branch-scoped Vercel variables. Integration's
   three sensitive staging Preview entries could not be duplicated through the
   available safe CLI/API paths without either materializing a value or relying
@@ -245,11 +250,16 @@ Supabase tree beneath it must remain identical to `053abca`.
 - The generated deployment is intentionally retained because destructive
   deletion is prohibited, but it is not valid staging evidence. Do not open,
   smoke, promote, alias, or cite it as staging-wired.
-- PR #11 is therefore blocked before ready-for-review or merge. Resolution
-  requires either a fresh approved secure method to configure the exact three
-  branch-scoped staging Preview values followed by a new exact-head deployment,
-  or an explicit Darshan waiver for a documentation-only PR. Do not infer the
-  waiver from this handoff.
+- Darshan explicitly waived branch-scoped staging isolation for PR #11 only.
+  The PR changes Markdown only, has zero `src/` and zero `supabase/` diff, has no
+  behavior surface or authenticated smoke, and preserves the already-proven
+  integration application tree at `053abca`. This is a user-approved docs-only
+  waiver, not a staging-isolation result. Do not copy, decrypt, pipe, pull,
+  materialize, or otherwise move an environment value for this merge.
+- The waiver does not apply to a future application, browser, login, database,
+  Auth/provider, migration, or production scope. PR #11 may leave draft and
+  merge only into integration after its exact current head/base, mergeability,
+  Markdown-only scope, and four normal checks are reverified.
 
 ### Automated and compatibility verification
 
@@ -431,7 +441,8 @@ Stop before source or external writes if any of the following is true:
   `docs/bharatgrowth/CLAUDE_HANDOFF.md`;
 - a concurrent Claude task overlaps the same tracked file or changes the remote
   integration base;
-- preview isolation cannot prove staging-only use;
+- preview isolation required by the active scope cannot prove staging-only use
+  and has not been explicitly waived for a documentation-only PR;
 - migration history drifts, migration 049 already exists unexpectedly, or the
   linked target is not staging `qokaaggeqahayxsybgds`;
 - a proposed change alters a preserved behavior/query/client/payload/RLS/
@@ -462,15 +473,19 @@ Use this continuation prompt after opening a fresh task:
 > integration preview is READY, Preview-only, staging-wired, and that temporary
 > `codex/decompose-data-access` variables remain absent.
 >
-> Re-derive draft PR #11 and its documentation-preview blocker. Verified
-> predecessor `533a1f1` passed all checks with READY/Preview-only deployment
-> `dpl_2rpPncpEuYU2LzTWMKrk4ep7oDCv`; this handoff's final documentation commit
-> necessarily advances both pointers. Final cleanup left zero branch-scoped
+> Re-derive PR #11 and its documentation-only preview waiver. Exact predecessor
+> `d1da6b8` passed all checks with READY/Preview-only deployment
+> `dpl_6WZC5W16cVsu54pX4AyTYqijooXe`; the waiver commit and merge necessarily
+> advance the relevant pointers. Final cleanup left zero branch-scoped
 > variables and no temporary process/path. No value was displayed, logged, or
 > inspected; an unexpected temporary OIDC file was deleted unread. No PR #11
-> deployment is staging evidence. Do not make the PR ready or merge it unless
-> staging isolation is safely established on a new exact-head deployment or
-> Darshan explicitly waives that docs-only gate.
+> deployment is staging evidence. Darshan explicitly waived staging isolation
+> for this Markdown-only PR because it has zero `src/`/`supabase/` diff and no
+> behavior or authenticated-smoke surface. Do not copy or materialize a value.
+> If PR #11 is not yet merged, it may merge only into integration after exact-
+> head `quality`, `public-smoke`, Vercel, and Vercel Preview Comments pass and
+> GitHub reports it mergeable. If already merged, verify the live integration
+> successor and unchanged production `main`.
 >
 > Treat `FEATURE_AND_BEHAVIOR_INVENTORY.md` as the product-preservation
 > contract. Preserve the Wave 7 compatibility facades and exact query-shape
