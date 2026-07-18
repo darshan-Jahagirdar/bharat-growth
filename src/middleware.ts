@@ -1,13 +1,13 @@
 // =============================================================================
 // BharatGrowth — Next.js Middleware (Route Protection)
-// Protects /billing, /dashboard, /onboarding — redirects to /login if no session
+// Protects /billing, /dashboard, /onboarding, /settings — redirects to /login if no session
 // =============================================================================
 
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Routes that require authentication
-const PROTECTED_ROUTES = ['/billing', '/dashboard', '/onboarding'];
+const PROTECTED_ROUTES = ['/billing', '/dashboard', '/onboarding', '/settings'];
 
 // Routes that should redirect to /billing if already authenticated
 const AUTH_ROUTES = ['/login'];
