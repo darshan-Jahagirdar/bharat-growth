@@ -7,18 +7,19 @@ verified, and how production changes are rolled out or reversed.
 ## Current continuation state
 
 - Production `main` remains unchanged at `8c38909`.
-- Integration is `6255234` after the Wave 6 merge; the exact application-source
-  checkpoint is `145437b`.
-- Waves 1–6 are merged only into integration; Wave 7 data access is next and is
-  the final decomposition wave.
+- Integration is `053abca` after the Wave 7 merge; its tree is the exact current
+  application/source checkpoint.
+- All seven behavior-preserving decomposition waves are merged only into
+  integration. Migration 049/public-consumer hardening, redesign, Auth/payment,
+  sale-readiness, and production remain separate approved gates.
 - Staging Supabase is `qokaaggeqahayxsybgds` with matching migrations 001–048.
 - The authoritative exact handoff is [`CODEX_HANDOFF.md`](CODEX_HANDOFF.md).
 - Current product behavior is mapped in
   [`product/FEATURE_AND_BEHAVIOR_INVENTORY.md`](product/FEATURE_AND_BEHAVIOR_INVENTORY.md).
 
-Re-verify drift-prone pointers before acting. A docs-only Wave 7 handoff merge
-may move the integration SHA without changing application source beneath
-`145437b`.
+Re-verify drift-prone pointers before acting. A documentation-only handoff merge
+may move the integration SHA without changing application or Supabase source
+beneath `053abca`.
 
 ## Preserved baselines
 
@@ -27,7 +28,7 @@ may move the integration SHA without changing application source beneath
 | Production fallback before hardening | `pre-hardening-8c38909` | Points to the unchanged production `main` commit `8c38909`. |
 | Local workspace safety checkpoint | `4b7424a` | Contains the reviewed intended workspace except machine-local Claude settings. It is not a production release. |
 | Pre-decomposition integration baseline | `0ad2fb6` flow checkpoint; application waves build on the integration branch | Production remains at `8c38909`; exact current integration must be re-derived. |
-| Final decomposed release | Pending | Created only after every decomposition wave and full regression testing pass. |
+| Final decomposed integration candidate | `053abca` | All seven waves are merged and staging-verified; this is not a production release. |
 
 At the checkpoint the repository contains 24,132 lines of TypeScript, TSX, and
 CSS under `src/`, plus 7,938 lines of SQL under `supabase/`.

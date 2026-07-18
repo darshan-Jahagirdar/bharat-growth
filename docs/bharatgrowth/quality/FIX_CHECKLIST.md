@@ -3,8 +3,8 @@
 This reconciles `docs/FIX_CHECKLIST.md` with the current checkpoint. Checked
 items require evidence; code presence alone is not completion.
 
-Last reconciled: 2026-07-15 at Wave 6 application checkpoint `145437b`, merged
-only into integration at `6255234`. Production remains unchanged at `8c38909`.
+Last reconciled: 2026-07-18 at Wave 7 integration checkpoint `053abca`.
+Production remains unchanged at `8c38909`.
 
 ## Release blockers
 
@@ -24,11 +24,10 @@ only into integration at `6255234`. Production remains unchanged at `8c38909`.
 
 ## Engineering gates
 
-- [x] CI requires typecheck, lint, tests, build, and public smoke; Wave 6 exact
-  checks are green.
-- [ ] Characterization tests cover every decomposition domain. Billing, Orders,
-  Products, Dashboard, Purchases, and Storefront are covered; exact data-access
-  compatibility is the remaining Wave 7 gate.
+- [x] CI requires typecheck, lint, tests, build, and public smoke; Wave 7 exact
+  head and merged integration checks are green.
+- [x] Characterization tests cover every decomposition domain, including 24
+  exact query-shape tests for Billing, Orders, Dashboard, and Storefront.
 - [x] GSTIN mod-36 checksum validation is implemented and unit-tested.
 - [ ] Full manual regression checklist passes before paid/public launch.
 - [ ] Production logs and monitoring show no new blocking error after rollout.
@@ -41,8 +40,8 @@ only into integration at `6255234`. Production remains unchanged at `8c38909`.
 - [x] Wave 6 Storefront completed with zero theme/cart/checkout/stock/consent/
   payload/copy/UI-source drift. Darshan waived the pixel comparison because an
   intentional reskin is next; the waiver is not a visual-equivalence result.
-- [ ] Wave 7 data access completes behind compatibility exports without query or
-  RPC behavior change.
+- [x] Wave 7 data access completed behind compatibility exports without query,
+  RPC, client-boundary, payload, consumer, UI, Auth, or Supabase behavior change.
 - [ ] Full integration application and migration candidate pass the complete
   pre-launch regression matrix.
 

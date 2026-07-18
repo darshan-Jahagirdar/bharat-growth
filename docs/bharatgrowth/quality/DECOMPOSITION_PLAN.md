@@ -1,10 +1,10 @@
 # Behavior-Preserving Decomposition Plan
 
-Current status (2026-07-15): Waves 1–6 are merged only into integration at
-`6255234`. The exact application-source checkpoint is `145437b`; a docs-only
-Wave 7 handoff merge may advance the integration pointer without changing
-application source. Wave 7 data access is next and is the final decomposition
-wave. Production remains `8c38909` and untouched.
+Current status (2026-07-18): all seven waves are merged only into integration
+at `053abca`. The reviewed Wave 7 head is `6a1e381`; production remains
+`8c38909` and untouched. Decomposition is complete. Migration 049/public-
+consumer hardening, redesign, Auth/payment, sale-readiness, and production are
+separate later gates.
 
 ## Rules
 
@@ -26,11 +26,13 @@ wave. Production remains `8c38909` and untouched.
   remains the head of draft PR #1 to `main`.
 - Each wave uses a short-lived `codex/decompose-*` branch and an independently
   revertible PR targeting the integration branch.
-- A wave merges into the integration branch only after CI, staging preview,
-  visual comparison, targeted manual smoke, and its log entry pass.
-- Production remains unchanged until all seven waves and every approved launch
-  feature are staging-verified. The reviewed integration result then merges to
-  `main` only in the separately approved single controlled pre-launch rollout.
+- Every completed wave merged into the integration branch only after its
+  automated, staging-preview, visual-or-explicit-waiver/zero-UI-diff, cleanup,
+  and documentation gates passed.
+- Production remains unchanged until the separate migration, sale-readiness,
+  external-provider, monitoring, and explicit production gates pass. The
+  reviewed integration result can merge to `main` only in the separately
+  approved single controlled pre-launch rollout.
 
 ## Waves
 
@@ -58,7 +60,7 @@ wave. Production remains `8c38909` and untouched.
 | 4 Dashboard/progress | `ac75c68` | Merged; characterization rollback `74fc96b`; query facade unchanged. |
 | 5 Purchases | `907dfe3` | Merged; characterization rollback `2e6bec8`; Purchase History/query facade unchanged. |
 | 6 Storefront | `6255234` | Merged and staging-verified; characterization rollback `ac7fe57`; pixel comparison explicitly waived by Darshan before the intentional reskin. |
-| 7 Data access | Pending | Next. Exact data-access characterization must precede implementation movement. |
+| 7 Data access | `053abca` | Merged and staging-verified; characterization rollback `c4623cc`; reviewed head `6a1e381`; 32 consumers zero-diff. |
 
 ## Wave 6 Storefront retained contract
 
@@ -85,9 +87,9 @@ restructuring until Wave 7.
 
 ## Wave 7 data-access contract
 
-Wave 7 starts from the freshly verified remote integration head after the
-docs-only Wave 7 handoff PR. Confirm the application tree beneath that docs-only
-merge remains exact application checkpoint `145437b`.
+Wave 7 started from exact remote integration `a81a7d1`, after the docs-only
+Wave 7 handoff. Its reviewed head `6a1e381` and integration squash merge
+`053abca` have identical trees.
 
 The in-scope compatibility facades are:
 
@@ -136,11 +138,35 @@ payload, API, SQL, migration, RLS, policy, grant, function, provider, Auth, or
 workflow change belongs in Wave 7. Migration 049 and Storefront public-boundary
 hardening remain separate post-decomposition work.
 
-The Wave 7 browser gate is limited to representative data-flow evidence that
-module-level mocks cannot prove: public Storefront loading and bounded protected
-Billing, Orders, and Dashboard reads on the exact staging deployment. If no
-TSX/CSS/DOM source changes, do not manufacture a duplicate pixel comparison;
-record the zero UI-source diff and exact rendered data-flow/console evidence.
+Darshan explicitly removed browser, screenshot, pixel, visual, login, and
+authenticated-UI gates from Wave 7 because it had no visual surface. CI
+`public-smoke`, exact-head staging bundle/runtime verification, 24 exact query-
+shape tests, and zero route/hook/component/TSX/CSS/Supabase/Auth/provider diff
+were the approved evidence. This is not a visual-equivalence claim.
+
+### Completed Wave 7 implementation record
+
+1. Characterization checkpoint `c4623cc` preceded implementation movement.
+2. Query-shape coverage was strengthened at `cb0e1b3` before extraction.
+3. Cohesive shared types moved at `eeab805`.
+4. Billing/Orders use cases split at `97aa317`.
+5. Dashboard/Storefront use cases split at `672360f`.
+6. Follow-up candidates were logged without fixes at `bdea90d`.
+7. Verification docs completed at reviewed head `6a1e381`; PR #10 squash-
+   merged only into integration at `053abca`.
+
+All original facade paths, names, signatures, client boundaries, selections,
+filters, ordering, limits/ranges, RPCs/arguments, errors/fallbacks, result
+mapping, and call sequence remain compatibility contracts.
+
+## Post-decomposition gate
+
+Do not start another “wave.” Obtain a new explicit scope. The approved next
+production-hardening sequence is a Storefront/Receipt public-consumer audit,
+behavior-preserving constrained-path application change, and only then a
+reviewed migration 049 staging dry-run/application. The intentional redesign,
+Auth/provider/payment work, sale-readiness regression, external gates, and
+production rollout remain separate.
 
 ## Per-wave gate
 

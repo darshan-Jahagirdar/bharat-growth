@@ -148,3 +148,23 @@ completed setup actions.
   of the Billing, Orders, Dashboard, and Storefront query facades.
 - The intentional Storefront redesign remains separate product work after Wave
   7. Migration 049 remains a later, separately reviewed staging contract gate.
+
+## Wave 7 completion addendum — 2026-07-18
+
+- All seven decomposition waves are complete and merged only into integration
+  at `053abca608bfa9e3d95c847b8a9481c847c3a76f`. Production remains
+  `8c389098db7e31180b5bdd6f1661adfd4bdc902b` and untouched.
+- Wave 7 retained the original Billing, Orders, Dashboard, and Storefront query
+  module paths as compatibility facades while splitting implementation by
+  cohesive use case. Twenty-four tests pin exact query shape and all 32 base
+  consumers have zero diff.
+- The current verified suite is 140 tests across 28 files, with strict
+  typecheck, zero-warning lint, optimized 25-route build, GitHub checks, exact-
+  head staging isolation/runtime evidence, and branch-variable cleanup complete.
+- Per Darshan's Wave 7 scope, no browser, screenshot, pixel, visual, login, OTP,
+  or authenticated-UI gate was run; CI `public-smoke` and zero UI-source diff
+  are the approved evidence, not a visual-equivalence claim.
+- The next task requires a fresh explicit scope. The approved next hardening
+  sequence is Storefront/public-consumer audit, behavior-preserving constrained-
+  path application work, and only then migration 049 on staging. The redesign,
+  Auth/provider, payment, sale-readiness, and production gates remain separate.

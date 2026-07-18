@@ -1,6 +1,6 @@
 # Supabase Migration Runbook
 
-Last reconciled: 2026-07-15.
+Last reconciled: 2026-07-18.
 
 - Production project ref: `vyycczqhvsgkiqtxxxos`.
 - Decomposition staging project ref: `qokaaggeqahayxsybgds`.
@@ -24,7 +24,7 @@ remote migration history before every database command.
 
 ## Current staging baseline
 
-Verified on 2026-07-15:
+Verified on 2026-07-18:
 
 - CLI link resolves to staging `qokaaggeqahayxsybgds`.
 - Fresh `supabase migration list --linked` returns matching continuous local and
@@ -39,12 +39,16 @@ Verified on 2026-07-15:
   recorded here. Remaining credential rotation is a pre-sale owner gate, not a
   decomposition action.
 
-Before Wave 7, repeat the linked ref and migration-list readback. Wave 7 must
-not apply a migration.
+Wave 7 completed without a migration, schema, RLS, grant, policy, or function
+change. Before any migration 049 work, repeat the linked ref and migration-list
+readback and stop on drift.
 
 ## Migration 049 staging gate
 
-Only after all seven decomposition waves are merged and staging-smoked:
+All seven decomposition waves are merged and staging-smoked at integration
+checkpoint `053abca`. This satisfies only the sequencing prerequisite; it is not
+authorization to write or apply migration 049. After Darshan approves that
+specific scope:
 
 1. Re-read the approved `CODEX_BRIEF.md` and current handoff.
 2. Re-derive production and staging histories; stop if the assumed production

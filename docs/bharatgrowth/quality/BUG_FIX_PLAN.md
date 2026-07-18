@@ -1,6 +1,6 @@
 # Bug-Fix and Hardening Status
 
-Last reconciled: 2026-07-15. The detailed July audit remains at
+Last reconciled: 2026-07-18. The detailed July audit remains at
 [`../../BUG_FIX_PLAN.md`](../../BUG_FIX_PLAN.md); this file is the canonical
 current status.
 
@@ -19,14 +19,14 @@ current status.
 - Continuous staging migrations 001–048, synthetic seed, tenant/RLS smoke, CI,
   and isolated Vercel preview flow.
 
-Evidence at the Wave 6 integration checkpoint:
+Evidence at the Wave 7 integration checkpoint:
 
 - linked staging `qokaaggeqahayxsybgds`, local/remote migrations 001–048 match;
-- 116 tests across 24 files, strict typecheck, zero-warning lint, and 25-route
+- 140 tests across 28 files, strict typecheck, zero-warning lint, and 25-route
   optimized build pass;
 - GitHub `quality` and `public-smoke` pass;
-- integration deployment `dpl_3cu9JfBqjAgB929LQbmvAC2bEmmh` is READY and
-  Preview-only for exact integration commit `6255234`; its compiled bundle is
+- integration deployment `dpl_x8Q9n7bkokCVHK2tPYPnyGMpSFtZ` is READY and
+  Preview-only for exact integration commit `053abca`; its compiled bundle is
   staging-only and its error/warning/fatal runtime query returned no entries.
 
 These facts do not mean production is updated. Production remains `8c38909`.
@@ -56,7 +56,7 @@ These facts do not mean production is updated. Production remains `8c38909`.
 
 ## Decomposition status
 
-Waves 1 Billing, 2 Orders, 3 Products, 4 Dashboard/progress, 5 Purchases, and 6
-Storefront are merged only into integration. Wave 7 data access is last.
-Structural work must preserve the feature/behavior inventory and cannot absorb
-any open blocker or backlog item.
+All seven waves are merged only into integration at `053abca`. Wave 7 preserved
+all four facade contracts, added 24 exact query-shape tests, and proved all 32
+base consumers plus UI/Auth/Supabase boundaries zero-diff. Structural completion
+does not absorb any open blocker or backlog item.

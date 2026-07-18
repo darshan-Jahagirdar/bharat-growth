@@ -1,6 +1,6 @@
 # BharatGrowth Collaboration Workflow
 
-Last verified: 2026-07-15 (Asia/Kolkata).
+Last verified: 2026-07-18 (Asia/Kolkata).
 
 This file explains how the repository, GitHub, Google Drive, Slack, Supabase,
 and Vercel are used together. It is an operating contract, not a suggestion to
@@ -122,8 +122,8 @@ or engineering record.
 
 - Channel: `#bharatgrowth`
 - Channel ID: `C0BG39UE1A9`
-- Last verified Wave 5 merge post:
-  [Slack message](https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784051619188539)
+- Last verified Wave 7 merge post:
+  [Slack message](https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784218146352919)
 
 Use the existing channel. Do not create another project channel, fan updates
 into DMs, or add `@channel`, `@here`, or other broad mentions unless Darshan
@@ -207,15 +207,15 @@ workstream.
 
 ## 9. End-to-end milestone sequence
 
-For each remaining wave:
+For each future approved implementation or hardening branch:
 
 1. Read the handoff and required docs completely.
 2. Re-derive local/remote Git, GitHub, Supabase, and Vercel state.
 3. Stop on contradiction.
 4. Create the wave branch from exact remote integration.
 5. Characterize behavior; record rollback checkpoint.
-6. Follow the current wave's documented implementation order. For Wave 7,
-   split data access by use case behind stable compatibility exports.
+6. Follow the selected scope's documented implementation order. Preserve the
+   completed decomposition and Wave 7 compatibility/query-shape contracts.
 7. Run focused and full automated gates.
 8. Push draft PR; verify GitHub and branch-scoped preview.
 9. Run only the bounded staging browser/API/database and visual-or-zero-UI-diff

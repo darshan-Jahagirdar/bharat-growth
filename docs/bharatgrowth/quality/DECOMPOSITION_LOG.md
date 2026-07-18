@@ -880,6 +880,37 @@
 - Migration 049, Storefront public-boundary/RLS hardening, Auth/provider work,
   and all production changes remain explicitly out of scope.
 
+## Durable post-Wave 7 handoff preparation — 2026-07-18
+
+- Re-read `CODEX_HANDOFF.md` and every file in its required reading order from
+  disk before repository or service verification.
+- Live Git/GitHub verification returned integration
+  `053abca608bfa9e3d95c847b8a9481c847c3a76f`, production
+  `8c389098db7e31180b5bdd6f1661adfd4bdc902b`, PR #10 merged, guarded PR #1
+  open/draft at exact integration head, and all current-head `quality`,
+  `public-smoke`, Vercel, and preview-comment checks successful.
+- Linked Supabase remains staging `qokaaggeqahayxsybgds`; fresh local/remote
+  migration readback is continuous and matching for 001–048. Migration 049 is
+  still absent and unapplied.
+- Integration deployment `dpl_x8Q9n7bkokCVHK2tPYPnyGMpSFtZ` remains READY,
+  Preview-only, Mumbai, and exact commit `053abca`. Prior post-merge evidence
+  records eight staging-only login assets and an empty smoke-window error/
+  warning/fatal query. A later seven-day query exceeded retained log history and
+  was not substituted for that valid evidence.
+- Live environment-scope readback found no variables on
+  `codex/decompose-data-access`; integration retains exactly three encrypted
+  staging Preview variables. No value was printed.
+- Branch `codex/prepare-post-wave7-handoff` was created from exact remote
+  integration `053abca`. This branch reconciles canonical documentation only;
+  application and Supabase trees must remain identical to the base.
+- User-owned `designs/`, `designs_mobile/`, `docs/bharatgrowth/design/`, and the
+  concurrent `docs/bharatgrowth/CLAUDE_HANDOFF.md` remain untracked, unstaged,
+  unread, preserved, and excluded.
+- No completed application, browser, visual, login, staging, or Supabase test
+  was repeated for this documentation-only change. Existing Wave 7 evidence is
+  reused; only documentation scope/link/safety checks and the normal GitHub
+  documentation-branch checks are required.
+
 ## Wave entry template
 
 ```text

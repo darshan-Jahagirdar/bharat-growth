@@ -136,10 +136,10 @@ authorize production or external messaging.
 - [ ] Invalid/not-found/error/loading states and no-index header match.
 - [ ] Shop/customer/item/order, date/time, GST/composition, discount/round-off,
   total/payment, print, share, and mobile layout match.
-- [ ] Wave 6 recorded the current compatibility-policy behavior without changing
-  it. During Wave 7, preserve the same Storefront facade behavior. At the later
-  migration 049 gate, direct anonymous invoice/user table reads are denied while
-  constrained Receipt/Storefront behavior remains functional.
+- [ ] Waves 6–7 recorded and preserved the current compatibility-policy and
+  Storefront facade behavior. At the later migration 049 gate, direct anonymous
+  invoice/user table reads are denied while constrained Receipt/Storefront
+  behavior remains functional.
 
 ## Visual and release evidence
 
