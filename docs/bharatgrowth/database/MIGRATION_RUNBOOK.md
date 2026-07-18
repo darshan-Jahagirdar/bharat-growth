@@ -54,6 +54,11 @@ readback and stop on drift.
   up during ordinary preview, migration, or handoff housekeeping.
 - The fixture contains no production or customer data. Keep its identity, shop
   identifier, and phone value out of logs and documentation.
+- For login, the application sends canonical `+91XXXXXXXXXX` E.164. Supabase
+  Auth removes the leading plus before lookup, so the fixture's Auth user and
+  hosted fixed-OTP key use the corresponding `91XXXXXXXXXX` country-code
+  digits. Keep those two hosted values aligned; a mismatch falls through to the
+  external SMS provider instead of using the synthetic OTP.
 
 ## Migration 049 staging gate
 

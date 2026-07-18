@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { normalizeIndianPhoneToE164 } from './phone';
 
 export type AuthStep = 'phone' | 'otp' | 'email_sent' | 'authenticated';
 
@@ -69,11 +70,7 @@ export function useAuth() {
     async (phone: string) => {
       setState((s) => ({ ...s, loading: true, error: null, phone }));
 
-      // Normalize to 91XXXXXXXXXX (no '+' — Supabase test numbers reject '+')
-      const digits = phone.replace(/\D/g, '');
-      const normalized = digits.startsWith('91') && digits.length === 12
-        ? digits
-        : `91${digits}`;
+      const normalized = normalizeIndianPhoneToE164(phone);
 
       const { error } = await supabase.auth.signInWithOtp({
         phone: normalized,
