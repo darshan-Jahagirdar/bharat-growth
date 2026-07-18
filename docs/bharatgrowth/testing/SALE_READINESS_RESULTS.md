@@ -189,3 +189,158 @@ the time that checklist line was measured; the post-matrix closeout above does
 not retroactively change the recorded regression score.
 
 **NO-GO for production sale readiness.** The high-value transaction engine passed, but 64 checklist lines remain failed or incomplete, including email/onboarding, full keyboard coverage, IGST/composition, UPI QR confirmation, image/CSV/AI paths, campaign/WhatsApp negative routes, all storefront themes/error paths, direct receipt rendering, and visual/runtime-log evidence. Fixes and follow-up verification must be scoped separately; this run made none.
+
+---
+
+## Triage Addendum — sale-readiness burn-down
+
+Date: 2026-07-19 (IST)
+
+Tester: Sol/Codex
+
+Disposition: append-only follow-up to the frozen ledger above; no application
+code or schema was changed.
+
+### Exact burn-down target
+
+- PR #15 was green and was merged first. Integration is exact
+  `7add48b05a9f282948566e583bfed65ff7595eb4` on
+  `codex/production-hardening-baseline`.
+- Burn-down branch: `codex/sale-readiness-burndown`, based on exact `7add48b`.
+- Exact Vercel Preview deployment:
+  `dpl_DrQt7XfU3z18aKEVoZ6f4a7fYDha`, READY / Preview / `bom1`, Git SHA
+  `7add48b`.
+- Stable integration alias:
+  `https://bharat-growth-git-codex-pro-fbbd8e-darshan-jahagirdars-projects.vercel.app`.
+- Supabase: staging ref `qokaaggeqahayxsybgds`, continuous migrations
+  001–049.
+- Preview variables contained only the three staging Supabase values. No Meta
+  or WhatsApp provider credentials were present, and no message was sent.
+- Production was not accessed. Git `main` remained exact `8c38909`.
+
+### Auth environment correction and stop decision
+
+The first delivered staging email magic link returned to `localhost:3000`.
+This was **ENV-CONFIG**, not an application failure. The permanent staging-only
+configuration was corrected through the Supabase Management API and read back:
+
+- Site URL is the stable integration preview alias above.
+- Redirect allowlist retains `http://localhost:3000/**` for local development
+  and adds
+  `https://bharat-growth-*-darshan-jahagirdars-projects.vercel.app/**` for
+  ephemeral integration previews.
+- The configuration is a durable staging fixture and was not restored during
+  cleanup. The wildcard must never be copied to production.
+
+A fresh email delivery was then throttled by staging Auth. Darshan authorized
+one final attempt and directed the run to stop bothering with Auth if it failed
+because Auth will be rebuilt before launch. The preserved browser tab was no
+longer accessible on that final attempt. No further Auth retries were made.
+A2 and all newly blocked authenticated-only evidence are therefore gated to the
+planned Auth rebuild; the redirect incident is not counted as an application
+defect.
+
+### Triage of the historical 64
+
+`PARTIAL` means the frozen run passed the core behavior but left edges
+incomplete. `NOT-RUN` means the frozen run did not execute a then-runnable line.
+`GATED` means the line required production, Meta/provider configuration, the
+migration-018 image decision, or Darshan's visual waiver. The outcome column
+records this burn-down; later Auth-rebuild and non-destructive fault-injection
+gates are called out explicitly.
+
+| ID | Frozen-ledger triage | Burn-down outcome and exact evidence |
+|---|---|---|
+| A1 | PARTIAL | GATED — original phone OTP core evidence remains valid; complete Auth edge replay waits for the planned Auth rebuild. |
+| A2 | NOT-RUN | GATED — mail delivery worked once; localhost redirect was corrected as staging ENV-CONFIG. Fresh end-to-end replay was stopped after delivery throttling and the one authorized final tab-recovery attempt failed. |
+| A3 | PARTIAL | **FAIL — DEFECT-01.** Unauthenticated `/billing`, `/dashboard`, `/onboarding`, purchase history/new, orders, campaigns, and products redirected to `/login?next=…`. Unauthenticated `/settings` instead rendered the protected TopNav shell and stayed on `/settings`. Authenticated `/login` exclusion is Auth-rebuild-gated. |
+| A4 | NOT-RUN | GATED — a well-formed unauthenticated onboarding probe returned application HTTP 401 and created zero shops; authenticated creation and forced orphan rollback require the Auth rebuild. |
+| A5 | PARTIAL | GATED — prior cross-tenant RPC rejection stands; complete authenticated UI/API/direct-client tenancy replay requires Auth. |
+| A6 | GATED — production | GATED — production was intentionally untouched. |
+| A7 | PARTIAL | GATED — protected-route map was checked unauthenticated; authenticated TopNav/logout replay requires Auth. |
+| B1 | PARTIAL | GATED — complete debounce, stale-response, HSN, barcode, and scanner UI replay requires Auth. |
+| B2 | PARTIAL | GATED — customer/loyalty/khata core stands; authenticated UI replay requires Auth and image paths remain separately gated by migration 018. |
+| B3 | PARTIAL | GATED — billing F-key, row-navigation, focus, modal-lock, clear, and print keyboard matrix requires Auth. |
+| B4 | PARTIAL | GATED — duplicate-row and POS removal replay requires Auth. |
+| B5 | PARTIAL | GATED — prior GST-rate/intra-state evidence stands; IGST and composition Bill of Supply UI replay requires Auth. |
+| B6 | PARTIAL | GATED — prior cash/UPI/card/credit persistence stands. Split is not offered; UPI QR setup/confirm/restore could not run without authenticated Settings/Billing. Durable UPI remained null. |
+| B7 | PARTIAL | GATED — authenticated receipt-send/action-order replay requires Auth; no provider send was attempted. |
+| B9 | PARTIAL | GATED — sale, serialized repayments, and overpayment evidence stands; the simultaneous authenticated-session race requires Auth. |
+| B10 | PARTIAL | GATED — prior loyalty accrual stands; customer-switch UI matrix requires Auth. |
+| B11 | PARTIAL | GATED — prior strict online accept/duplicate evidence stands; polling/Realtime/reject/print UI replay requires Auth. |
+| P1 | PARTIAL | GATED — complete authenticated edit/hydration and vertical-attribute matrix requires Auth. |
+| P2 | GATED — migration 018 | GATED — Darshan's separate migration-018 bucket decision remains pending; no image path was touched. |
+| P4 | PARTIAL | GATED — prior tenant RPC and low-stock evidence stands; complete Stock modal/badge UI replay requires Auth. |
+| P5 | NOT-RUN | GATED — CSV template/preview/validation/insertion UI requires Auth. |
+| O1 | NOT-RUN | GATED — New Purchase validation matrix requires Auth. |
+| O2 | NOT-RUN | GATED — purchase speed-grid Enter/Tab/F10/focus/removal matrix requires Auth. |
+| O3 | GATED — migration 018 | GATED — no approved image-path decision or bill-image fixture. |
+| O4 | PARTIAL | GATED — prior atomic receipt evidence stands; complete bill/reset/skipped-row UI replay requires Auth. |
+| O5 | PARTIAL | GATED — prior draft PO zero-stock evidence stands; full UI replay requires Auth. |
+| O6 | NOT-RUN | GATED — Purchase History latest-100/expand/fallback/empty/error UI requires Auth. |
+| O7 | PARTIAL | GATED — Orders tabs/pagination/expansion/toasts require Auth. |
+| O8 | GATED — Meta | GATED — Meta credentials were absent; no Sales/PO WhatsApp message was sent. |
+| O9 | PARTIAL | GATED — complete SO/PO cancellation UI replay requires Auth. |
+| O10 | PARTIAL | GATED — prior SO→invoice and PO→bill conversions stand; composition/refresh UI evidence requires Auth. |
+| D1 | PARTIAL | GATED — complete authenticated IST date-range/fallback matrix requires Auth. |
+| D2 | PARTIAL | GATED — complete KPI/chart empty/loading/tooltip/color UI matrix requires Auth. |
+| D3 | PARTIAL | GATED — GST export row and filename inspection requires authenticated dashboard access. |
+| D4 | PARTIAL | GATED — reminder dialog requires Auth and the provider send remains Meta-gated. |
+| D5 | PARTIAL | GATED — negative-stock anomaly UI replay requires Auth. |
+| D6 | NOT-RUN | GATED — Log Missing Delivery UI/RPC replay requires Auth. |
+| D7 | NOT-RUN | GATED — retention ROI live/empty UI requires Auth. |
+| D8 | NOT-RUN | **PASS.** `/progress` grouped milestones rendered; a milestone cycled on-deck→in-motion, survived reload from local storage, changed the completion/active summary, and Reset restored the four-active baseline. No database mutation occurred. |
+| C1 | NOT-RUN | GATED — recommended-campaign retrofit/no-duplicate UI audit requires Auth. |
+| C2 | NOT-RUN | GATED — rule edit/toggle/Enable All/stats/ROI UI requires Auth. |
+| C3 | PARTIAL | GATED — storefront order-data versus optional marketing consent remained distinct; complete authenticated match-filter UI requires Auth. |
+| C4 | GATED — Meta | GATED — claim/send/release/retry provider classification requires the Meta simulation gate; no send occurred. |
+| C5 | NOT-RUN | GATED — the exact preview has no cron/provider secret. A direct cron invocation was not authorized because it could claim or send; no secret appeared in a URL or output. |
+| C6 | NOT-RUN | GATED — receipt, khata-reminder, and system-alert routes each rejected unauthenticated empty JSON with application HTTP 401 before the provider path. Cross-shop/ineligible authenticated cases require Auth. |
+| C7 | NOT-RUN | GATED — invalid webhook verification returned 403 and an unsigned POST returned 401. Valid signed STOP-equivalent mutation requires the Meta credential/simulation gate. |
+| S1 | PARTIAL | GATED — loading, invalid UUID, valid not-found, and live Storefront states passed. Product-query warning/fatal injection was not possible without changing schema/code or adding a fault-injection fixture. |
+| S2 | PARTIAL | **PASS.** Anon-role read exposed only the exact shop allowlist; a sensitive shop column and direct invoice read were denied. Two tracked fixtures mapped to zero and one untracked fixture had no inventory row while the Storefront rendered it as addable. |
+| S3 | PARTIAL | **PASS.** Modern, Industrial, and Festive dispatched on the exact preview; the durable shop was restored to Modern by readback. |
+| S4 | NOT-RUN | **PASS.** Industrial/Festive category grouping, item/unit/price output, conditional owner contact, and per-product WhatsApp links rendered; no link was followed and no message was sent. |
+| S5 | PARTIAL | **PASS.** Modern header/city/sorted categories and product copy rendered. Search filtering, no-products state, and the visible clear control were exercised and restored the catalog. |
+| S6 | PARTIAL | **PASS.** Prior tracked clamp/disabled-plus evidence plus this run's tracked zero-stock `Out of Stock`/disabled ADD and untracked addability completed the line. |
+| S7 | PARTIAL | GATED — add, increment, count, total, floating bar, and drawer were rechecked. The browser-control session repeatedly timed out on the final decrement/backdrop clicks; no database state was involved. |
+| S8 | PARTIAL | **PASS.** Drawer DOM showed required name/phone/order-data consent, optional address/marketing, UPI/Khata controls, and disabled submit before required fields; the frozen run already captured required-consent enablement. |
+| S9 | PARTIAL | GATED — prior server-confirmed checkout stands; exact per-attempt idempotency-key reuse needs network-level test instrumentation not available in this manual session. |
+| S10 | NOT-RUN | **PASS.** A tracked item was placed in the drawer, inventory was moved to zero, and checkout returned the exact insufficient-stock non-2xx error in place with no WhatsApp navigation and no created order. |
+| S11 | PARTIAL | GATED — prior approved server-created/cleared/same-tab simulation and cleanup stand; direct idempotency-key retirement observation requires network instrumentation. |
+| S12 | NOT-RUN | **PASS.** A second throwaway shop without an owner rendered `Shop contact not available`; the durable owner fixture was not altered. |
+| R1 | NOT-RUN | GATED — loading, invalid, not-found, and live receipt states passed, and HEAD returned `x-robots-tag: noindex`. A generic fatal loader exception needs a non-destructive fault-injection fixture. |
+| R2 | PARTIAL | **PASS.** The synthetic public receipt DOM contained invoice/shop/customer/item/tax/payment/total content, Print/Share, and a successful Print click; at 390px it had no horizontal overflow and controls stayed in viewport. |
+| V1 | GATED — visual waiver | GATED — Darshan explicitly waives V1 until after the reskin. |
+| V2 | GATED — visual waiver | GATED — Darshan explicitly waives V2 until after the reskin. |
+| V3 | PARTIAL | **PASS.** Public/login/progress/Storefront/receipt browser-console sweep had zero entries. Exact-preview error logs contained one non-blocking `refresh_token_not_found` from the abandoned Auth flow; it returned HTTP 200 and login still rendered. No blocking runtime error was present. |
+| V6 | PARTIAL | PENDING CLOSEOUT — repository docs are being committed; the docs-only PR, Google readback, and one signed Slack milestone complete this line. |
+
+### Confirmed defect
+
+1. **DEFECT-01 — `/settings` is not protected by middleware.** In an
+   unauthenticated browser, `/settings` remained at that route and rendered the
+   protected TopNav/Logout shell, while every tested `/billing` and `/dashboard`
+   route redirected to `/login?next=…`. Record only; no code change was made.
+
+### Fixture cleanup and invariant readback
+
+- Disposable prefix: `SR-BD15`.
+- Removed and verified at zero: four products, one customer, one synthetic
+  receipt and its item, one missing-owner throwaway shop, the unauthenticated
+  onboarding probe, and the test email Auth aliases.
+- No checkout order was created by the strict-stock non-2xx case.
+- Durable staging readback: one active owner and one durable shop remained;
+  theme `modern`, GST type `regular`, and UPI ID null.
+- The durable owner fixture and permanent staging Auth callback configuration
+  remain intentionally in place.
+
+### Corrected burn-down scoreboard
+
+- **Defects found: 1** (`DEFECT-01`, unauthenticated `/settings`).
+- **Coverage remaining: gated lines only** — planned Auth rebuild,
+  Meta/provider credentials, production-only A6, migration-018 image decision,
+  Darshan's post-reskin V1/V2 waiver, and explicit non-destructive
+  fault-injection/network-observability fixtures.
+- **Production remains NO-GO.** This burn-down reduced runnable evidence gaps;
+  it did not authorize a release or fix the recorded defect.

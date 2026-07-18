@@ -1,6 +1,6 @@
 # BharatGrowth Codex Handoff
 
-Last updated: 2026-07-18 (IST)
+Last updated: 2026-07-19 (IST)
 Owner: Darshan
 Maintainer signature: Sol/Codex
 
@@ -19,7 +19,7 @@ campaigns, analytics, a public storefront, online checkout, and public receipts.
 - Production Git checkpoint: `8c389098db7e31180b5bdd6f1661adfd4bdc902b`
 - Immutable fallback tag: `pre-hardening-8c38909`
 - Integration/staging branch: `codex/production-hardening-baseline`
-- Current verified integration commit: `d74ca83a7c243861de2404bacd154e1c97e4dcad`
+- Current verified integration commit: `7add48b05a9f282948566e583bfed65ff7595eb4`
 - New work branches from a freshly verified remote integration SHA and PRs only
   back to integration unless Darshan separately authorizes production.
 
@@ -53,10 +53,10 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
 - Post-049 integration checkpoint before Auth work: `e5147d1`.
 - PR #14, canonical E.164 India phone normalization, merged into integration as
   `d74ca83` (reviewed head `f0f8f6f`).
-- PR #15 is the open docs-only sale-readiness results/handoff PR from
-  `codex/sale-readiness-results` into integration.
-- Current local documentation branch for this checkpoint:
-  `codex/sale-readiness-results`, based on exact `d74ca83`.
+- PR #15, the frozen sale-readiness ledger, merged into integration as
+  `7add48b`.
+- Current burn-down documentation branch:
+  `codex/sale-readiness-burndown`, based on exact `7add48b`.
 - Production `main` remains exact `8c38909`.
 
 Before any new write, re-fetch and compare remote integration, remote main,
@@ -71,24 +71,30 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 - The durable synthetic owner fixture documented in `MIGRATION_RUNBOOK.md`
   remains intentionally on staging. Do not print its phone, OTP, Auth ID, or
   shop ID, and do not delete it.
-- Disposable sale-readiness fixtures used prefix `SR-D74` and were removed.
-  Readback after cleanup was zero for products, tags, customers, consent logs,
-  invoices, sales orders, purchase orders, and purchase bills; one durable
-  active owner/shop remained.
+- The frozen matrix used prefix `SR-D74`; the burn-down used `SR-BD15`.
+  Both sets were removed. Burn-down zero-readback covered products, customer,
+  receipt/item, throwaway shop, onboarding probe, and test email Auth aliases;
+  one durable active owner/shop remained.
+- Staging Auth has a permanent callback fixture: Site URL is the stable
+  integration preview alias and the allowlist retains localhost plus the
+  staging-only Vercel preview wildcard documented in `MIGRATION_RUNBOOK.md`.
+  Do not restore it during cleanup and never copy that wildcard to production.
 - Migration 018 storage-bucket policy remains a separate pending decision.
   Customer/product image upload paths were not exercised in the sale-readiness
   run.
 
 ### Vercel staging preview
 
-The exact preview used for Auth and sale-readiness testing was:
+The exact preview used for the sale-readiness burn-down was:
 
-- Deployment ID: `dpl_3MgaeN8bEnUtbJavXYpsdeK6ZETB`
+- Deployment ID: `dpl_DrQt7XfU3z18aKEVoZ6f4a7fYDha`
 - URL:
-  `https://bharat-growth-ovco7s48f-darshan-jahagirdars-projects.vercel.app`
+  `https://bharat-growth-5woo5mp3z-darshan-jahagirdars-projects.vercel.app`
+- Stable alias:
+  `https://bharat-growth-git-codex-pro-fbbd8e-darshan-jahagirdars-projects.vercel.app`
 - State/type/region: READY / Preview / `bom1`
 - Git branch/SHA: `codex/production-hardening-baseline` /
-  `d74ca83a7c243861de2404bacd154e1c97e4dcad`
+  `7add48b05a9f282948566e583bfed65ff7595eb4`
 - Branch-scoped Preview variables: Supabase URL, anon key, and service-role key.
 - No Meta/WhatsApp provider credentials were present. WhatsApp was exercised
   only as same-tab Web simulation; no message was sent.
@@ -122,6 +128,14 @@ Verification:
 - `npm test`, typecheck, lint, and build passed before and after the merge.
 - Never reintroduce the raw-ten-digit or missing-plus workaround.
 
+Email magic-link follow-up found a separate staging Auth configuration issue:
+the Site URL still pointed to localhost. That ENV-CONFIG issue was permanently
+corrected on staging and documented in the migration runbook. It is not an app
+defect. A fresh delivery was then rate-limited, and the one authorized final
+browser-tab recovery failed. Per Darshan's direction, Auth testing stopped and
+remaining authenticated-only coverage is gated to the planned pre-launch Auth
+rebuild.
+
 ## 5. Sale-readiness result
 
 Canonical evidence:
@@ -129,18 +143,28 @@ Canonical evidence:
 
 Overall decision: **NO-GO**.
 
-- 6 of 70 manual checklist lines passed in full.
-- 64 of 70 failed or were only partially exercised.
+- The frozen point-in-time ledger remains 6/70 PASS and 64/70
+  failed/incomplete. Do not rewrite it.
+- The appended burn-down triage closes the runnable public/non-Auth gaps and
+  records **one application defect**: unauthenticated `/settings` renders the
+  protected navigation shell instead of redirecting to login.
+- Coverage remaining after the burn-down is gated: planned Auth rebuild,
+  Meta/provider configuration, production-only A6, migration-018 image scope,
+  Darshan's post-reskin V1/V2 waiver, and explicit fault-injection/network-
+  observability fixtures.
 - The transaction engine itself passed its highest-risk flows: cash/UPI/card/
   khata persistence, overpayment rejection, loyalty accrual, stock movements,
   cross-tenant RPC rejection, negative-stock POS, strict online acceptance,
   SO→invoice, PO→bill, and one storefront checkout.
 - No application-code or schema fix was made during the matrix.
 
-Important incomplete gates include email/onboarding, complete Auth/keyboards,
-IGST/composition/rounding, UPI QR confirmation, image/CSV/AI paths, campaigns
-and WhatsApp negative routes, full storefront themes/errors, direct receipt
-layout capture, pixel comparison, and console/runtime-log evidence.
+Burn-down passes include `/progress` local persistence/reset, Storefront anon
+surface and tracked/untracked mapping, Industrial/Festive dispatch and output,
+Modern search/empty/clear, zero-stock and strict-stock error behavior,
+missing-owner state, direct receipt/print/mobile/no-index rendering, and the
+browser/runtime blocking-error sweep. Unauthenticated WhatsApp routes rejected
+before any provider path; invalid webhook verification/signature requests were
+also rejected.
 
 Repository gates at the tested commit:
 
@@ -149,9 +173,9 @@ Repository gates at the tested commit:
 - `npm run lint`: passed.
 - `npm run build`: passed; 25 routes generated.
 
-The failures are evidence, not an invitation to fix them in the same task.
-Scope follow-up fixes separately and rerun the affected lines plus the full
-high-risk transaction subset.
+The defect and gates are evidence, not an invitation to fix them in the same
+task. Scope `/settings` protection and the Auth rebuild separately, then rerun
+the affected lines plus the full high-risk transaction subset.
 
 ## 6. Locked safety decisions
 
@@ -177,6 +201,9 @@ high-risk transaction subset.
 - Slack milestone channel: `#bharatgrowth`
 - Sale-readiness milestone:
   `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784399937146619`
+- Burn-down docs PR and milestone: pending closeout from
+  `codex/sale-readiness-burndown`; replace this line with the final links before
+  handing off the branch.
 - Milestone messages from this track are signed `— Sol/Codex`.
 
 Update the Google handoff and Slack only for an actual merge, verified gate,
@@ -201,14 +228,16 @@ Stop and report before writes if any of these occur:
 
 ## 9. Recommended next task
 
-Start from the live successor of integration `d74ca83`, verify `main` remains
+Start from the live successor of integration `7add48b`, verify `main` remains
 `8c38909`, read the required documents, and choose one bounded failure cluster
 from `SALE_READINESS_RESULTS.md`. Recommended first clusters are:
 
-1. complete Auth/onboarding negative-path evidence;
-2. billing keyboard + IGST/composition + UPI QR confirmation;
-3. receipt/storefront theme and error-state capture;
-4. campaigns/WhatsApp simulation and negative-route matrix;
+1. rebuild Auth as already planned, then replay A1–A5/A7 and every
+   authenticated-only matrix line;
+2. separately fix and verify DEFECT-01 (`/settings` route protection);
+3. configure a bounded non-sending Meta simulation for the gated campaign and
+   webhook lines;
+4. add explicit fault-injection/network-observability fixtures;
 5. image/AI work only after the migration-018 bucket decision.
 
 Do not begin a production rollout. After a scoped fix, use a branch-scoped
