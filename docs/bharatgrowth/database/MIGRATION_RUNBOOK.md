@@ -1,6 +1,6 @@
 # Supabase Migration Runbook
 
-Last reconciled: 2026-07-18.
+Last reconciled: 2026-07-19.
 
 - Production project ref: `vyycczqhvsgkiqtxxxos`.
 - Decomposition staging project ref: `qokaaggeqahayxsybgds`.
@@ -24,24 +24,24 @@ remote migration history before every database command.
 
 ## Current staging baseline
 
-Verified on 2026-07-18:
+Verified on 2026-07-19:
 
 - CLI link resolves to staging `qokaaggeqahayxsybgds`.
 - Fresh `supabase migration list --linked` returns matching continuous local and
-  remote migrations 001–048.
+  remote migrations 001–049.
 - The staging project was rebuilt from migrations with synthetic/shared test
   data; no production/customer data was copied.
-- Constrained receipt and owner-phone RPCs, tenant isolation outside the known
-  legacy public policies, transactional cases, and migration safety were
-  verified during hardening. Migrations 013/014 anonymous compatibility policies
-  intentionally remain because the current Storefront loader still uses them.
+- Migration 049 removed direct anonymous invoice, invoice-item, and user table
+  reads. The constrained receipt and owner-phone RPCs and the exact Storefront
+  column allowlists remain functional; anonymous direct-table denial and public
+  facade behavior were rechecked during sale-readiness burn-down.
 - Legacy exposed staging credentials are disabled/revoked; no key material is
   recorded here. Remaining credential rotation is a pre-sale owner gate, not a
   decomposition action.
 
-Wave 7 completed without a migration, schema, RLS, grant, policy, or function
-change. Before any migration 049 work, repeat the linked ref and migration-list
-readback and stop on drift.
+Migration 049 was applied to staging and matrix-verified before this checkpoint.
+Production has not received it. Recheck the linked ref and migration-list
+readback before every later database action and stop on drift.
 
 ## Durable staging fixtures
 
@@ -59,33 +59,28 @@ readback and stop on drift.
   hosted fixed-OTP key use the corresponding `91XXXXXXXXXX` country-code
   digits. Keep those two hosted values aligned; a mismatch falls through to the
   external SMS provider instead of using the synthetic OTP.
+- Staging Auth also has a permanent callback fixture. Its Site URL is the stable
+  integration preview alias,
+  `https://bharat-growth-git-codex-pro-fbbd8e-darshan-jahagirdars-projects.vercel.app`,
+  and its redirect allowlist retains `http://localhost:3000/**` for local
+  development plus
+  `https://bharat-growth-*-darshan-jahagirdars-projects.vercel.app/**` for
+  ephemeral integration previews. This configuration is staging-only and is
+  not disposable regression residue; do not restore it during cleanup.
+- Never place that Vercel wildcard on production. Production callback origins
+  require an explicit, narrow release decision.
 
-## Migration 049 staging gate
+## Migration 049 staging result
 
-All seven decomposition waves are merged and staging-smoked at integration
-checkpoint `053abca`. This satisfies only the sequencing prerequisite; it is not
-authorization to write or apply migration 049. After Darshan approves that
-specific scope:
-
-1. Re-read the approved `CODEX_BRIEF.md` and current handoff.
-2. Re-derive production and staging histories; stop if the assumed production
-   pending range is not exact.
-3. Prove every Receipt/Storefront consumer no longer depends on the legacy
-   anonymous table policies. The current browser Storefront loader is a named
-   dependency to resolve or replace in a separately approved behavior-preserving
-   hardening change; do not assume it is already safe.
-4. Write the reviewed contract migration 049 that removes only access proven
-   obsolete by that consumer audit.
-5. Review SQL for destructive statements, grants/policies, function ownership,
-   stable/security-definer attributes, `search_path`, and public shapes.
-6. Run `supabase db push --dry-run` against staging and review every pending
-   statement.
-7. Apply only to staging.
-8. Re-run the complete required database cases and public app smoke. Record exact
-   migration and result evidence.
-
-Do not create migration 049 early in a branch whose ordinary staging push should
-apply only existing history; `supabase db push` applies all pending migrations.
+- PR #12 moved Storefront owner-contact loading to the constrained RPC and was
+  merged at `3cca263`.
+- PR #13 delivered migration 049. Integration reached the post-049 checkpoint
+  `e5147d1`; staging migrations 001–049 are continuous and verified.
+- Anonymous direct reads of `invoices`, `invoice_items`, and `users` are denied.
+  Public receipt, owner contact, Storefront catalog/stock semantics, and checkout
+  remain functional through the constrained contracts.
+- Production remains untouched. This completed staging result is not
+  authorization for a production migration push.
 
 ## Required staging database cases
 
