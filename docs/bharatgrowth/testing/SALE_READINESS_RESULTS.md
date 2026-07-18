@@ -176,4 +176,16 @@ Every checklist line is recorded below. `FAIL` includes incomplete/manual-eviden
 
 ## Release decision
 
+Closeout artifacts completed after the point-in-time matrix ledger was frozen:
+
+- Docs-only PR: `https://github.com/darshan-Jahagirdar/bharat-growth/pull/15`
+- Canonical Google handoff: updated and read back with the NO-GO result, exact
+  staging checkpoint, cleanup, production safety, PR, and next gate.
+- Signed `#bharatgrowth` milestone:
+  `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784399937146619`
+
+V6 remains a historical `FAIL` because those three artifacts were incomplete at
+the time that checklist line was measured; the post-matrix closeout above does
+not retroactively change the recorded regression score.
+
 **NO-GO for production sale readiness.** The high-value transaction engine passed, but 64 checklist lines remain failed or incomplete, including email/onboarding, full keyboard coverage, IGST/composition, UPI QR confirmation, image/CSV/AI paths, campaign/WhatsApp negative routes, all storefront themes/error paths, direct receipt rendering, and visual/runtime-log evidence. Fixes and follow-up verification must be scoped separately; this run made none.

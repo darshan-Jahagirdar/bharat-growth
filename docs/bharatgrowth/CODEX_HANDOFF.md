@@ -53,6 +53,8 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
 - Post-049 integration checkpoint before Auth work: `e5147d1`.
 - PR #14, canonical E.164 India phone normalization, merged into integration as
   `d74ca83` (reviewed head `f0f8f6f`).
+- PR #15 is the open docs-only sale-readiness results/handoff PR from
+  `codex/sale-readiness-results` into integration.
 - Current local documentation branch for this checkpoint:
   `codex/sale-readiness-results`, based on exact `d74ca83`.
 - Production `main` remains exact `8c38909`.
@@ -173,6 +175,8 @@ high-risk transaction subset.
 - Canonical Google handoff:
   `https://docs.google.com/document/d/1pbhmmfvz_RLfqwbcTNkn5BZEJYfeSZzX4iOvf2DLu9I/edit`
 - Slack milestone channel: `#bharatgrowth`
+- Sale-readiness milestone:
+  `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784399937146619`
 - Milestone messages from this track are signed `— Sol/Codex`.
 
 Update the Google handoff and Slack only for an actual merge, verified gate,
