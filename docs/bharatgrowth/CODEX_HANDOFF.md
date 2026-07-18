@@ -201,9 +201,10 @@ the affected lines plus the full high-risk transaction subset.
 - Slack milestone channel: `#bharatgrowth`
 - Sale-readiness milestone:
   `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784399937146619`
-- Burn-down docs PR and milestone: pending closeout from
-  `codex/sale-readiness-burndown`; replace this line with the final links before
-  handing off the branch.
+- Burn-down docs-only PR:
+  `https://github.com/darshan-Jahagirdar/bharat-growth/pull/16`
+- Signed burn-down milestone:
+  `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784406156886699`
 - Milestone messages from this track are signed `— Sol/Codex`.
 
 Update the Google handoff and Slack only for an actual merge, verified gate,

@@ -314,7 +314,7 @@ gates are called out explicitly.
 | V1 | GATED — visual waiver | GATED — Darshan explicitly waives V1 until after the reskin. |
 | V2 | GATED — visual waiver | GATED — Darshan explicitly waives V2 until after the reskin. |
 | V3 | PARTIAL | **PASS.** Public/login/progress/Storefront/receipt browser-console sweep had zero entries. Exact-preview error logs contained one non-blocking `refresh_token_not_found` from the abandoned Auth flow; it returned HTTP 200 and login still rendered. No blocking runtime error was present. |
-| V6 | PARTIAL | PENDING CLOSEOUT — repository docs are being committed; the docs-only PR, Google readback, and one signed Slack milestone complete this line. |
+| V6 | PARTIAL | **PASS.** Docs-only PR #16 is open into integration; the canonical Google handoff was updated and read back; exactly one signed `#bharatgrowth` burn-down milestone was posted. |
 
 ### Confirmed defect
 
@@ -344,3 +344,12 @@ gates are called out explicitly.
   fault-injection/network-observability fixtures.
 - **Production remains NO-GO.** This burn-down reduced runnable evidence gaps;
   it did not authorize a release or fix the recorded defect.
+
+Closeout links:
+
+- Docs-only PR #16:
+  `https://github.com/darshan-Jahagirdar/bharat-growth/pull/16`
+- Signed `#bharatgrowth` milestone:
+  `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784406156886699`
+- Canonical Google handoff was updated and read back at the document already
+  linked in `CODEX_HANDOFF.md`.
