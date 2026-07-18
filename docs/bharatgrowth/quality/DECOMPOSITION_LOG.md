@@ -914,6 +914,10 @@
   integration only. `quality`, `public-smoke`, Vercel, and Vercel Preview
   Comments passed. Deployment `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` is READY,
   Preview-only, and exact branch/head, but is not valid staging evidence.
+- Blocker-record commit `533a1f1` also passed those same automatically started
+  checks once; its exact READY/Preview-only deployment is
+  `dpl_2rpPncpEuYU2LzTWMKrk4ep7oDCv`. The final handoff-document commit advances
+  the PR again, so the next session must re-derive its exact head and deployment.
 - Preview isolation is blocked: the docs branch has zero branch-scoped Vercel
   variables, and the integration branch's three sensitive staging values could
   not be duplicated with the available safe CLI/API paths without

@@ -175,9 +175,11 @@ Supabase tree beneath it must remain identical to `053abca`.
   pass. It is not permission to merge or touch production.
 - PRs #2–#10 are the completed foundation/decomposition/handoff history. Draft
   PR [#11](https://github.com/darshan-Jahagirdar/bharat-growth/pull/11) is the
-  documentation-only post-Wave 7 handoff branch targeting integration. Its
-  exact head is `57188229db4991e4c3d545dbe975c2dccc396158`; all four normal
-  checks pass. It remains draft and must not merge while the preview-isolation
+  documentation-only post-Wave 7 handoff branch targeting integration. It
+  opened at `5718822`; blocker record `533a1f1` then passed all four normal
+  checks. This file's final documentation commit necessarily advances the PR,
+  so re-derive its exact head/checks rather than treating either predecessor as
+  current. It remains draft and must not merge while the preview-isolation
   blocker below is unresolved or explicitly waived by Darshan.
 
 ### Supabase
@@ -221,9 +223,11 @@ Supabase tree beneath it must remain identical to `053abca`.
 
 ### Open documentation-preview blocker — PR #11
 
-- PR #11 deployment `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` is `READY`, Preview-
-  only (`target: null`), and exact branch/commit
-  `codex/prepare-post-wave7-handoff` / `5718822`.
+- Blocker-record deployment `dpl_2rpPncpEuYU2LzTWMKrk4ep7oDCv` is `READY`,
+  Preview-only (`target: null`), and exact branch/commit
+  `codex/prepare-post-wave7-handoff` / `533a1f1`. Initial docs deployment
+  `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` is also retained. This file's final commit
+  creates another exact-head deployment; re-derive it.
 - GitHub `quality`, `public-smoke`, Vercel, and Vercel Preview Comments passed
   on that exact head. These are valid docs-branch/build/route-health facts; they
   do not prove Supabase staging isolation.
@@ -458,14 +462,15 @@ Use this continuation prompt after opening a fresh task:
 > integration preview is READY, Preview-only, staging-wired, and that temporary
 > `codex/decompose-data-access` variables remain absent.
 >
-> Re-derive draft PR #11 and its documentation-preview blocker. At handoff it
-> pointed to docs-only head `5718822`; all checks passed, deployment
-> `dpl_4jNQ2wEhyDuGVUqPZbm5GZEp1rAy` was READY/Preview-only, and final cleanup
-> left zero branch-scoped variables and no temporary process/path. No value was
-> displayed, logged, or inspected; an unexpected temporary OIDC file was
-> deleted unread. The deployment is not staging evidence. Do not make PR #11
-> ready or merge it unless staging isolation is safely established on a new
-> exact-head deployment or Darshan explicitly waives that docs-only gate.
+> Re-derive draft PR #11 and its documentation-preview blocker. Verified
+> predecessor `533a1f1` passed all checks with READY/Preview-only deployment
+> `dpl_2rpPncpEuYU2LzTWMKrk4ep7oDCv`; this handoff's final documentation commit
+> necessarily advances both pointers. Final cleanup left zero branch-scoped
+> variables and no temporary process/path. No value was displayed, logged, or
+> inspected; an unexpected temporary OIDC file was deleted unread. No PR #11
+> deployment is staging evidence. Do not make the PR ready or merge it unless
+> staging isolation is safely established on a new exact-head deployment or
+> Darshan explicitly waives that docs-only gate.
 >
 > Treat `FEATURE_AND_BEHAVIOR_INVENTORY.md` as the product-preservation
 > contract. Preserve the Wave 7 compatibility facades and exact query-shape
