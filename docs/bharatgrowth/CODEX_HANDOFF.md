@@ -5,9 +5,9 @@ Owner: Darshan
 Maintainer signature: Sol/Codex
 
 This is the canonical operating handoff for BharatGrowth. It records the exact
-post-migration-049, post-Auth-normalization, post-sale-readiness checkpoint. It
-does not authorize production access, a production rollout, or fixes for the
-recorded sale-readiness failures.
+post-migration-049, post-Auth-normalization, post-sale-readiness closeout
+checkpoint. It does not authorize production access, external-gate work, or a
+production rollout.
 
 ## 1. Product and branch model
 
@@ -19,13 +19,14 @@ campaigns, analytics, a public storefront, online checkout, and public receipts.
 - Production Git checkpoint: `8c389098db7e31180b5bdd6f1661adfd4bdc902b`
 - Immutable fallback tag: `pre-hardening-8c38909`
 - Integration/staging branch: `codex/production-hardening-baseline`
-- Current verified integration commit: `7add48b05a9f282948566e583bfed65ff7595eb4`
+- Current verified integration software commit:
+  `c6ac481756b48da7cb8b9be85c5eb54a955a9ab3`
 - New work branches from a freshly verified remote integration SHA and PRs only
   back to integration unless Darshan separately authorizes production.
 
 Production remained untouched throughout migrations 049, Auth normalization,
-and the sale-readiness matrix. No production Supabase or Vercel endpoint was
-accessed.
+the sale-readiness matrix, and closeout. No production Supabase or Vercel
+endpoint was accessed.
 
 ## 2. Required reading order
 
@@ -55,8 +56,11 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   `d74ca83` (reviewed head `f0f8f6f`).
 - PR #15, the frozen sale-readiness ledger, merged into integration as
   `7add48b`.
-- Current burn-down documentation branch:
-  `codex/sale-readiness-burndown`, based on exact `7add48b`.
+- PR #16, the sale-readiness burn-down and triage addendum, squash-merged into
+  integration as `43cae2e` (reviewed head `ed146357`).
+- PR #17, the `/settings` authentication guard, squash-merged into integration
+  as `c6ac481` (reviewed head `f01f921`).
+- Current verified integration software checkpoint: `c6ac481`.
 - Production `main` remains exact `8c38909`.
 
 Before any new write, re-fetch and compare remote integration, remote main,
@@ -85,17 +89,19 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 
 ### Vercel staging preview
 
-The exact preview used for the sale-readiness burn-down was:
+The exact post-merge integration preview verified at sale-readiness closeout is:
 
-- Deployment ID: `dpl_DrQt7XfU3z18aKEVoZ6f4a7fYDha`
+- Deployment ID: `dpl_HGFd9jsuihW51NUnFwttpza7qeU3`
 - URL:
-  `https://bharat-growth-5woo5mp3z-darshan-jahagirdars-projects.vercel.app`
+  `https://bharat-growth-r0d28delj-darshan-jahagirdars-projects.vercel.app`
 - Stable alias:
   `https://bharat-growth-git-codex-pro-fbbd8e-darshan-jahagirdars-projects.vercel.app`
 - State/type/region: READY / Preview / `bom1`
 - Git branch/SHA: `codex/production-hardening-baseline` /
-  `7add48b05a9f282948566e583bfed65ff7595eb4`
+  `c6ac481756b48da7cb8b9be85c5eb54a955a9ab3`
 - Branch-scoped Preview variables: Supabase URL, anon key, and service-role key.
+- Compiled login bundles contain staging ref `qokaaggeqahayxsybgds` and no
+  production ref.
 - No Meta/WhatsApp provider credentials were present. WhatsApp was exercised
   only as same-tab Web simulation; no message was sent.
 
@@ -133,25 +139,32 @@ the Site URL still pointed to localhost. That ENV-CONFIG issue was permanently
 corrected on staging and documented in the migration runbook. It is not an app
 defect. A fresh delivery was then rate-limited, and the one authorized final
 browser-tab recovery failed. Per Darshan's direction, Auth testing stopped and
-remaining authenticated-only coverage is gated to the planned pre-launch Auth
-rebuild.
+the completed sale-readiness closeout does not carry a separate Auth rebuild as
+a launch blocker. Remaining launch work is limited to the external-gate queue
+in section 9.
 
 ## 5. Sale-readiness result
 
 Canonical evidence:
 `docs/bharatgrowth/testing/SALE_READINESS_RESULTS.md`.
 
-Overall decision: **NO-GO**.
+Overall decision: **SALE-READINESS COMPLETE — SOFTWARE LAUNCH-READY**.
 
-- The frozen point-in-time ledger remains 6/70 PASS and 64/70
-  failed/incomplete. Do not rewrite it.
-- The appended burn-down triage closes the runnable public/non-Auth gaps and
-  records **one application defect**: unauthenticated `/settings` renders the
-  protected navigation shell instead of redirecting to login.
-- Coverage remaining after the burn-down is gated: planned Auth rebuild,
-  Meta/provider configuration, production-only A6, migration-018 image scope,
-  Darshan's post-reskin V1/V2 waiver, and explicit fault-injection/network-
-  observability fixtures.
+- The frozen point-in-time ledger remains historical evidence and must not be
+  rewritten.
+- The burn-down closed the runnable staging coverage and found **one application
+  defect**: unauthenticated `/settings` rendered the protected shell.
+- That defect is fixed by PR
+  [#17](https://github.com/darshan-Jahagirdar/bharat-growth/pull/17):
+  `/settings` now uses the established protected-route redirect to
+  `/login?next=/settings`, with focused unauthenticated and authenticated
+  coverage plus exact-head staging Preview verification.
+- Remaining pre-launch work is external gates only: Meta configuration and
+  templates, the production monitoring test event, rate limiting, key rotation,
+  and the migration-018 bucket decision. After those gates, the only remaining
+  launch action is the single approved staged-then-production rollout.
+- Darshan's V1/V2 visual waiver remains recorded until the post-reskin pass and
+  does not block this software sale-readiness closeout.
 - The transaction engine itself passed its highest-risk flows: cash/UPI/card/
   khata persistence, overpayment rejection, loyalty accrual, stock movements,
   cross-tenant RPC rejection, negative-stock POS, strict online acceptance,
@@ -168,14 +181,14 @@ also rejected.
 
 Repository gates at the tested commit:
 
-- `npm test`: 30 files / 143 tests passed.
+- `npm test`: 31 files / 145 tests passed.
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run build`: passed; 25 routes generated.
 
-The defect and gates are evidence, not an invitation to fix them in the same
-task. Scope `/settings` protection and the Auth rebuild separately, then rerun
-the affected lines plus the full high-risk transaction subset.
+The `/settings` defect was fixed under its separately approved scope and merged
+only after local gates and authenticated/unauthenticated staging verification.
+This closeout does not authorize any remaining external gate or rollout action.
 
 ## 6. Locked safety decisions
 
@@ -203,6 +216,8 @@ the affected lines plus the full high-risk transaction subset.
   `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784399937146619`
 - Burn-down docs-only PR:
   `https://github.com/darshan-Jahagirdar/bharat-growth/pull/16`
+- `/settings` auth-guard PR:
+  `https://github.com/darshan-Jahagirdar/bharat-growth/pull/17`
 - Signed burn-down milestone:
   `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784406156886699`
 - Milestone messages from this track are signed `— Sol/Codex`.
@@ -229,18 +244,16 @@ Stop and report before writes if any of these occur:
 
 ## 9. Recommended next task
 
-Start from the live successor of integration `7add48b`, verify `main` remains
-`8c38909`, read the required documents, and choose one bounded failure cluster
-from `SALE_READINESS_RESULTS.md`. Recommended first clusters are:
+Start from the live successor of integration `c6ac481`, verify `main` remains
+`8c38909`, and scope each remaining external gate separately with fresh Darshan
+approval:
 
-1. rebuild Auth as already planned, then replay A1–A5/A7 and every
-   authenticated-only matrix line;
-2. separately fix and verify DEFECT-01 (`/settings` route protection);
-3. configure a bounded non-sending Meta simulation for the gated campaign and
-   webhook lines;
-4. add explicit fault-injection/network-observability fixtures;
-5. image/AI work only after the migration-018 bucket decision.
+1. Meta configuration and approved templates;
+2. the production monitoring test event;
+3. rate limiting;
+4. key rotation;
+5. the migration-018 storage-bucket decision;
+6. only after those gates, the single approved staged-then-production rollout.
 
-Do not begin a production rollout. After a scoped fix, use a branch-scoped
-staging preview, synthetic fixtures, zero-count cleanup readback, and a separate
-docs-only handoff update.
+Do not start any of these items from this closeout task. Each requires its own
+target, safety checks, evidence, cleanup or rollback plan, and explicit approval.
