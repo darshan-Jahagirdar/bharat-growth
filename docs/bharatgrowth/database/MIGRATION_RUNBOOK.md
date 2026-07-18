@@ -43,6 +43,18 @@ Wave 7 completed without a migration, schema, RLS, grant, policy, or function
 change. Before any migration 049 work, repeat the linked ref and migration-list
 readback and stop on drift.
 
+## Durable staging fixtures
+
+- Staging intentionally contains one persistent synthetic `public.users` owner
+  fixture. It links the single user-owned staging Auth identity to one seeded
+  shop, is active, and has a synthetic phone value so the owner-phone RPC and
+  WhatsApp storefront state can be regression-tested.
+- This fixture is shared verification infrastructure for migration 049 and the
+  sale-readiness regression. It is not disposable test residue: do not clean it
+  up during ordinary preview, migration, or handoff housekeeping.
+- The fixture contains no production or customer data. Keep its identity, shop
+  identifier, and phone value out of logs and documentation.
+
 ## Migration 049 staging gate
 
 All seven decomposition waves are merged and staging-smoked at integration
