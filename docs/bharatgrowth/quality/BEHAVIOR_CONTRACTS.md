@@ -53,8 +53,9 @@ PR.
 
 ## Authentication, tenancy, and time
 
-- Phone OTP and email magic link remain supported with current redirects and OTP
-  input behavior.
+- Phone and email OTP remain supported with six-digit entry, resend, and current
+  post-auth routing. Email OTP verification uses the normalized email, token,
+  and Supabase type `email`; it does not depend on `/auth/callback`.
 - The phone field visibly renders a `+91` prefix, accepts ten local digits, and
   `useAuth.sendOtp` sends canonical `+91XXXXXXXXXX` E.164 to Supabase. Send,
   verify, and resend reuse that exact request value. Supabase Auth normalizes it
