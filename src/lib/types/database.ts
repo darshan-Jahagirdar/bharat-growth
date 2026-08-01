@@ -74,6 +74,9 @@ export interface Shop {
   theme_preference: ThemePreference;
   primary_color: string;
   monthly_ai_scans: number;
+  campaigns_approved: boolean;
+  campaigns_approved_at: string | null;
+  campaigns_approval_requested_at: string | null;
   settings: Record<string, unknown>;
   created_at: string;
   updated_at: string;

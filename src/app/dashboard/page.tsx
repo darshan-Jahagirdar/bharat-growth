@@ -67,6 +67,7 @@ export default function DashboardPage() {
         {dashboard.data && (
           <>
             <DashboardMetrics
+              campaignsApproved={dashboard.campaignsApproved}
               data={dashboard.data}
               periodLabel={periodLabel}
             />

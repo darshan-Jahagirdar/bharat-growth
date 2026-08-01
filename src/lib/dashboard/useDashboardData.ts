@@ -17,6 +17,7 @@ export function useDashboardData() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [shopName, setShopName] = useState('My Shop');
+  const [campaignsApproved, setCampaignsApproved] = useState<boolean | null>(null);
   const [datePreset, setDatePreset] = useState<DatePreset>('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -43,11 +44,14 @@ export function useDashboardData() {
       const supabase = createClient();
       const { data: shop } = await supabase
         .from('shops')
-        .select('business_name')
+        .select('business_name, campaigns_approved')
         .eq('id', shopId)
         .single();
 
-      if (shop) setShopName(shop.business_name);
+      if (shop) {
+        setShopName(shop.business_name);
+        setCampaignsApproved(shop.campaigns_approved === true);
+      }
     }
 
     loadShop();
@@ -68,6 +72,7 @@ export function useDashboardData() {
   }, [shopId, datePreset, customStart, customEnd, buildDateRange]);
 
   return {
+    campaignsApproved,
     customEnd,
     customStart,
     data,

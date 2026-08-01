@@ -8,6 +8,20 @@ function migration(name: string): string {
   return readFileSync(resolve(process.cwd(), 'supabase/migrations', name), 'utf8');
 }
 
+function campaignMatchFunction(sql: string): string {
+  const signature = 'CREATE OR REPLACE FUNCTION find_campaign_matches';
+  const finalGrant =
+    'GRANT EXECUTE ON FUNCTION find_campaign_matches(integer) TO service_role;';
+  const start = sql.indexOf(signature);
+  const end = sql.indexOf(finalGrant, start);
+
+  if (start === -1 || end === -1) {
+    throw new Error('find_campaign_matches definition is incomplete');
+  }
+
+  return sql.slice(start, end + finalGrant.length);
+}
+
 describe('migration release safety', () => {
   it('keeps migration 011 neutralized for fresh databases', () => {
     const sql = migration('011_dev_auth_user.sql');
@@ -72,5 +86,72 @@ describe('migration release safety', () => {
     expect(sql).not.toMatch(
       /campaign_rules|message_logs|find_campaign_matches|get_retention_stats/i
     );
+  });
+
+  it('defaults campaign sending off and protects the manual approval decision', () => {
+    const sql = migration('051_campaign_approval_gate.sql');
+    const guardStart = sql.indexOf(
+      'CREATE OR REPLACE FUNCTION public.prevent_shop_campaign_approval_mutation()'
+    );
+    const guardEnd = sql.indexOf('$$ LANGUAGE plpgsql SET search_path = public;', guardStart);
+    const guard = sql.slice(guardStart, guardEnd);
+
+    expect(sql).toMatch(
+      /ADD COLUMN campaigns_approved boolean NOT NULL DEFAULT false/i
+    );
+    expect(sql).toMatch(/ADD COLUMN campaigns_approved_at timestamptz/i);
+    expect(sql).toMatch(
+      /ADD COLUMN campaigns_approval_requested_at timestamptz/i
+    );
+    expect(sql).toMatch(
+      /current_user IN \('anon', 'authenticated'\)/i
+    );
+    expect(guard).toMatch(
+      /NEW\.campaigns_approved IS DISTINCT FROM OLD\.campaigns_approved/i
+    );
+    expect(guard).toMatch(
+      /NEW\.campaigns_approved_at IS DISTINCT FROM OLD\.campaigns_approved_at/i
+    );
+    expect(guard).not.toMatch(/campaigns_approval_requested_at/i);
+    expect(sql).toMatch(
+      /BEFORE UPDATE OF campaigns_approved, campaigns_approved_at ON public\.shops/i
+    );
+    expect(guard).toMatch(/RAISE EXCEPTION USING/i);
+    expect(sql).toMatch(/ERRCODE = '42501'/i);
+  });
+
+  it('changes only the approved-shop join inside find_campaign_matches', () => {
+    const migration037 = campaignMatchFunction(
+      migration('037_find_campaign_matches_rpc.sql')
+    );
+    const migration051 = campaignMatchFunction(
+      migration('051_campaign_approval_gate.sql')
+    );
+    const approvalJoin = '\n     AND s.campaigns_approved = true';
+
+    expect(migration051).toContain(
+      'JOIN shops s  ON s.id = cr.shop_id' + approvalJoin
+    );
+    expect(migration051.replace(approvalJoin, '')).toBe(migration037);
+  });
+
+  it('keeps the migration 051 staging fixture isolated and rollback-backed', () => {
+    const sql = readFileSync(
+      resolve(
+        process.cwd(),
+        'supabase/tests/051_campaign_approval_gate.sql'
+      ),
+      'utf8'
+    );
+
+    expect(sql).toMatch(/qokaaggeqahayxsybgds/i);
+    expect(sql).toMatch(/supabase db query --linked/i);
+    expect(sql).not.toMatch(/\\set|\\if|\\gset|\\quit/i);
+    expect(sql).toMatch(/v_token\s+text := 'wave-b-051-' \|\| gen_random_uuid\(\)::text/i);
+    expect(sql).toMatch(/BEGIN;[\s\S]+ROLLBACK;/i);
+    expect(sql).toMatch(/WHERE id = v_shop_id[\s\S]+settings->>'fixture' = v_token/i);
+    expect(sql).toMatch(/v_unapproved_count <> 0/i);
+    expect(sql).toMatch(/v_approved_count <> 1/i);
+    expect(sql).toMatch(/fixture cleanup readback found residual rows/i);
   });
 });

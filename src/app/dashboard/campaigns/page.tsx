@@ -33,6 +33,11 @@ interface CampaignRule {
   tags: { name: string } | { name: string }[] | null;
 }
 
+interface CampaignApproval {
+  campaigns_approved: boolean;
+  campaigns_approval_requested_at: string | null;
+}
+
 function tagName(rule: CampaignRule): string {
   if (!rule.tags) return '—';
   if (Array.isArray(rule.tags)) return rule.tags[0]?.name ?? '—';
@@ -57,10 +62,12 @@ export default function CampaignsPage() {
   const [shopId, setShopId] = useState<string>('');
   const [rules, setRules] = useState<CampaignRule[]>([]);
   const [stats, setStats] = useState<RetentionStats | null>(null);
+  const [approval, setApproval] = useState<CampaignApproval | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [requestingApproval, setRequestingApproval] = useState(false);
 
   const supabase = createClient();
 
@@ -74,10 +81,15 @@ export default function CampaignsPage() {
     });
   }, [supabase]);
 
-  // ── Load rules + stats ──
+  // ── Load approval + rules + stats ──
   const loadData = useCallback(async () => {
     if (!shopId) return;
-    const [rulesResult, statsResult] = await Promise.all([
+    const [approvalResult, rulesResult, statsResult] = await Promise.all([
+      supabase
+        .from('shops')
+        .select('campaigns_approved, campaigns_approval_requested_at')
+        .eq('id', shopId)
+        .single(),
       supabase
         .from('campaign_rules')
         .select('id, name, trigger_days, template_key, custom_variable, is_active, tags(name)')
@@ -85,6 +97,16 @@ export default function CampaignsPage() {
         .order('created_at'),
       fetchRetentionStats(shopId),
     ]);
+
+    if (approvalResult.error || !approvalResult.data) {
+      setError(
+        `Failed to load campaign approval: ${
+          approvalResult.error?.message ?? 'Shop not found'
+        }`
+      );
+    } else {
+      setApproval(approvalResult.data as CampaignApproval);
+    }
 
     if (rulesResult.error) {
       setError(`Failed to load campaigns: ${rulesResult.error.message}`);
@@ -123,7 +145,13 @@ export default function CampaignsPage() {
       setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, is_active: !next } : r)));
       setError(`Failed to update campaign: ${updateErr.message}`);
     } else {
-      setSuccess(next ? `"${rule.name}" is now live.` : `"${rule.name}" paused.`);
+      setSuccess(
+        next
+          ? approval?.campaigns_approved
+            ? `"${rule.name}" is now live.`
+            : `"${rule.name}" enabled. Sending will start after campaign approval.`
+          : `"${rule.name}" paused.`
+      );
     }
   }
 
@@ -140,10 +168,38 @@ export default function CampaignsPage() {
     if (updateErr) {
       setError(`Failed to enable campaigns: ${updateErr.message}`);
     } else {
-      setSuccess('All campaigns enabled. Reminders go out automatically.');
+      setSuccess(
+        approval?.campaigns_approved
+          ? 'All campaigns enabled. Reminders go out automatically.'
+          : 'All campaigns enabled. Sending will start after campaign approval.'
+      );
       await loadData();
     }
     setBusy(false);
+  }
+
+  // ── Request manual campaign approval ──
+  async function requestCampaignApproval() {
+    if (requestingApproval || !approval || approval.campaigns_approved) return;
+
+    setRequestingApproval(true);
+    setError(null);
+    const requestedAt = new Date().toISOString();
+    const { error: updateErr } = await supabase
+      .from('shops')
+      .update({ campaigns_approval_requested_at: requestedAt })
+      .eq('id', shopId);
+
+    if (updateErr) {
+      setError(`Failed to request campaign approval: ${updateErr.message}`);
+    } else {
+      setApproval((current) =>
+        current
+          ? { ...current, campaigns_approval_requested_at: requestedAt }
+          : current
+      );
+    }
+    setRequestingApproval(false);
   }
 
   // ── Retrofit: create recommended defaults ──
@@ -199,6 +255,44 @@ export default function CampaignsPage() {
             </button>
           )}
         </div>
+
+        {/* ── Campaign sending approval ── */}
+        {approval && !approval.campaigns_approved && (
+          <div className="px-4 py-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm">
+            {approval.campaigns_approval_requested_at ? (
+              <>
+                <div className="font-semibold text-amber-300">Campaign approval pending</div>
+                <p className="text-xs text-amber-100/70 mt-1">
+                  You can still create recommended campaigns, use Enable all, and switch
+                  individual rules on or off while you wait. WhatsApp campaign messages will
+                  start only after BharatGrowth approves this shop.
+                </p>
+              </>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1">
+                  <div className="font-semibold text-amber-300">
+                    Campaign approval required before sending
+                  </div>
+                  <p className="text-xs text-amber-100/70 mt-1">
+                    You can create recommended campaigns, use Enable all, and switch individual
+                    rules on or off now. WhatsApp campaign messages will not send until
+                    BharatGrowth approves this shop.
+                  </p>
+                </div>
+                <button
+                  onClick={requestCampaignApproval}
+                  disabled={requestingApproval}
+                  className="inline-flex items-center justify-center px-4 py-2.5 bg-amber-500
+                             hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-sm
+                             font-semibold rounded-lg transition-colors flex-shrink-0"
+                >
+                  {requestingApproval ? 'Requesting…' : 'Request campaign approval'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Flash messages ── */}
         {error && (

@@ -149,6 +149,9 @@ CREATE TABLE shops (
                           ),
   subscription_valid_until timestamptz,
   e_invoicing_enabled     boolean NOT NULL DEFAULT false,
+  campaigns_approved      boolean NOT NULL DEFAULT false,
+  campaigns_approved_at   timestamptz,
+  campaigns_approval_requested_at timestamptz,
   settings                jsonb NOT NULL DEFAULT '{}',
   created_at              timestamptz NOT NULL DEFAULT now(),
   updated_at              timestamptz NOT NULL DEFAULT now()
@@ -156,6 +159,30 @@ CREATE TABLE shops (
 
 CREATE UNIQUE INDEX idx_shops_gstin ON shops (gstin) WHERE gstin IS NOT NULL;
 CREATE INDEX idx_shops_business_type ON shops (business_type);
+
+CREATE OR REPLACE FUNCTION prevent_shop_campaign_approval_mutation()
+RETURNS trigger AS $$
+BEGIN
+  IF current_user IN ('anon', 'authenticated')
+     AND (
+       NEW.campaigns_approved IS DISTINCT FROM OLD.campaigns_approved
+       OR NEW.campaigns_approved_at IS DISTINCT FROM OLD.campaigns_approved_at
+     ) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = '42501',
+      MESSAGE = 'campaign approval is managed by BharatGrowth and cannot be changed by shop users';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+REVOKE ALL ON FUNCTION prevent_shop_campaign_approval_mutation()
+  FROM PUBLIC, anon, authenticated;
+
+CREATE TRIGGER prevent_shop_campaign_approval_mutation
+  BEFORE UPDATE OF campaigns_approved, campaigns_approved_at ON shops
+  FOR EACH ROW EXECUTE FUNCTION prevent_shop_campaign_approval_mutation();
 
 CREATE TRIGGER set_shops_updated_at
   BEFORE UPDATE ON shops
