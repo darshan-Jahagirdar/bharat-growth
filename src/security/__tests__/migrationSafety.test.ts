@@ -267,4 +267,109 @@ describe('migration release safety', () => {
     );
     expect(sql).not.toMatch(/AND inv\.id IS NOT NULL/i);
   });
+
+  it('makes visit capture and acknowledgement replay-safe without weakening Wave C boundaries', () => {
+    const sql = migration('053_visit_capture_and_acknowledgement_idempotency.sql');
+    const visitRpcStart = sql.indexOf(
+      'CREATE FUNCTION public.log_customer_visit'
+    );
+    const visitRpcEnd = sql.indexOf(
+      'REVOKE ALL ON FUNCTION public.log_customer_visit',
+      visitRpcStart
+    );
+    const visitRpc = sql.slice(visitRpcStart, visitRpcEnd);
+    const replayLookup = visitRpc.indexOf(
+      'WHERE cv.shop_id = p_shop_id\n    AND cv.request_id = p_request_id'
+    );
+    const customerMutation = visitRpc.indexOf(
+      'INSERT INTO public.customers'
+    );
+    const claimRpcStart = sql.indexOf(
+      'CREATE FUNCTION public.claim_visit_acknowledgement'
+    );
+    const claimRpcEnd = sql.indexOf(
+      'REVOKE ALL ON FUNCTION public.claim_visit_acknowledgement',
+      claimRpcStart
+    );
+    const claimRpc = sql.slice(claimRpcStart, claimRpcEnd);
+
+    expect(sql.trimStart()).toMatch(/^--[\s\S]*\bBEGIN;/i);
+    expect(sql.trimEnd()).toMatch(/COMMIT;$/i);
+    expect(sql).toMatch(
+      /ALTER TABLE public\.customer_visits\s+ADD COLUMN request_id uuid/i
+    );
+    expect(sql).toMatch(
+      /CREATE UNIQUE INDEX customer_visits_shop_request_uidx\s+ON public\.customer_visits \(shop_id, request_id\)\s+WHERE request_id IS NOT NULL/i
+    );
+    expect(sql).toMatch(
+      /CREATE INDEX idx_customer_visits_shop_created_at\s+ON public\.customer_visits \(shop_id, created_at\)/i
+    );
+    expect(sql).toMatch(
+      /DROP FUNCTION public\.log_customer_visit\(uuid, text, text, uuid, boolean\)/i
+    );
+    expect(sql).toMatch(
+      /CREATE FUNCTION public\.log_customer_visit\(\s*p_shop_id\s+uuid,\s*p_request_id\s+uuid,/i
+    );
+    expect(visitRpc).toMatch(
+      /PERFORM public\.assert_authenticated_shop\(p_shop_id\)/i
+    );
+    expect(visitRpc).toMatch(/p_request_id IS NULL/i);
+    expect(visitRpc).toMatch(/pg_advisory_xact_lock/i);
+    expect(replayLookup).toBeGreaterThan(-1);
+    expect(customerMutation).toBeGreaterThan(replayLookup);
+    expect(visitRpc).toMatch(
+      /'idempotent_replay', v_idempotent_replay/i
+    );
+    expect(visitRpc).toMatch(
+      /INSERT INTO public\.customer_visits \(\s*shop_id,\s*customer_id,\s*tag_id,\s*request_id/i
+    );
+    expect(visitRpc).toMatch(/v_points_awarded\s+constant integer := 1/i);
+    expect(visitRpc).not.toMatch(
+      /p_(amount|price|points)|invoice_items|inventory_movements/i
+    );
+    expect(sql).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.log_customer_visit\(\s*uuid,\s*uuid,\s*text,\s*text,\s*uuid,\s*boolean\s*\) TO authenticated/i
+    );
+
+    expect(sql).toMatch(
+      /CREATE TABLE public\.visit_acknowledgement_claims[\s\S]+visit_id\s+uuid NOT NULL UNIQUE/i
+    );
+    expect(sql).toMatch(
+      /ALTER TABLE public\.visit_acknowledgement_claims ENABLE ROW LEVEL SECURITY/i
+    );
+    expect(sql).toMatch(
+      /ALTER TABLE public\.visit_acknowledgement_claims FORCE ROW LEVEL SECURITY/i
+    );
+    expect(sql).toMatch(
+      /REVOKE ALL ON TABLE public\.visit_acknowledgement_claims\s+FROM PUBLIC, anon, authenticated/i
+    );
+    expect(sql).toMatch(
+      /REVOKE ALL ON TABLE public\.visit_acknowledgement_claims\s+FROM service_role/i
+    );
+    expect(sql).toMatch(
+      /GRANT SELECT, DELETE ON TABLE public\.visit_acknowledgement_claims\s+TO service_role/i
+    );
+    expect(sql).not.toMatch(
+      /GRANT [^;]*INSERT[^;]*ON TABLE public\.visit_acknowledgement_claims/i
+    );
+    expect(claimRpc).toMatch(
+      /v_campaigns_approved IS DISTINCT FROM true/i
+    );
+    expect(claimRpc).toMatch(
+      /v_marketing_consent IS DISTINCT FROM true/i
+    );
+    expect(claimRpc).toMatch(
+      /ON CONFLICT \(visit_id\) DO NOTHING/i
+    );
+    expect(claimRpc).not.toMatch(/INSERT INTO public\.message_logs/i);
+    expect(sql).toMatch(
+      /REVOKE ALL ON FUNCTION public\.claim_visit_acknowledgement\(uuid, uuid\)\s+FROM PUBLIC, anon, authenticated/i
+    );
+    expect(sql).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.claim_visit_acknowledgement\(uuid, uuid\)\s+TO service_role/i
+    );
+    expect(sql).not.toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.claim_visit_acknowledgement\(uuid, uuid\)\s+TO (anon|authenticated)/i
+    );
+  });
 });

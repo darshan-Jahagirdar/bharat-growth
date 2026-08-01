@@ -172,7 +172,10 @@ CREATE TABLE customer_visits (
 );
 ```
 
-No amount column exists and none may be added. RLS mirrors `customers`.
+No amount column exists and none may be added. Authenticated users may read
+their shop's visits, but cannot insert, update, or delete them directly. The
+tenant-scoped `log_customer_visit` RPC validates customer and tag ownership and
+is the only application write path; visits remain append-only.
 
 ### Attribution generalisation
 
@@ -234,14 +237,55 @@ invoice.
 
 ### Capture UX
 
-A **Visit** button on the billing screen. First time for a customer: phone,
-optional name, optional interest tag. Every subsequent visit: one tap on the
-existing customer. Consent uses the same capture the billing flow already has.
+A secondary **Visit** action in the billing header (`F6`). First time for a
+customer: phone, optional name, optional interest tag. Every subsequent visit:
+one tap on the existing customer. The modal owns a separate instance of the
+existing characterized customer search and never reads or changes the bill
+draft. Consent uses the same explicit, default-off capture as billing:
+
+> Customer agreed to receive purchase acknowledgements, loyalty updates, and
+> offers on WhatsApp
+
+The helper makes clear that consent is optional and may be withdrawn.
 
 The customer receives a thank-you with their points balance — this is the value
 exchange that makes both the customer accept being logged and the shopkeeper's
 tap feel productive. It is a WhatsApp utility message (~₹0.145 each); at 100
 visits/day that is ~₹435/month per shop and belongs in the COGS model.
+
+### Capture and acknowledgement replay safety
+
+The visit RPC requires a caller-generated request UUID, unique per shop. A
+replay returns the original visit before customer, consent, loyalty, or
+attribution side effects, so retrying an uncertain HTTP response cannot create
+a second visit or point.
+
+An acknowledgement requires both independent gates at send time:
+`shops.campaigns_approved = true` and persisted affirmative customer consent.
+A durable one-per-visit claim is written before the Meta call. Claims live in a
+separate service-only table, not `message_logs`, because acknowledgements are
+not campaign-attribution events and must not affect cooldown, cap, conversion,
+or ROI calculations. Simulation retains the claim like a successful send.
+Definite configuration/API rejection releases it; an ambiguous network outcome
+retains it to prevent duplicate paid messages. A crash after claiming but
+before the provider accepts the message can therefore lose one acknowledgement;
+that conservative residual risk is preferred to duplicate spend and duplicate
+customer messages on the shared platform number.
+
+Simulation logs redact all template variables. Simulation is enabled only when
+both Meta credentials are absent; partial credentials fail closed without a
+provider request.
+
+### Capture instrumentation
+
+The dashboard does not claim to measure a true capture rate because real
+unbilled transaction volume has no observable denominator. It reports:
+
+- **Customer captures** — completed identified bills plus visit events in the
+  selected IST period (events, not unique people).
+- **Bills with customer** — completed identified bills divided by all completed
+  bills in that period. With no bills, the result is `— / No bills`, never
+  `0%`.
 
 ## 5. Campaign approval gate
 
@@ -270,8 +314,8 @@ restrict or ban messaging **for every shop at once**. Therefore:
 
 - Points awarded per visit is resolved at **1 flat point**, owned by the
   database RPC with no caller-supplied points or amount.
-- Whether the Visit button is primary or secondary in the billing UI.
-- UI label for the visit action.
+- The Visit action is resolved as a secondary billing-header action labeled
+  **Visit**, with `F6` as its shortcut.
 - Whether the 7-day cooldown needs to widen for the grocery vertical, where
   several tags fire on 20–45 day cycles.
 

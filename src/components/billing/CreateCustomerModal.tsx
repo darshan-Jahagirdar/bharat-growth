@@ -8,6 +8,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import {
+  WHATSAPP_CONSENT_HELPER,
+  WHATSAPP_CONSENT_LABEL,
+} from '@/lib/billing/customerConsentCopy';
 
 interface CreateCustomerModalProps {
   isOpen: boolean;
@@ -188,8 +192,8 @@ export function CreateCustomerModal({
               className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 accent-orange-500"
             />
             <span className="text-xs text-gray-400">
-              Customer agreed to WhatsApp offers
-              <span className="block text-gray-600">Ask the customer before ticking (DPDP)</span>
+              {WHATSAPP_CONSENT_LABEL}
+              <span className="block text-gray-600">{WHATSAPP_CONSENT_HELPER}</span>
             </span>
           </label>
 

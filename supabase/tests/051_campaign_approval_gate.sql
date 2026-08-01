@@ -4,7 +4,7 @@
 -- Run only after confirming supabase/.temp/project-ref is exactly
 -- qokaaggeqahayxsybgds. The invoice-only block was committed and captured
 -- against migrations 001-051 before any Wave C schema change. The full
--- invoice + visit + RPC harness now requires migrations 001-052:
+-- invoice + visit + RPC harness now requires migrations 001-053:
 --
 --   supabase db query --linked \
 --     --file supabase/tests/051_campaign_approval_gate.sql
@@ -1328,6 +1328,11 @@ DECLARE
   v_other_shop_id     uuid := gen_random_uuid();
   v_user_id           uuid := gen_random_uuid();
   v_tag_id            uuid := gen_random_uuid();
+  v_cross_tenant_request_id uuid := gen_random_uuid();
+  v_first_request_id  uuid := gen_random_uuid();
+  v_second_request_id uuid := gen_random_uuid();
+  v_third_request_id  uuid := gen_random_uuid();
+  v_invalid_tag_request_id uuid := gen_random_uuid();
   v_latest_rule_id    uuid := gen_random_uuid();
   v_boundary_rule_id  uuid := gen_random_uuid();
   v_expired_rule_id   uuid := gen_random_uuid();
@@ -1339,6 +1344,10 @@ DECLARE
   v_boundary_log_id   uuid := gen_random_uuid();
   v_expired_log_id    uuid := gen_random_uuid();
   v_result            jsonb;
+  v_replay_result     jsonb;
+  v_claim_result      jsonb;
+  v_duplicate_claim_result jsonb;
+  v_claim_id          uuid;
   v_stats             jsonb;
   v_today_ist         date := (now() AT TIME ZONE 'Asia/Kolkata')::date;
   v_count             integer;
@@ -1346,6 +1355,89 @@ DECLARE
   v_rejected          boolean := false;
   v_tenant_rejected   boolean := false;
 BEGIN
+  IF NOT has_function_privilege(
+       'service_role',
+       'public.claim_visit_acknowledgement(uuid,uuid)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'authenticated',
+       'public.claim_visit_acknowledgement(uuid,uuid)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'anon',
+       'public.claim_visit_acknowledgement(uuid,uuid)',
+       'EXECUTE'
+     ) THEN
+    RAISE EXCEPTION
+      'visit acknowledgement claim RPC privileges are not service-role-only';
+  END IF;
+
+  IF NOT has_table_privilege(
+       'service_role',
+       'public.visit_acknowledgement_claims',
+       'SELECT'
+     )
+     OR NOT has_table_privilege(
+       'service_role',
+       'public.visit_acknowledgement_claims',
+       'DELETE'
+     )
+     OR has_table_privilege(
+       'service_role',
+       'public.visit_acknowledgement_claims',
+       'INSERT'
+     )
+     OR has_table_privilege(
+       'service_role',
+       'public.visit_acknowledgement_claims',
+       'UPDATE'
+     )
+     OR has_table_privilege(
+       'authenticated',
+       'public.visit_acknowledgement_claims',
+       'SELECT'
+     )
+     OR has_table_privilege(
+       'authenticated',
+       'public.visit_acknowledgement_claims',
+       'INSERT'
+     )
+     OR has_table_privilege(
+       'authenticated',
+       'public.visit_acknowledgement_claims',
+       'UPDATE'
+     )
+     OR has_table_privilege(
+       'authenticated',
+       'public.visit_acknowledgement_claims',
+       'DELETE'
+     )
+     OR has_table_privilege(
+       'anon',
+       'public.visit_acknowledgement_claims',
+       'SELECT'
+     )
+     OR has_table_privilege(
+       'anon',
+       'public.visit_acknowledgement_claims',
+       'INSERT'
+     )
+     OR has_table_privilege(
+       'anon',
+       'public.visit_acknowledgement_claims',
+       'UPDATE'
+     )
+     OR has_table_privilege(
+       'anon',
+       'public.visit_acknowledgement_claims',
+       'DELETE'
+     ) THEN
+    RAISE EXCEPTION
+      'visit acknowledgement claim table privileges exceed service-role release access';
+  END IF;
+
   INSERT INTO public.shops (
     id,
     business_name,
@@ -1454,6 +1546,7 @@ BEGIN
   BEGIN
     PERFORM public.log_customer_visit(
       v_other_shop_id,
+      v_cross_tenant_request_id,
       '9876543210',
       NULL,
       NULL,
@@ -1474,6 +1567,7 @@ BEGIN
 
   v_result := public.log_customer_visit(
     v_shop_id,
+    v_first_request_id,
     '98765 43210',
     'Original Visit Customer',
     v_tag_id,
@@ -1482,10 +1576,12 @@ BEGIN
   v_customer_id := (v_result->>'customer_id')::uuid;
   v_first_visit_id := (v_result->>'visit_id')::uuid;
 
-  IF (v_result->>'points_awarded')::integer <> 1
+  IF (v_result->>'request_id')::uuid IS DISTINCT FROM v_first_request_id
+     OR (v_result->>'idempotent_replay')::boolean IS DISTINCT FROM false
+     OR (v_result->>'points_awarded')::integer <> 1
      OR (v_result->>'loyalty_balance')::integer <> 1 THEN
     RAISE EXCEPTION
-      'first visit loyalty result was %, expected one point and balance one',
+      'first visit result was %, expected request echo, non-replay, one point, and balance one',
       v_result;
   END IF;
 
@@ -1498,6 +1594,58 @@ BEGIN
   IF v_count <> 0 THEN
     RAISE EXCEPTION
       'false marketing consent created % consent log(s), expected 0',
+      v_count;
+  END IF;
+
+  v_claim_result := public.claim_visit_acknowledgement(
+    v_shop_id,
+    v_first_visit_id
+  );
+
+  IF (v_claim_result->>'claimed')::boolean IS DISTINCT FROM false
+     OR v_claim_result->>'reason' IS DISTINCT FROM 'campaign_approval_required' THEN
+    RAISE EXCEPTION
+      'unapproved visit acknowledgement claim was %, expected approval rejection',
+      v_claim_result;
+  END IF;
+
+  UPDATE public.shops
+  SET campaigns_approved = true,
+      campaigns_approved_at = now()
+  WHERE id = v_shop_id
+    AND settings->>'fixture' = v_token;
+
+  v_claim_result := public.claim_visit_acknowledgement(
+    v_shop_id,
+    v_first_visit_id
+  );
+
+  IF (v_claim_result->>'claimed')::boolean IS DISTINCT FROM false
+     OR v_claim_result->>'reason' IS DISTINCT FROM 'whatsapp_consent_required' THEN
+    RAISE EXCEPTION
+      'non-consented visit acknowledgement claim was %, expected consent rejection',
+      v_claim_result;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.visit_acknowledgement_claims
+  WHERE shop_id = v_shop_id;
+
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION
+      'blocked acknowledgement gates created % claim(s), expected 0',
+      v_count;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.message_logs
+  WHERE shop_id = v_shop_id;
+
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION
+      'blocked acknowledgement gates created % message log(s), expected 0',
       v_count;
   END IF;
 
@@ -1538,8 +1686,104 @@ BEGIN
       now() - interval '1 day'
     );
 
+  -- A retry with the same request UUID must return the original visit before
+  -- validating or applying any changed payload. In particular, the retry
+  -- cannot grant consent, increment counters or loyalty, or consume an
+  -- attribution candidate that did not exist when the visit was first logged.
+  v_replay_result := public.log_customer_visit(
+    v_shop_id,
+    v_first_request_id,
+    '9999999999',
+    'Replay Must Not Mutate Customer',
+    NULL,
+    true
+  );
+
+  IF (v_replay_result->>'request_id')::uuid IS DISTINCT FROM v_first_request_id
+     OR (v_replay_result->>'customer_id')::uuid IS DISTINCT FROM v_customer_id
+     OR (v_replay_result->>'visit_id')::uuid IS DISTINCT FROM v_first_visit_id
+     OR (v_replay_result->>'idempotent_replay')::boolean IS DISTINCT FROM true
+     OR (v_replay_result->>'points_awarded')::integer <> 1
+     OR (v_replay_result->>'loyalty_balance')::integer <> 1 THEN
+    RAISE EXCEPTION
+      'same-request visit replay did not return the original result: %',
+      v_replay_result;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.customer_visits
+  WHERE shop_id = v_shop_id
+    AND customer_id = v_customer_id;
+
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION
+      'same-request replay left % visits, expected exactly 1',
+      v_count;
+  END IF;
+
+  SELECT count(*), COALESCE(sum(points), 0)
+  INTO v_count, v_points_sum
+  FROM public.loyalty_ledger
+  WHERE shop_id = v_shop_id
+    AND customer_id = v_customer_id
+    AND invoice_id IS NULL
+    AND entry_type = 'earn';
+
+  IF v_count <> 1 OR v_points_sum <> 1 THEN
+    RAISE EXCEPTION
+      'same-request replay left loyalty rows=% points=%, expected 1/1',
+      v_count,
+      v_points_sum;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.customers
+  WHERE id = v_customer_id
+    AND shop_id = v_shop_id
+    AND name = 'Original Visit Customer'
+    AND visit_count = 1
+    AND total_spent_paise = 0
+    AND dpdp_marketing_consent = false
+    AND consent_collected_at IS NULL;
+
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION
+      'same-request replay changed customer identity, counters, spend, or consent';
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.consent_logs
+  WHERE shop_id = v_shop_id
+    AND customer_id = v_customer_id;
+
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION
+      'same-request replay created % consent log(s), expected 0',
+      v_count;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.message_logs
+  WHERE shop_id = v_shop_id
+    AND (
+      converted_at IS NOT NULL
+      OR conversion_invoice_id IS NOT NULL
+      OR conversion_visit_id IS NOT NULL
+    );
+
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION
+      'same-request replay attributed % message(s), expected 0',
+      v_count;
+  END IF;
+
   v_result := public.log_customer_visit(
     v_shop_id,
+    v_second_request_id,
     '+91-98765-43210',
     'Replacement Name Must Not Win',
     v_tag_id,
@@ -1547,7 +1791,9 @@ BEGIN
   );
   v_second_visit_id := (v_result->>'visit_id')::uuid;
 
-  IF (v_result->>'customer_id')::uuid IS DISTINCT FROM v_customer_id
+  IF (v_result->>'request_id')::uuid IS DISTINCT FROM v_second_request_id
+     OR (v_result->>'idempotent_replay')::boolean IS DISTINCT FROM false
+     OR (v_result->>'customer_id')::uuid IS DISTINCT FROM v_customer_id
      OR v_second_visit_id = v_first_visit_id
      OR (v_result->>'points_awarded')::integer <> 1
      OR (v_result->>'loyalty_balance')::integer <> 2 THEN
@@ -1556,8 +1802,110 @@ BEGIN
       v_result;
   END IF;
 
+  UPDATE public.shops
+  SET campaigns_approved = false,
+      campaigns_approved_at = NULL
+  WHERE id = v_shop_id
+    AND settings->>'fixture' = v_token;
+
+  v_claim_result := public.claim_visit_acknowledgement(
+    v_shop_id,
+    v_second_visit_id
+  );
+
+  IF (v_claim_result->>'claimed')::boolean IS DISTINCT FROM false
+     OR v_claim_result->>'reason' IS DISTINCT FROM 'campaign_approval_required' THEN
+    RAISE EXCEPTION
+      'consented but unapproved visit claim was %, expected approval rejection',
+      v_claim_result;
+  END IF;
+
+  UPDATE public.shops
+  SET campaigns_approved = true,
+      campaigns_approved_at = now()
+  WHERE id = v_shop_id
+    AND settings->>'fixture' = v_token;
+
+  v_claim_result := public.claim_visit_acknowledgement(
+    v_shop_id,
+    v_second_visit_id
+  );
+  v_claim_id := (v_claim_result->>'claim_id')::uuid;
+
+  IF (v_claim_result->>'claimed')::boolean IS DISTINCT FROM true
+     OR v_claim_id IS NULL
+     OR (v_claim_result->>'customer_id')::uuid IS DISTINCT FROM v_customer_id
+     OR (v_claim_result->>'points_awarded')::integer <> 1
+     OR (v_claim_result->>'loyalty_balance')::integer <> 2 THEN
+    RAISE EXCEPTION
+      'approved, consented visit acknowledgement claim failed: %',
+      v_claim_result;
+  END IF;
+
+  v_duplicate_claim_result := public.claim_visit_acknowledgement(
+    v_shop_id,
+    v_second_visit_id
+  );
+
+  IF (v_duplicate_claim_result->>'claimed')::boolean IS DISTINCT FROM false
+     OR v_duplicate_claim_result->>'reason' IS DISTINCT FROM 'already_claimed'
+     OR (v_duplicate_claim_result->>'claim_id')::uuid IS DISTINCT FROM v_claim_id THEN
+    RAISE EXCEPTION
+      'duplicate acknowledgement claim was %, expected already_claimed with canonical claim',
+      v_duplicate_claim_result;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.visit_acknowledgement_claims
+  WHERE shop_id = v_shop_id
+    AND visit_id = v_second_visit_id
+    AND id = v_claim_id;
+
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION
+      'acknowledgement claim count was %, expected exactly 1',
+      v_count;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.message_logs
+  WHERE shop_id = v_shop_id;
+
+  IF v_count <> 3 THEN
+    RAISE EXCEPTION
+      'acknowledgement claims changed message_logs count to %, expected 3',
+      v_count;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.message_logs
+  WHERE shop_id = v_shop_id
+    AND (
+      (
+        id = v_latest_log_id
+        AND converted_at IS NOT NULL
+        AND conversion_invoice_id IS NULL
+        AND conversion_visit_id = v_second_visit_id
+      )
+      OR (
+        id IN (v_boundary_log_id, v_expired_log_id)
+        AND converted_at IS NULL
+        AND conversion_invoice_id IS NULL
+        AND conversion_visit_id IS NULL
+      )
+    );
+
+  IF v_count <> 3 THEN
+    RAISE EXCEPTION
+      'acknowledgement claims modified campaign attribution rows; expected all 3 unchanged';
+  END IF;
+
   v_result := public.log_customer_visit(
     v_shop_id,
+    v_third_request_id,
     '919876543210',
     NULL,
     NULL,
@@ -1565,7 +1913,9 @@ BEGIN
   );
   v_third_visit_id := (v_result->>'visit_id')::uuid;
 
-  IF (v_result->>'customer_id')::uuid IS DISTINCT FROM v_customer_id
+  IF (v_result->>'request_id')::uuid IS DISTINCT FROM v_third_request_id
+     OR (v_result->>'idempotent_replay')::boolean IS DISTINCT FROM false
+     OR (v_result->>'customer_id')::uuid IS DISTINCT FROM v_customer_id
      OR v_third_visit_id IN (v_first_visit_id, v_second_visit_id)
      OR (v_result->>'points_awarded')::integer <> 1
      OR (v_result->>'loyalty_balance')::integer <> 3 THEN
@@ -1598,8 +1948,21 @@ BEGIN
     AND customer_id = v_customer_id
     AND visit_date = v_today_ist
     AND (
-      (id IN (v_first_visit_id, v_second_visit_id) AND tag_id = v_tag_id)
-      OR (id = v_third_visit_id AND tag_id IS NULL)
+      (
+        id = v_first_visit_id
+        AND request_id = v_first_request_id
+        AND tag_id = v_tag_id
+      )
+      OR (
+        id = v_second_visit_id
+        AND request_id = v_second_request_id
+        AND tag_id = v_tag_id
+      )
+      OR (
+        id = v_third_visit_id
+        AND request_id = v_third_request_id
+        AND tag_id IS NULL
+      )
     );
 
   IF v_count <> 3 THEN
@@ -1711,6 +2074,7 @@ BEGIN
   BEGIN
     PERFORM public.log_customer_visit(
       v_shop_id,
+      v_invalid_tag_request_id,
       '9876543210',
       NULL,
       gen_random_uuid(),
@@ -1774,7 +2138,7 @@ BEGIN
   END IF;
 
   RAISE NOTICE
-    'visit RPC characterization passed: tenant, identity, consent, flat loyalty, no spend/stock, attribution, rollback-backed cleanup';
+    'visit RPC characterization passed: tenant, idempotency, consent, flat loyalty, no spend/stock, attribution, gated one-time acknowledgement claim, rollback-backed cleanup';
 END;
 $wave_c_visit_rpc$;
 

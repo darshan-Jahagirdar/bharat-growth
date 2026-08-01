@@ -23,6 +23,7 @@ import { MOCK_PRODUCTS } from '@/lib/billing/mockData';
 import { PaymentModal } from '@/components/billing/PaymentModal';
 import { RepaymentModal } from '@/components/billing/RepaymentModal';
 import { CreateCustomerModal } from '@/components/billing/CreateCustomerModal';
+import { VisitModal } from '@/components/billing/VisitModal';
 import { OnlineOrdersDrawer } from '@/components/billing/OnlineOrdersDrawer';
 import { BillingHeader } from '@/components/billing/BillingHeader';
 import { ProductSearchBar } from '@/components/billing/ProductSearchBar';
@@ -108,6 +109,10 @@ export default function BillingPage() {
   // ── Create customer modal state ──
   const [showCreateCustomer, setShowCreateCustomer] = useState(false);
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+
+  // ── Visit capture modal state (independent of the bill draft) ──
+  const [showVisitModal, setShowVisitModal] = useState(false);
+  const visitPreviousFocusRef = useRef<HTMLElement | null>(null);
 
   // ── Online orders drawer state ──
   const [showOnlineOrders, setShowOnlineOrders] = useState(false);
@@ -532,10 +537,22 @@ export default function BillingPage() {
     showUpiModal ||
     showRepaymentModal ||
     showCreateCustomer ||
+    showVisitModal ||
     showOnlineOrders ||
     isSaving ||
     isReserving ||
     repaymentProcessing;
+
+  const handleOpenVisit = useCallback(() => {
+    if (!SUPABASE_CONFIGURED || !shopId || billingInteractionLocked) return;
+    visitPreviousFocusRef.current = document.activeElement as HTMLElement | null;
+    setShowVisitModal(true);
+  }, [billingInteractionLocked, shopId]);
+
+  const handleCloseVisit = useCallback(() => {
+    setShowVisitModal(false);
+    requestAnimationFrame(() => visitPreviousFocusRef.current?.focus());
+  }, []);
 
   // ── Register keyboard shortcuts ──
   useKeyboardShortcuts(
@@ -543,6 +560,7 @@ export default function BillingPage() {
     {
       onSaveBill: handleSaveBill,
       onClearBill: actions.clearBill,
+      onOpenVisit: handleOpenVisit,
       onCyclePaymentMode: handleCyclePayment,
       onRemoveActiveLine: handleRemoveActive,
       onNavigateUp: handleNavigateUp,
@@ -574,6 +592,8 @@ export default function BillingPage() {
         shopName={shopName}
         isComposition={isComposition}
         pendingOnlineCount={pendingOnlineCount}
+        visitDisabled={!SUPABASE_CONFIGURED || !shopId || billingInteractionLocked}
+        onOpenVisit={handleOpenVisit}
         onOpenOnlineOrders={() => setShowOnlineOrders(true)}
       />
 
@@ -717,6 +737,15 @@ export default function BillingPage() {
           productSearchRef.current?.focus();
         }}
         onCancel={() => setShowCreateCustomer(false)}
+      />
+
+      {/* ── Unbilled customer visit modal (kept independent of bill draft state) ── */}
+      <VisitModal
+        isOpen={showVisitModal}
+        shopId={shopId}
+        supabaseConfigured={SUPABASE_CONFIGURED}
+        demoMode={DEMO_MODE}
+        onClose={handleCloseVisit}
       />
 
       {/* ── Online Orders Drawer ── */}

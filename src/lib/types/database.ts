@@ -146,6 +146,7 @@ export interface CustomerVisit {
   shop_id: string;
   customer_id: string;
   tag_id: string | null;
+  request_id: string | null;
   visit_date: string;
   created_at: string;
 }

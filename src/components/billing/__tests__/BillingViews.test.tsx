@@ -78,18 +78,36 @@ function billingState(): BillingState {
 describe('decomposed billing views behavior contract', () => {
   it('keeps the document type, pending-order control, and shortcut legend in the header', () => {
     const onOpenOnlineOrders = vi.fn();
+    const onOpenVisit = vi.fn();
     render(createElement(BillingHeader, {
       shopName: 'Test Shop',
       isComposition: false,
       pendingOnlineCount: 2,
+      visitDisabled: false,
+      onOpenVisit,
       onOpenOnlineOrders,
     }));
 
     expect(screen.getByText('TAX INVOICE')).toBeInTheDocument();
     expect(screen.getByText('2 Online Orders')).toBeInTheDocument();
     expect(screen.getByText('F5')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Visit F6/ }));
+    expect(onOpenVisit).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByText('2 Online Orders'));
     expect(onOpenOnlineOrders).toHaveBeenCalledOnce();
+  });
+
+  it('disables the header Visit action while billing interaction is locked', () => {
+    render(createElement(BillingHeader, {
+      shopName: 'Test Shop',
+      isComposition: false,
+      pendingOnlineCount: 0,
+      visitDisabled: true,
+      onOpenVisit: vi.fn(),
+      onOpenOnlineOrders: vi.fn(),
+    }));
+
+    expect(screen.getByRole('button', { name: /Visit F6/ })).toBeDisabled();
   });
 
   it('adds the first product on Enter and preserves the item count', () => {

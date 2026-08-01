@@ -20,14 +20,18 @@ import { createClient } from '@/lib/supabase/client';
 import { checkUserOnboarded } from '@/lib/auth/checkUserOnboarded';
 import { formatINR } from '@/lib/types/database';
 import { fetchRetentionStats, type RetentionStats } from '@/lib/dashboard/dashboardQueries';
-import { TEMPLATE_LABELS, WA_TEMPLATES, type TemplateKey } from '@/lib/whatsapp/templates';
+import {
+  TEMPLATE_LABELS,
+  WA_TEMPLATES,
+  type CampaignTemplateKey,
+} from '@/lib/whatsapp/templates';
 import { Megaphone, Zap, Tag as TagIcon } from 'lucide-react';
 
 interface CampaignRule {
   id: string;
   name: string;
   trigger_days: number;
-  template_key: TemplateKey;
+  template_key: CampaignTemplateKey;
   custom_variable: string;
   is_active: boolean;
   tags: { name: string } | { name: string }[] | null;
@@ -54,7 +58,7 @@ function humanizeTiming(days: number): string {
   return `~${years} year${years === 1 ? '' : 's'} after purchase`;
 }
 
-function templateLabel(key: TemplateKey): string {
+function templateLabel(key: CampaignTemplateKey): string {
   return TEMPLATE_LABELS[WA_TEMPLATES[key]] ?? key;
 }
 

@@ -11,7 +11,7 @@ import {
   WA_TEMPLATES,
   TEMPLATE_LABELS,
   type TemplateName,
-  type TemplateKey,
+  type CampaignTemplateKey,
 } from './templates';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -21,7 +21,7 @@ export interface WhatsAppResult {
   sent: boolean;
   simulated: boolean;
   error?: string;
-  failureKind?: 'rejected' | 'network';
+  failureKind?: 'configuration' | 'rejected' | 'network';
 }
 
 // ─── Utility helpers ────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ function simulateTemplate(
 ): void {
   const label = TEMPLATE_LABELS[templateName] ?? templateName;
   const varsDisplay = variables.length > 0
-    ? variables.map((v, i) => `  {{${i + 1}}} = ${v}`).join('\n')
+    ? variables.map((_, i) => `  {{${i + 1}}} = [REDACTED]`).join('\n')
     : '  (no variables)';
 
   console.log('');
@@ -69,7 +69,9 @@ function simulateTemplate(
   console.log(`│  Variables:`);
   console.log(varsDisplay);
   console.log('├─────────────────────────────────────────────────────────────┤');
-  console.log(`│  [SIMULATED] Template: ${templateName} | Vars: [${variables.join(', ')}]`);
+  console.log(
+    `│  [SIMULATED] Template: ${templateName} | ${variables.length} variable(s) redacted`
+  );
   console.log('└─────────────────────────────────────────────────────────────┘');
   console.log('');
 }
@@ -86,10 +88,25 @@ async function sendTemplate(
   const WHATSAPP_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
   const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-  // ── Simulation Mode ──
-  if (!WHATSAPP_TOKEN || WHATSAPP_TOKEN.trim() === '') {
+  const hasToken = Boolean(WHATSAPP_TOKEN?.trim());
+  const hasPhoneId = Boolean(WHATSAPP_PHONE_ID?.trim());
+
+  // ── Simulation Mode: both credentials must be deliberately absent ──
+  if (!hasToken && !hasPhoneId) {
     simulateTemplate(templateName, variables, normalizedPhone);
     return { sent: false, simulated: true };
+  }
+
+  if (!hasToken || !hasPhoneId) {
+    console.error(
+      `[WhatsApp] ${templateName} configuration incomplete; message not attempted`
+    );
+    return {
+      sent: false,
+      simulated: false,
+      error: 'WhatsApp configuration is incomplete',
+      failureKind: 'configuration',
+    };
   }
 
   // ── Live Mode — Meta WhatsApp Business Cloud API v21.0 ──
@@ -199,7 +216,7 @@ export async function sendCampaignMessage(
   phone: string,
   customerName: string,
   shopName: string,
-  templateKey: TemplateKey,
+  templateKey: CampaignTemplateKey,
   customVariable: string
 ): Promise<WhatsAppResult> {
   const templateName = WA_TEMPLATES[templateKey];
@@ -225,6 +242,26 @@ export async function sendLowStockAlert(
     ownerName || 'Owner',
     shopName,
     productName,
+  ]);
+}
+
+/**
+ * Acknowledge an unbilled visit and report the server-derived points balance.
+ * Template: bg_visit_ack_v1
+ * Variables: {{1}}=name, {{2}}=shop, {{3}}=points awarded, {{4}}=balance
+ */
+export async function sendVisitAcknowledgement(
+  phone: string,
+  customerName: string,
+  shopName: string,
+  pointsAwarded: number,
+  loyaltyBalance: number
+): Promise<WhatsAppResult> {
+  return sendTemplate(phone, WA_TEMPLATES.VISIT_ACKNOWLEDGEMENT, [
+    customerName || 'Customer',
+    shopName,
+    String(pointsAwarded),
+    String(loyaltyBalance),
   ]);
 }
 

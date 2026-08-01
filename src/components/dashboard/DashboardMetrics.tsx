@@ -5,6 +5,7 @@ import {
   Receipt,
   ShoppingCart,
   TrendingUp,
+  Users,
   Warehouse,
 } from 'lucide-react';
 import { formatINR } from '@/lib/types/database';
@@ -96,6 +97,52 @@ export function DashboardMetrics({
           </div>
           <div className="mt-1.5 text-[11px] text-gray-500">
             At selling price
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-cyan-500/20 transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+              Customer captures
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+              <Users className="w-4 h-4 text-cyan-400" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+            {data.captureMetrics.customerCaptures}
+          </div>
+          <div className="mt-1.5 text-[11px] text-gray-500">
+            {periodLabel}: {data.captureMetrics.identifiedBills} identified bill
+            {data.captureMetrics.identifiedBills !== 1 ? 's' : ''} +{' '}
+            {data.captureMetrics.visits} visit
+            {data.captureMetrics.visits !== 1 ? 's' : ''}
+          </div>
+        </div>
+
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-indigo-500/20 transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+              Bills with customer
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+              <Receipt className="w-4 h-4 text-indigo-400" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+            {data.captureMetrics.billsWithCustomerPercent === null
+              ? '—'
+              : `${data.captureMetrics.billsWithCustomerPercent}%`}
+          </div>
+          <div className="mt-1.5 text-[11px] text-gray-500">
+            {data.captureMetrics.totalBills === 0
+              ? 'No bills'
+              : `${data.captureMetrics.identifiedBills} identified, ${
+                  data.captureMetrics.totalBills -
+                  data.captureMetrics.identifiedBills
+                } walk-in`}
           </div>
         </div>
       </div>

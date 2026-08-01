@@ -2,6 +2,8 @@ interface BillingHeaderProps {
   shopName: string;
   isComposition: boolean;
   pendingOnlineCount: number;
+  visitDisabled: boolean;
+  onOpenVisit: () => void;
   onOpenOnlineOrders: () => void;
 }
 
@@ -9,6 +11,8 @@ export function BillingHeader({
   shopName,
   isComposition,
   pendingOnlineCount,
+  visitDisabled,
+  onOpenVisit,
   onOpenOnlineOrders,
 }: BillingHeaderProps) {
   return (
@@ -27,6 +31,15 @@ export function BillingHeader({
             TAX INVOICE
           </span>
         )}
+        <button
+          type="button"
+          disabled={visitDisabled}
+          onClick={onOpenVisit}
+          className="rounded border border-emerald-800 bg-emerald-950/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-400
+                     transition-colors hover:bg-emerald-900/60 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Visit <kbd className="ml-1 rounded bg-gray-800 px-1">F6</kbd>
+        </button>
         {pendingOnlineCount > 0 && (
           <button
             onClick={onOpenOnlineOrders}
@@ -42,6 +55,7 @@ export function BillingHeader({
         <kbd className="bg-gray-800 px-1 rounded">F3</kbd> Add Item
         <kbd className="bg-gray-800 px-1 rounded">F4</kbd> New Bill
         <kbd className="bg-gray-800 px-1 rounded">F5</kbd> Save
+        <kbd className="bg-gray-800 px-1 rounded">F6</kbd> Visit
         <kbd className="bg-gray-800 px-1 rounded">F8</kbd> Payment
         <kbd className="bg-gray-800 px-1 rounded">+/-</kbd> Qty
         <kbd className="bg-gray-800 px-1 rounded">Del</kbd> Remove

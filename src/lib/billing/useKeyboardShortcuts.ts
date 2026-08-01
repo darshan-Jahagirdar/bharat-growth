@@ -5,6 +5,7 @@
 // F3          → Focus product search / add item
 // F4          → New bill (clear all)
 // F5          → Save & print invoice
+// F6          → Record a customer visit
 // F8          → Toggle payment mode (Cash → UPI → Card)
 // Enter       → Add selected product / confirm action
 // Escape      → Clear current focus / cancel search
@@ -28,6 +29,7 @@ export interface KeyboardShortcutRefs {
 export interface KeyboardShortcutHandlers {
   onSaveBill: () => void;
   onClearBill: () => void;
+  onOpenVisit: () => void;
   onCyclePaymentMode: () => void;
   onRemoveActiveLine: () => void;
   onNavigateUp: () => void;
@@ -72,6 +74,11 @@ export function useKeyboardShortcuts(
         case 'F5':
           e.preventDefault();
           handlers.onSaveBill();
+          return;
+
+        case 'F6':
+          e.preventDefault();
+          handlers.onOpenVisit();
           return;
 
         case 'F8':

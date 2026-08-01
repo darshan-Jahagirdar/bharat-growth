@@ -11,13 +11,13 @@
 // =============================================================================
 
 import type { BusinessType } from '@/lib/types/database';
-import type { TemplateKey } from '@/lib/whatsapp/templates';
+import type { CampaignTemplateKey } from '@/lib/whatsapp/templates';
 
 export interface DefaultCampaign {
   tagName: string;
   ruleName: string;
   triggerDays: number;
-  templateKey: Extract<TemplateKey, 'PROMO' | 'RESTOCK' | 'NEW_ARRIVAL'>;
+  templateKey: CampaignTemplateKey;
   customVariable: string;
 }
 
