@@ -70,6 +70,70 @@ readback before every later database action and stop on drift.
 - Never place that Vercel wildcard on production. Production callback origins
   require an explicit, narrow release decision.
 
+## Auth email OTP configuration
+
+Hosted Supabase `signInWithOtp({ email })` uses the Auth **Confirm signup**
+template for a new identity and the **Magic Link** template for an existing
+identity. Both templates must deliver the typed code; configuring only Magic
+Link silently breaks first-time sign-in. Staging has both templates saved with
+the exact values below. Production must receive the identical values only in
+the separately approved rollout.
+
+### Confirm signup template
+
+Subject (exact): `Your BharatGrowth verification code`
+
+Body (exact):
+
+```html
+<h2>Your BharatGrowth verification code</h2>
+<p>Enter this code to sign in:</p>
+<p><strong>{{ .Token }}</strong></p>
+<p>This code expires shortly and can only be used once.</p>
+```
+
+Hosted Auth configuration fields:
+`mailer_templates_confirmation_content` and
+`mailer_subjects_confirmation`.
+
+### Magic Link template
+
+Subject (exact): `Your BharatGrowth verification code`
+
+Body (exact):
+
+```html
+<h2>Your BharatGrowth verification code</h2>
+<p>Enter this code to sign in:</p>
+<p><strong>{{ .Token }}</strong></p>
+<p>This code expires shortly and can only be used once.</p>
+```
+
+Hosted Auth configuration fields:
+`mailer_templates_magic_link_content` and
+`mailer_subjects_magic_link`.
+
+Both bodies intentionally contain no link, `ConfirmationURL`, or `TokenHash`.
+These values are hosted Auth configuration, not a database migration.
+
+### Custom SMTP shape
+
+Staging sends Auth email through custom SMTP with this non-secret shape:
+
+- provider: Resend
+- verified domain: `bharatgrowthshop.com`
+- host: `smtp.resend.com`
+- port: `465`
+- username: `resend`
+- sender email: `login@bharatgrowthshop.com`
+- sender name: `BharatGrowth`
+- minimum interval per user: `60` seconds
+- staging email rate cap: `30` emails per hour
+
+The SMTP credential is intentionally omitted. Never request, print, or persist
+it. Production rollout must reproduce this configuration shape and inject its
+credential through the approved secret-management path.
+
 ## Migration 049 staging result
 
 - PR #12 moved Storefront owner-contact loading to the constrained RPC and was

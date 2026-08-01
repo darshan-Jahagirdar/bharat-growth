@@ -1,13 +1,13 @@
 # BharatGrowth Codex Handoff
 
-Last updated: 2026-07-19 (IST)
+Last updated: 2026-07-24 (IST)
 Owner: Darshan
 Maintainer signature: Sol/Codex
 
 This is the canonical operating handoff for BharatGrowth. It records the exact
-post-migration-049, post-Auth-normalization, post-sale-readiness closeout
-checkpoint. It does not authorize production access, external-gate work, or a
-production rollout.
+post-migration-049, post-sale-readiness closeout checkpoint plus the active
+email-OTP PR 1 work described below. It does not authorize production access,
+external-gate work, or a production rollout.
 
 ## 1. Product and branch model
 
@@ -19,8 +19,8 @@ campaigns, analytics, a public storefront, online checkout, and public receipts.
 - Production Git checkpoint: `8c389098db7e31180b5bdd6f1661adfd4bdc902b`
 - Immutable fallback tag: `pre-hardening-8c38909`
 - Integration/staging branch: `codex/production-hardening-baseline`
-- Current verified integration software commit:
-  `c6ac481756b48da7cb8b9be85c5eb54a955a9ab3`
+- Last verified integration commit:
+  `524047a5d9968e262e43daf52cdd204b32950f26`
 - New work branches from a freshly verified remote integration SHA and PRs only
   back to integration unless Darshan separately authorizes production.
 
@@ -48,6 +48,39 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
 ## 3. Exact current checkpoint
 
 ### Git and GitHub
+
+#### Auth PR 1 worktree — continue here first
+
+- Working branch: `codex/email-otp-auth`, created from exact integration
+  `524047a5d9968e262e43daf52cdd204b32950f26`.
+- Intended approved change: replace the email magic-link UI with typed six-digit
+  email OTP while retaining `signInWithOtp({ email })`; verification uses
+  `verifyOtp({ email, token, type: 'email' })`. The existing phone E.164 contract
+  remains frozen. `/auth/callback` remains for the separately scoped Google
+  OAuth PR 2.
+- Current tracked edits are limited to `src/app/login/page.tsx`,
+  `src/lib/auth/useAuth.ts`, focused Auth/login tests, and the four matching
+  behavior/runbook/checklist documents. The new untracked test directory is
+  `src/app/login/__tests__/`. Preserve all unrelated user-owned untracked paths.
+- Darshan enabled staging custom SMTP through Resend and manually saved both
+  Confirm signup and Magic Link templates with the exact code-only
+  `{{ .Token }}` content in `MIGRATION_RUNBOOK.md`. Darshan verified both on
+  reload with no confirmation-link URL. Do not operate the Supabase dashboard;
+  stop and guide Darshan if a later dashboard-only action is required.
+- Full local gates at this worktree state: `npm test` passed 32/32 files and
+  149/149 tests; strict `npm run typecheck` passed; zero-warning
+  `npm run lint -- --max-warnings=0` passed; optimized `npm run build` passed.
+  `src/lib/auth/phone.ts` is byte-identical to the branch base.
+- Remaining sequence: commit and push only the scoped Auth work, PR into
+  integration, confirm green CI and a READY staging-wired branch Preview, run
+  new-identity and existing-identity email OTP E2E without recording either
+  code, clean disposable Auth identities with zero readback, update this
+  evidence, merge, update the canonical Google handoff, post one signed
+  `#bharatgrowth` milestone, confirm production remains untouched, and stop.
+- The product brand remains exactly `BharatGrowth`. Darshan purchased
+  `bharatgrowthshop.com`; that domain is context only and does not authorize a
+  product rename, DNS/domain change, Supabase URL change, sender change,
+  repository copy change, or production mutation.
 
 - PR #12, storefront loader → owner-phone RPC, merged at `3cca263`.
 - PR #13, migration 049, merged into integration.
@@ -244,9 +277,17 @@ Stop and report before writes if any of these occur:
 
 ## 9. Recommended next task
 
-Start from the live successor of integration `c6ac481`, verify `main` remains
-`8c38909`, and scope each remaining external gate separately with fresh Darshan
-approval:
+Resume the active Auth PR 1 block in §3. Publish the scoped branch, open its PR
+only into integration, confirm green checks and a staging-wired READY Preview,
+then complete both new-identity and existing-identity email OTP E2E cases with
+disposable Gmail `+alias` addresses. Confirm each email contains a six-digit
+code and no magic-link URL without printing the code, clean both Auth identities
+with zero readback, merge, update this handoff plus the canonical Google handoff,
+and post one signed `#bharatgrowth` milestone. Stop after that merge; Google
+OAuth is PR 2 and separately scoped.
+
+After Auth PR 1, scope each remaining external gate separately with fresh
+Darshan approval:
 
 1. Meta configuration and approved templates;
 2. the production monitoring test event;

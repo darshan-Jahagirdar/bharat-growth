@@ -18,7 +18,7 @@ export default function LoginPage() {
     error,
     email: sentEmail,
     sendOtp,
-    sendEmailLink,
+    sendEmailOtp,
     verifyOtp,
     goBack,
     clearError,
@@ -67,7 +67,7 @@ export default function LoginPage() {
 
   const handleSendEmail = async () => {
     if (!isEmailValid) return;
-    await sendEmailLink(emailInput);
+    await sendEmailOtp(emailInput);
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -113,14 +113,8 @@ export default function LoginPage() {
     goBack();
   };
 
-  const handleUseAnotherEmail = () => {
-    setEmailInput('');
-    switchMethod('email');
-    goBack();
-  };
-
   useEffect(() => {
-    if (step === 'otp') {
+    if (step === 'otp' || step === 'email_otp') {
       otpRefs.current[0]?.focus();
     }
   }, [step]);
@@ -265,10 +259,10 @@ export default function LoginPage() {
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Sending link...
+                      Sending OTP...
                     </span>
                   ) : (
-                    'Send Sign-in Link'
+                    'Send OTP'
                   )}
                 </button>
               )}
@@ -276,48 +270,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {step === 'email_sent' && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-xl font-semibold text-gray-200">
-                  Check your email
-                </h2>
-                <p className="text-gray-500 text-sm mt-1">
-                  Open the sign-in link sent to
-                </p>
-                <p className="text-orange-400 text-sm font-mono mt-0.5 break-all">
-                  {sentEmail}
-                </p>
-              </div>
-
-              {error && (
-                <div className="text-red-400 text-xs text-center bg-red-950/50 border border-red-900 rounded-lg px-3 py-2">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleUseAnotherEmail}
-                className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors"
-              >
-                Use Another Email
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  switchMethod('phone');
-                  goBack();
-                }}
-                className="w-full py-3 rounded-xl border border-gray-700 text-gray-300 hover:border-gray-600 hover:text-gray-100 text-sm transition-colors"
-              >
-                Use Phone Instead
-              </button>
-            </div>
-          )}
-
-          {step === 'otp' && (
+          {(step === 'otp' || step === 'email_otp') && (
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-xl font-semibold text-gray-200">
@@ -327,7 +280,11 @@ export default function LoginPage() {
                   Enter the 6-digit code sent to
                 </p>
                 <p className="text-orange-400 text-sm font-mono mt-0.5">
-                  +91 {phone.replace(/\D/g, '').replace(/(\d{5})(\d{5})/, '$1 $2')}
+                  {step === 'email_otp'
+                    ? sentEmail
+                    : `+91 ${phone
+                        .replace(/\D/g, '')
+                        .replace(/(\d{5})(\d{5})/, '$1 $2')}`}
                 </p>
               </div>
 
@@ -377,11 +334,15 @@ export default function LoginPage() {
                   onClick={handleGoBack}
                   className="text-gray-500 hover:text-gray-300 transition-colors"
                 >
-                  Change number
+                  {step === 'email_otp' ? 'Change email' : 'Change number'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => sendOtp(phone.replace(/\D/g, ''))}
+                  onClick={() =>
+                    step === 'email_otp'
+                      ? sendEmailOtp(sentEmail)
+                      : sendOtp(phone.replace(/\D/g, ''))
+                  }
                   disabled={loading}
                   className="text-orange-500 hover:text-orange-400 disabled:text-gray-600 transition-colors"
                 >

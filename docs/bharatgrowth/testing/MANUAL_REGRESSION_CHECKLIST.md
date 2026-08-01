@@ -9,7 +9,8 @@ authorize production or external messaging.
 
 - [ ] Phone OTP succeeds with current India formatting, six-cell entry,
   paste/backspace/Enter, resend, and correct `next`/onboarding redirect.
-- [ ] Email magic link and `/auth/callback` succeed with the correct redirect.
+- [ ] Email OTP succeeds with six-cell entry, paste/backspace/Enter, resend,
+  wrong-code handling, and the correct onboarding/billing redirect.
 - [ ] Authenticated users are kept out of `/login`; unauthenticated users cannot
   open protected routes.
 - [ ] Onboarding validates business name/pincode/state, creates one shop/owner,
