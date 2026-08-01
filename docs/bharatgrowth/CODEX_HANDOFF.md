@@ -5,8 +5,8 @@ Owner: Darshan
 Maintainer signature: Sol/Codex
 
 This is the canonical operating handoff for BharatGrowth. It records the exact
-post-migration-050, post-email-OTP, Wave A tag-taxonomy verification checkpoint.
-It does not authorize production access, external-gate work, Wave B, or a
+post-migration-050, post-email-OTP, post-Wave-A tag-taxonomy merge checkpoint.
+It does not authorize production access, external-gate work, Waves B–E, or a
 production rollout.
 
 ## 1. Product and branch model
@@ -19,27 +19,28 @@ campaigns, analytics, a public storefront, online checkout, and public receipts.
 - Production Git checkpoint: `8c389098db7e31180b5bdd6f1661adfd4bdc902b`
 - Immutable fallback tag: `pre-hardening-8c38909`
 - Integration/staging branch: `codex/production-hardening-baseline`
-- Last verified integration commit before Wave A:
-  `3c83cac57dd2c438cbbfa2312926b4cb07c3b2e2`
+- Current verified integration software commit after Wave A:
+  `7722ca15522b75bcbd3f9613b724c1b5bc8e84d8`
 - New work branches from a freshly verified remote integration SHA and PRs only
   back to integration unless Darshan separately authorizes production.
 
-Production remained untouched throughout migrations 049, Auth normalization,
-the sale-readiness matrix, and closeout. No production Supabase or Vercel
-endpoint was accessed.
+Production remained untouched throughout migrations 049–050, Auth
+normalization, email OTP, the sale-readiness matrix, and Wave A. No production
+Supabase or Vercel endpoint was accessed.
 
 ## 2. Required reading order
 
 Read these completely before continuing work:
 
 1. `docs/bharatgrowth/CODEX_HANDOFF.md`
-2. `docs/bharatgrowth/COLLABORATION_WORKFLOW.md`
-3. `docs/bharatgrowth/quality/BEHAVIOR_CONTRACTS.md`
-4. `docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md`
-5. `docs/bharatgrowth/database/MIGRATION_RUNBOOK.md`
-6. `docs/bharatgrowth/database/MIGRATION_049_PLAN.md`
-7. `docs/bharatgrowth/testing/MANUAL_REGRESSION_CHECKLIST.md`
-8. `docs/bharatgrowth/testing/SALE_READINESS_RESULTS.md`
+2. `docs/bharatgrowth/product/CAPTURE_AND_TAGS_DESIGN.md`
+3. `docs/bharatgrowth/COLLABORATION_WORKFLOW.md`
+4. `docs/bharatgrowth/quality/BEHAVIOR_CONTRACTS.md`
+5. `docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md`
+6. `docs/bharatgrowth/database/MIGRATION_RUNBOOK.md`
+7. `docs/bharatgrowth/database/MIGRATION_049_PLAN.md`
+8. `docs/bharatgrowth/testing/MANUAL_REGRESSION_CHECKLIST.md`
+9. `docs/bharatgrowth/testing/SALE_READINESS_RESULTS.md`
 
 Do not open, edit, stage, or infer from excluded user-owned paths:
 `designs/`, `designs_mobile/`, `docs/bharatgrowth/design/`, and
@@ -67,15 +68,18 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   `bharatgrowthshop.com` domain does not authorize DNS, sender, redirect,
   repository-copy, or production changes.
 
-#### Wave A tag taxonomy — verified, PR pending merge
+#### Wave A tag taxonomy — merged into integration
 
-- Working branch: `codex/tag-taxonomy-wave-a`.
-- PR [#19](https://github.com/darshan-Jahagirdar/bharat-growth/pull/19) targets
-  integration only. Exact reviewed head:
-  `5b09596cf3a568d9f8d5c07cd7ddbb926f758571`; exact base:
-  `3c83cac57dd2c438cbbfa2312926b4cb07c3b2e2`. The PR was open, draft,
-  mergeable/CLEAN, and all four GitHub/Vercel checks were green at this
-  evidence cutoff.
+- PR [#19](https://github.com/darshan-Jahagirdar/bharat-growth/pull/19)
+  targeted integration only and squash-merged as
+  `7722ca15522b75bcbd3f9613b724c1b5bc8e84d8` from exact reviewed head
+  `76dbee60f0e2d806e741a72bd7f3db698f91fe4e`. Its implementation head before
+  the handoff-only evidence commit was
+  `5b09596cf3a568d9f8d5c07cd7ddbb926f758571`.
+- The exact base was Auth integration commit
+  `3c83cac57dd2c438cbbfa2312926b4cb07c3b2e2`. At merge, PR #19 was
+  ready-for-review, mergeable/CLEAN, and all four GitHub/Vercel checks were
+  green.
 - Wave A adds `grocery`, migration 050, the approved five-vertical taxonomy,
   sequential retrofit idempotency, and matching tests/docs. The seven
   pre-existing rules retain their exact definitions; the 22 additions use the
@@ -99,11 +103,10 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   zero target shops/profiles/tags/rules; unrelated staging shops and active
   owners remained. No credentials, private identity, or OTP were printed or
   persisted.
-- The three existing sensitive Preview variables remain value-preserving and
-  temporarily scoped by `gitBranch` to `codex/tag-taxonomy-wave-a`. After PR
-  merge, PATCH only their `gitBranch` metadata back to
-  `codex/production-hardening-baseline`, verify all three, and do not read their
-  values.
+- The three existing sensitive Preview variables were restored by metadata-only
+  PATCH to `gitBranch = codex/production-hardening-baseline`. Readback showed
+  all three on integration and zero remaining on
+  `codex/tag-taxonomy-wave-a`; their encrypted values were not copied.
 
 - PR #12, storefront loader → owner-phone RPC, merged at `3cca263`.
 - PR #13, migration 049, merged into integration.
@@ -118,7 +121,9 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   as `c6ac481` (reviewed head `f01f921`).
 - PR #18, typed six-digit email OTP, squash-merged into integration as
   `3c83cac` (reviewed head `f65cb386`).
-- Current verified integration checkpoint before Wave A: `3c83cac`.
+- PR #19, Wave A tag taxonomy, squash-merged into integration as `7722ca1`
+  (reviewed head `76dbee6`; implementation head `5b09596`).
+- Current verified integration software checkpoint: `7722ca1`.
 - Production `main` remains exact `8c38909`.
 
 Before any new write, re-fetch and compare remote integration, remote main,
@@ -152,21 +157,24 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 
 ### Vercel staging preview
 
-The exact Wave A Preview verified after Auth PR 1 was merged into the branch is:
+The exact post-Wave-A integration Preview is:
 
-- Deployment ID: `dpl_G773SdevmLDdX5xDqApbnttQbN6g`
+- Deployment ID: `dpl_8naG4mxYizXyGcdkdJ3GXj1XNxZk`
 - URL:
-  `https://bharat-growth-b1y8mk4j8-darshan-jahagirdars-projects.vercel.app`
+  `https://bharat-growth-oyax4qh2w-darshan-jahagirdars-projects.vercel.app`
 - State/type: READY / Preview (`target = null`)
-- Git branch/SHA: `codex/tag-taxonomy-wave-a` /
-  `5b09596cf3a568d9f8d5c07cd7ddbb926f758571`
-- The three existing sensitive Preview variables are scoped to the Wave A
-  branch by metadata only. Their values were never requested, read, copied, or
-  printed.
+- Git branch/SHA: `codex/production-hardening-baseline` /
+  `7722ca15522b75bcbd3f9613b724c1b5bc8e84d8`
+- The three existing sensitive Preview variables read back as encrypted,
+  Preview-only, and scoped to integration. Zero remained on the closed Wave A
+  branch.
 - The compiled login bundle contains staging ref `qokaaggeqahayxsybgds`, no
-  production ref, and the six-digit email OTP flow.
-- After Wave A merges, restore only the three `gitBranch` metadata fields to
-  `codex/production-hardening-baseline` and verify exact equality.
+  production ref, and the six-digit email OTP copy.
+- The first Git-triggered merge deployment
+  `dpl_5LwHzxyrc3PxbPrN9ASeMqgZUKPj` started before the variable metadata
+  restore and compiled with the production ref. It was never used for login or
+  a backend call. After restoring all three scopes, exact commit `7722ca1` was
+  explicitly redeployed as the validated staging-wired Preview above.
 
 Do not treat an arbitrary PR preview as staging evidence. Verify exact commit,
 Preview state, and branch-scoped staging variables before login or mutations.
@@ -307,17 +315,15 @@ Stop and report before writes if any of these occur:
 
 ## 9. Recommended next task
 
-Complete Wave A closeout only:
+Wave A is complete. Keep the remaining capture-and-tags work separately scoped
+in the sequence approved by `CAPTURE_AND_TAGS_DESIGN.md`:
 
-1. Commit and push this exact E2E/cleanup handoff evidence on
-   `codex/tag-taxonomy-wave-a`.
-2. Require PR #19 to remain exact-base/exact-head, mergeable, and fully green;
-   merge it into `codex/production-hardening-baseline` only.
-3. Restore only the three Vercel Preview variables' `gitBranch` metadata to
-   integration and verify all three without reading values.
-4. Post one signed `#bharatgrowth` merge milestone, confirm production `main`
-   remains exact `8c389098db7e31180b5bdd6f1661adfd4bdc902b`,
-   and stop.
+1. **Wave B:** campaign approval gate.
+2. **Wave C:** visit log plus `message_logs` /
+   `find_campaign_matches` generalization.
+3. **Wave D:** visit capture UI and thank-you message.
+4. **Wave E:** CSV auto-tagging.
 
-Wave B is separately scoped. Do not begin campaign approval-gate work from this
-handoff.
+Do not begin any of Waves B–E without a fresh branch, staging plan, cleanup
+plan, risk review, and Darshan's explicit scope approval. Production `main`
+remains exact `8c389098db7e31180b5bdd6f1661adfd4bdc902b`.
