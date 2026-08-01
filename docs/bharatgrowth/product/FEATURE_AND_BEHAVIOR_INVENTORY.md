@@ -12,12 +12,12 @@ already sale-ready.
 ## 1. Product identity
 
 BharatGrowth is a multi-tenant vertical SaaS application for single-store
-Indian SMBs, initially tyre shops, sweet stalls, garment stores, and general
-retail. Its operating wedge is fast desktop billing. Its intended retention
-moat is consent-aware WhatsApp receipts, khata reminders, and repurchase-cycle
-campaigns. The current app also connects product/catalog, inventory, purchasing,
-orders, GST reporting, a public storefront, receipts, and owner analytics around
-the same shop.
+Indian SMBs, initially tyre shops, sweet stalls, garment stores, grocery/kirana,
+and general retail. Its operating wedge is fast desktop billing. Its intended
+retention moat is consent-aware WhatsApp receipts, khata reminders, and
+repurchase-cycle campaigns. The current app also connects product/catalog,
+inventory, purchasing, orders, GST reporting, a public storefront, receipts,
+and owner analytics around the same shop.
 
 The primary user is an owner or staff member serving roughly 20–200 bills per
 day. That is why the protected workspace is desktop- and keyboard-oriented,
@@ -122,7 +122,8 @@ Why: create the shop tenant and bind the authenticated owner once.
 
 Preserve:
 
-- business types `tyre_shop`, `sweet_stall`, `garment_store`, and `general`;
+- business types `tyre_shop`, `sweet_stall`, `garment_store`, `grocery`, and
+  `general`;
 - required business name and pincode flow;
 - India Post pincode lookup, city autofill, GST state-code mapping, and manual
   state fallback;
@@ -441,7 +442,7 @@ checks alone are insufficient.
 Preserve:
 
 - migrations are ordered and immutable once applied; current staging history is
-  continuous 001–048;
+  continuous 001–050;
 - authenticated shop membership and RLS are the protected-data boundary;
 - server routes derive/verify the active shop rather than trusting a browser
   tenant id;

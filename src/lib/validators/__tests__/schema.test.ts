@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gstinSchema, phoneSchema } from '../schema';
+import { gstinSchema, phoneSchema, shopCreateSchema } from '../schema';
 
 describe('Indian identifier validation', () => {
   it('accepts a GSTIN with a valid mod-36 checksum', () => {
@@ -16,5 +16,15 @@ describe('Indian identifier validation', () => {
 
   it('rejects a number outside Indian mobile prefixes', () => {
     expect(phoneSchema.safeParse('5876543210').success).toBe(false);
+  });
+
+  it('accepts grocery as a valid shop business type', () => {
+    expect(
+      shopCreateSchema.safeParse({
+        business_name: 'Wave A Grocery',
+        business_type: 'grocery',
+        state_code: '27',
+      }).success
+    ).toBe(true);
   });
 });

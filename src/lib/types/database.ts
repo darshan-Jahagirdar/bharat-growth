@@ -5,7 +5,7 @@
 
 // ── Enums ──
 
-export type BusinessType = 'tyre_shop' | 'sweet_stall' | 'garment_store' | 'general';
+export type BusinessType = 'tyre_shop' | 'sweet_stall' | 'garment_store' | 'grocery' | 'general';
 export type GstType = 'regular' | 'composition';
 export type ThemePreference = 'modern' | 'festive' | 'industrial';
 export type SubscriptionPlan = 'free' | 'pro' | 'enterprise';

@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 // ── Shared Enums ──
 
-export const businessTypeEnum = z.enum(['tyre_shop', 'sweet_stall', 'garment_store', 'general']);
+export const businessTypeEnum = z.enum(['tyre_shop', 'sweet_stall', 'garment_store', 'grocery', 'general']);
 export const gstTypeEnum = z.enum(['regular', 'composition']);
 export const subscriptionPlanEnum = z.enum(['free', 'pro', 'enterprise']);
 export const userRoleEnum = z.enum(['owner', 'manager', 'cashier']);

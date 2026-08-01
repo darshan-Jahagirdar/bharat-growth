@@ -16,6 +16,7 @@ const BUSINESS_TYPES: { value: BusinessType; label: string; icon: string; desc: 
   { value: 'tyre_shop', label: 'Tyre Shop', icon: '\u{1F6DE}', desc: 'Brand search, tube inventory, vehicle type' },
   { value: 'sweet_stall', label: 'Sweet Stall', icon: '\u{1F36C}', desc: 'Weight billing, batch expiry, perishables' },
   { value: 'garment_store', label: 'Garment Store', icon: '\u{1F457}', desc: 'Size-color matrix, fabric, mixed GST' },
+  { value: 'grocery', label: 'Grocery / Kirana', icon: '\u{1F6D2}', desc: 'Staples, household essentials, daily needs' },
   { value: 'general', label: 'General Store', icon: '\u{1F3EA}', desc: 'Any retail business' },
 ];
 

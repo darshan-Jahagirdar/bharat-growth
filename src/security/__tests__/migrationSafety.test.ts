@@ -60,4 +60,17 @@ describe('migration release safety', () => {
     expect(sql).not.toMatch(/ORDER BY ll\.created_at DESC, ll\.id DESC/i);
     expect(sql).toMatch(/pg_advisory_xact_lock/i);
   });
+
+  it('adds grocery without changing the existing shop business types', () => {
+    const sql = migration('050_add_grocery_business_type.sql');
+
+    expect(sql).toMatch(/DROP CONSTRAINT shops_business_type_check/i);
+    expect(sql).toMatch(/ADD CONSTRAINT shops_business_type_check CHECK/i);
+    expect(sql).toMatch(
+      /business_type IN \('tyre_shop', 'sweet_stall', 'garment_store', 'grocery', 'general'\)/i
+    );
+    expect(sql).not.toMatch(
+      /campaign_rules|message_logs|find_campaign_matches|get_retention_stats/i
+    );
+  });
 });
