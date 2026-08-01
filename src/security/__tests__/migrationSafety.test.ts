@@ -372,4 +372,74 @@ describe('migration release safety', () => {
       /GRANT EXECUTE ON FUNCTION public\.claim_visit_acknowledgement\(uuid, uuid\)\s+TO (anon|authenticated)/i
     );
   });
+
+  it('makes visit data consent required, replay-safe, and separately append-logged in migration 054', () => {
+    const sql = migration('054_visit_data_consent.sql');
+    const visitRpcStart = sql.indexOf(
+      'CREATE OR REPLACE FUNCTION public.log_customer_visit'
+    );
+    const visitRpcEnd = sql.indexOf(
+      'REVOKE ALL ON FUNCTION public.log_customer_visit',
+      visitRpcStart
+    );
+    const visitRpc = sql.slice(visitRpcStart, visitRpcEnd);
+    const replayLookup = visitRpc.indexOf(
+      'WHERE cv.shop_id = p_shop_id\n    AND cv.request_id = p_request_id'
+    );
+    const customerMutation = visitRpc.indexOf(
+      'INSERT INTO public.customers'
+    );
+    const dataLog = visitRpc.indexOf("'data_collection'");
+    const marketingLog = visitRpc.indexOf("'whatsapp_marketing'");
+
+    expect(sql.trimStart()).toMatch(/^--[\s\S]*\bBEGIN;/i);
+    expect(sql.trimEnd()).toMatch(/COMMIT;$/i);
+    expect(sql).toMatch(
+      /WITH corrected_visit_customers AS \(\s*UPDATE public\.customers c[\s\S]+dpdp_data_consent = true/i
+    );
+    expect(sql).toMatch(
+      /c\.phone_number NOT LIKE 'ERASED-%'[\s\S]+FROM public\.customer_visits cv[\s\S]+cv\.shop_id = c\.shop_id[\s\S]+cv\.customer_id = c\.id/i
+    );
+    expect(sql).toMatch(
+      /SELECT cl\.status[\s\S]+cl\.shop_id = c\.shop_id[\s\S]+cl\.customer_id = c\.id[\s\S]+cl\.purpose = 'data_collection'[\s\S]+ORDER BY cl\.created_at DESC, cl\.id DESC[\s\S]+<> 'withdrawn'/i
+    );
+    expect(sql).toMatch(
+      /'data_collection',\s*'granted',\s*'verbal_recorded',\s*NULL,[\s\S]+'source', 'customer_visit_backfill'/i
+    );
+
+    expect(replayLookup).toBeGreaterThan(-1);
+    expect(customerMutation).toBeGreaterThan(replayLookup);
+    expect(visitRpc).toMatch(
+      /dpdp_data_consent,\s*dpdp_marketing_consent,\s*consent_collected_at[\s\S]+true,\s*COALESCE\(p_marketing_consent, false\),\s*now\(\)/i
+    );
+    expect(visitRpc).toMatch(
+      /dpdp_data_consent\s*=\s*public\.customers\.dpdp_data_consent\s*OR EXCLUDED\.dpdp_data_consent/i
+    );
+    expect(visitRpc).toMatch(
+      /dpdp_data_consent\s*=\s*dpdp_data_consent OR true/i
+    );
+    expect(dataLog).toBeGreaterThan(customerMutation);
+    expect(marketingLog).toBeGreaterThan(dataLog);
+    expect(visitRpc.slice(dataLog - 250, dataLog)).not.toMatch(
+      /IF COALESCE\(p_marketing_consent, false\) THEN/i
+    );
+    expect(visitRpc).toMatch(
+      /'data_collection',\s*'granted',\s*'verbal_recorded',\s*auth\.uid\(\),\s*jsonb_build_object\(\s*'source', 'customer_visit',\s*'visit_id', v_visit_id\s*\)/i
+    );
+    expect(visitRpc).toMatch(
+      /IF COALESCE\(p_marketing_consent, false\) THEN\s+INSERT INTO public\.consent_logs[\s\S]+'whatsapp_marketing'/i
+    );
+    expect(visitRpc).not.toMatch(
+      /\bp_(data_consent|amount|price|points|items)\b|invoice_items|inventory|stock/i
+    );
+    expect(sql).toMatch(
+      /REVOKE ALL ON FUNCTION public\.log_customer_visit\(\s*uuid,\s*uuid,\s*text,\s*text,\s*uuid,\s*boolean\s*\) FROM PUBLIC, anon, authenticated/i
+    );
+    expect(sql).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.log_customer_visit\(\s*uuid,\s*uuid,\s*text,\s*text,\s*uuid,\s*boolean\s*\) TO authenticated/i
+    );
+    expect(sql).not.toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.log_customer_visit\([\s\S]+TO (anon|service_role)/i
+    );
+  });
 });

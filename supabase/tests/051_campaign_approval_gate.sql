@@ -4,7 +4,7 @@
 -- Run only after confirming supabase/.temp/project-ref is exactly
 -- qokaaggeqahayxsybgds. The invoice-only block was committed and captured
 -- against migrations 001-051 before any Wave C schema change. The full
--- invoice + visit + RPC harness now requires migrations 001-053:
+-- invoice + visit + RPC harness now requires migrations 001-054:
 --
 --   supabase db query --linked \
 --     --file supabase/tests/051_campaign_approval_gate.sql
@@ -1329,6 +1329,7 @@ DECLARE
   v_user_id           uuid := gen_random_uuid();
   v_tag_id            uuid := gen_random_uuid();
   v_cross_tenant_request_id uuid := gen_random_uuid();
+  v_existing_request_id uuid := gen_random_uuid();
   v_first_request_id  uuid := gen_random_uuid();
   v_second_request_id uuid := gen_random_uuid();
   v_third_request_id  uuid := gen_random_uuid();
@@ -1337,6 +1338,8 @@ DECLARE
   v_boundary_rule_id  uuid := gen_random_uuid();
   v_expired_rule_id   uuid := gen_random_uuid();
   v_customer_id       uuid;
+  v_existing_customer_id uuid := gen_random_uuid();
+  v_existing_visit_id uuid;
   v_first_visit_id    uuid;
   v_second_visit_id   uuid;
   v_third_visit_id    uuid;
@@ -1499,6 +1502,48 @@ BEGIN
   INSERT INTO public.tags (id, shop_id, name)
   VALUES (v_tag_id, v_shop_id, v_token || '-tag');
 
+  INSERT INTO public.customers (
+    id,
+    shop_id,
+    phone_number,
+    name,
+    segment,
+    total_spent_paise,
+    visit_count,
+    dpdp_data_consent,
+    dpdp_marketing_consent,
+    consent_collected_at
+  ) VALUES (
+    v_existing_customer_id,
+    v_shop_id,
+    '+919765432109',
+    v_token || '-existing-customer',
+    'new',
+    0,
+    0,
+    false,
+    true,
+    now()
+  );
+
+  INSERT INTO public.consent_logs (
+    shop_id,
+    customer_id,
+    purpose,
+    status,
+    consent_method,
+    collected_by,
+    metadata
+  ) VALUES (
+    v_shop_id,
+    v_existing_customer_id,
+    'whatsapp_marketing',
+    'granted',
+    'verbal_recorded',
+    v_user_id,
+    jsonb_build_object('source', 'existing_customer_fixture')
+  );
+
   INSERT INTO public.campaign_rules (
     id,
     shop_id,
@@ -1567,6 +1612,73 @@ BEGIN
 
   v_result := public.log_customer_visit(
     v_shop_id,
+    v_existing_request_id,
+    '97654 32109',
+    'Existing Name Must Not Replace',
+    NULL,
+    false
+  );
+  v_existing_visit_id := (v_result->>'visit_id')::uuid;
+
+  IF (v_result->>'customer_id')::uuid IS DISTINCT FROM v_existing_customer_id
+     OR (v_result->>'request_id')::uuid IS DISTINCT FROM v_existing_request_id
+     OR (v_result->>'idempotent_replay')::boolean IS DISTINCT FROM false
+     OR (v_result->>'points_awarded')::integer <> 1
+     OR (v_result->>'loyalty_balance')::integer <> 1 THEN
+    RAISE EXCEPTION
+      'existing data-false customer visit result was not normalized and flat-point-safe: %',
+      v_result;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.customers
+  WHERE id = v_existing_customer_id
+    AND shop_id = v_shop_id
+    AND name = v_token || '-existing-customer'
+    AND total_spent_paise = 0
+    AND visit_count = 1
+    AND dpdp_data_consent = true
+    AND dpdp_marketing_consent = true;
+
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION
+      'existing customer visit did not grant data consent and OR-preserve marketing consent';
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.consent_logs
+  WHERE shop_id = v_shop_id
+    AND customer_id = v_existing_customer_id
+    AND purpose = 'data_collection'
+    AND status = 'granted'
+    AND consent_method = 'verbal_recorded'
+    AND collected_by = v_user_id
+    AND metadata->>'source' = 'customer_visit'
+    AND (metadata->>'visit_id')::uuid = v_existing_visit_id;
+
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION
+      'existing customer visit data log count was %, expected 1',
+      v_count;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.consent_logs
+  WHERE shop_id = v_shop_id
+    AND customer_id = v_existing_customer_id
+    AND purpose = 'whatsapp_marketing';
+
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION
+      'false marketing input changed existing grant log count to %, expected 1',
+      v_count;
+  END IF;
+
+  v_result := public.log_customer_visit(
+    v_shop_id,
     v_first_request_id,
     '98765 43210',
     'Original Visit Customer',
@@ -1587,13 +1699,46 @@ BEGIN
 
   SELECT count(*)
   INTO v_count
+  FROM public.customers
+  WHERE id = v_customer_id
+    AND shop_id = v_shop_id
+    AND dpdp_data_consent = true
+    AND dpdp_marketing_consent = false
+    AND consent_collected_at IS NOT NULL;
+
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION
+      'first visit did not set required data consent while preserving declined marketing consent';
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
   FROM public.consent_logs
   WHERE shop_id = v_shop_id
-    AND customer_id = v_customer_id;
+    AND customer_id = v_customer_id
+    AND purpose = 'data_collection'
+    AND status = 'granted'
+    AND consent_method = 'verbal_recorded'
+    AND collected_by = v_user_id
+    AND metadata->>'source' = 'customer_visit'
+    AND (metadata->>'visit_id')::uuid = v_first_visit_id;
+
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION
+      'first visit data-consent log assertion returned %, expected 1',
+      v_count;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.consent_logs
+  WHERE shop_id = v_shop_id
+    AND customer_id = v_customer_id
+    AND purpose = 'whatsapp_marketing';
 
   IF v_count <> 0 THEN
     RAISE EXCEPTION
-      'false marketing consent created % consent log(s), expected 0',
+      'false marketing consent created % marketing log(s), expected 0',
       v_count;
   END IF;
 
@@ -1745,8 +1890,9 @@ BEGIN
     AND name = 'Original Visit Customer'
     AND visit_count = 1
     AND total_spent_paise = 0
+    AND dpdp_data_consent = true
     AND dpdp_marketing_consent = false
-    AND consent_collected_at IS NULL;
+    AND consent_collected_at IS NOT NULL;
 
   IF v_count <> 1 THEN
     RAISE EXCEPTION
@@ -1759,9 +1905,9 @@ BEGIN
   WHERE shop_id = v_shop_id
     AND customer_id = v_customer_id;
 
-  IF v_count <> 0 THEN
+  IF v_count <> 1 THEN
     RAISE EXCEPTION
-      'same-request replay created % consent log(s), expected 0',
+      'same-request replay left % consent log(s), expected the original data grant only',
       v_count;
   END IF;
 
@@ -1934,6 +2080,7 @@ BEGIN
     AND c.visit_count = 3
     AND c.last_visit_at IS NOT NULL
     AND c.total_spent_paise = 0
+    AND c.dpdp_data_consent = true
     AND c.dpdp_marketing_consent = true;
 
   IF v_count <> 1 THEN
@@ -2007,11 +2154,33 @@ BEGIN
   INTO v_count
   FROM public.consent_logs
   WHERE shop_id = v_shop_id
+    AND customer_id = v_customer_id
+    AND purpose = 'data_collection'
+    AND status = 'granted'
+    AND consent_method = 'verbal_recorded'
+    AND collected_by = v_user_id
+    AND metadata->>'source' = 'customer_visit'
+    AND (metadata->>'visit_id')::uuid IN (
+      v_first_visit_id,
+      v_second_visit_id,
+      v_third_visit_id
+    );
+
+  IF v_count <> 3 THEN
+    RAISE EXCEPTION
+      'visit data-consent append log count was %, expected one per visit (3)',
+      v_count;
+  END IF;
+
+  SELECT count(*)
+  INTO v_count
+  FROM public.consent_logs
+  WHERE shop_id = v_shop_id
     AND customer_id = v_customer_id;
 
-  IF v_count <> 1 THEN
+  IF v_count <> 4 THEN
     RAISE EXCEPTION
-      'consent log total was %, expected exactly one affirmative grant',
+      'consent log total was %, expected three data grants and one marketing grant',
       v_count;
   END IF;
 

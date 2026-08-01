@@ -253,6 +253,21 @@ affirmative; it is not the mechanism that obtains consent. Its helper says:
 > Untick if the customer declined. Consent is optional and can be withdrawn at
 > any time.
 
+Visit capture records two separate consent purposes transactionally. Required
+`data_collection` consent covers holding the customer's identity and visit
+context, so `dpdp_data_consent` is set unconditionally for every non-replayed
+visit and a separate append-only grant is written. Optional
+`whatsapp_marketing` consent remains driven by the checkbox, OR-preserves an
+existing affirmative, and is independently required for the acknowledgement
+send.
+
+Storefront checkout already follows the required-data / optional-marketing
+model. POS billing customer creation does not: it currently omits
+`dpdp_data_consent` and appends only a `whatsapp_marketing` log. That is a
+pre-existing gap, scoped separately because a correct fix likely requires a
+transactional RPC for the currently client-side creation path; Wave D does not
+change its characterized behaviour.
+
 The customer receives a thank-you with their points balance — this is the value
 exchange that makes both the customer accept being logged and the shopkeeper's
 tap feel productive. It is a WhatsApp utility message (~₹0.145 each); at 100
@@ -331,6 +346,13 @@ restrict or ban messaging **for every shop at once**. Therefore:
   a shop that does not actually ask the customer creates a false consent record.
   This requires later operational monitoring and consent-provenance controls;
   the UI default does not make the record legally true.
+- Visit consent uses the storefront's two-purpose model: data collection is
+  unconditional because the visit stores identity and context; WhatsApp
+  marketing remains optional. Each purpose is append-logged separately and an
+  idempotent replay adds neither log.
+- POS billing customer creation still omits required data consent and its
+  `data_collection` log. This pre-existing Wave 1 characterization gap is
+  tracked separately rather than being changed inside Wave D.
 - Whether the 7-day cooldown needs to widen for the grocery vertical, where
   several tags fire on 20–45 day cycles.
 
