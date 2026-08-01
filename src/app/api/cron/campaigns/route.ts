@@ -3,13 +3,13 @@
 // GET /api/cron/campaigns
 // Auth: Authorization: Bearer <CRON_SECRET>  (Vercel Cron attaches this)
 //
-// Matching lives in the find_campaign_matches() RPC (migration 037), which
+// Matching lives in the find_campaign_matches() RPC (migration 052), which
 // enforces the DPDP marketing-consent gate, IST date windows, dedupe,
 // per-customer cooldown, and the per-shop daily cap.
 //
 // Send discipline is claim-then-send: the message_logs row is inserted BEFORE
-// the WhatsApp call so overlapping cron runs collide on the
-// UNIQUE(invoice_id, rule_id) constraint instead of double-sending.
+// the WhatsApp call so overlapping cron runs collide on the source-specific
+// unique constraint instead of double-sending.
 // =============================================================================
 
 import { NextResponse } from 'next/server';
@@ -25,13 +25,20 @@ const campaignMatchSchema = z.object({
   customer_id: z.string().uuid(),
   customer_name: z.string().nullable(),
   customer_phone: z.string(),
-  invoice_id: z.string().uuid(),
+  invoice_id: z.string().uuid().nullable(),
+  visit_id: z.string().uuid().nullable(),
   rule_id: z.string().uuid(),
   rule_name: z.string(),
   tag_name: z.string(),
   template_key: z.enum(['PROMO', 'RESTOCK', 'NEW_ARRIVAL']),
   custom_variable: z.string(),
-});
+}).refine(
+  (match) => (match.invoice_id === null) !== (match.visit_id === null),
+  {
+    message: 'Exactly one campaign source is required',
+    path: ['invoice_id'],
+  }
+);
 
 type CampaignMatch = z.infer<typeof campaignMatchSchema>;
 
@@ -103,6 +110,7 @@ export async function GET(request: Request) {
           shop_id: match.shop_id,
           customer_id: match.customer_id,
           invoice_id: match.invoice_id,
+          visit_id: match.visit_id,
           rule_id: match.rule_id,
           sent_at: new Date().toISOString(),
         })
@@ -111,10 +119,13 @@ export async function GET(request: Request) {
 
       if (claimErr) {
         if (claimErr.code === PG_UNIQUE_VIOLATION) {
-          results.skipped++; // another run already claimed this (invoice, rule)
+          results.skipped++; // another run already claimed this (source, rule)
         } else {
+          const source = match.invoice_id
+            ? `invoice ${match.invoice_id}`
+            : `visit ${match.visit_id}`;
           console.error(
-            `[Cron] Claim failed for invoice ${match.invoice_id}:`,
+            `[Cron] Claim failed for ${source}:`,
             claimErr.message
           );
           results.errors++;
