@@ -1,13 +1,13 @@
 # BharatGrowth Codex Handoff
 
-Last updated: 2026-08-01 (IST)
+Last updated: 2026-08-02 (IST)
 Owner: Darshan
 Maintainer signature: Sol/Codex
 
 This is the canonical operating handoff for BharatGrowth. It records the exact
-post-migration-052, post-email-OTP, post-Wave-C visit-log-and-attribution merge
-checkpoint. It does not authorize production access, external-gate work, Waves
-D–E, or a production rollout.
+post-migration-054, post-email-OTP, post-Wave-D visit-capture-and-
+acknowledgement merge checkpoint. It does not authorize production access,
+external-gate work, Wave E, or a production rollout.
 
 ## 1. Product and branch model
 
@@ -19,13 +19,13 @@ campaigns, analytics, a public storefront, online checkout, and public receipts.
 - Production Git checkpoint: `8c389098db7e31180b5bdd6f1661adfd4bdc902b`
 - Immutable fallback tag: `pre-hardening-8c38909`
 - Integration/staging branch: `codex/production-hardening-baseline`
-- Current verified integration software commit after Wave C:
-  `7ba7fd5ccd5d12a69e65bea42cf981519760269e`
+- Current verified integration software commit after Wave D:
+  `77cd697414250adca559da9e1db84ce56eee9c81`
 - New work branches from a freshly verified remote integration SHA and PRs only
   back to integration unless Darshan separately authorizes production.
 
-Production remained untouched throughout migrations 049–052, Auth
-normalization, email OTP, the sale-readiness matrix, and Waves A–C. No
+Production remained untouched throughout migrations 049–054, Auth
+normalization, email OTP, the sale-readiness matrix, and Waves A–D. No
 production Supabase or Vercel endpoint was accessed.
 
 ## 2. Required reading order
@@ -44,7 +44,8 @@ Read these completely before continuing work:
 
 Do not open, edit, stage, or infer from excluded user-owned paths:
 `designs/`, `designs_mobile/`, `docs/bharatgrowth/design/`, and
-`docs/bharatgrowth/CLAUDE_HANDOFF.md`.
+`docs/bharatgrowth/CLAUDE_HANDOFF.md` or
+`docs/bharatgrowth/LAUNCH_PLAN.md`.
 
 ## 3. Exact current checkpoint
 
@@ -198,6 +199,58 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   exactly three on integration and zero on
   `codex/visit-attribution-wave-c`.
 
+#### Wave D visit capture and acknowledgement — merged into integration
+
+- PR [#25](https://github.com/darshan-Jahagirdar/bharat-growth/pull/25)
+  targeted integration only and squash-merged as
+  `77cd697414250adca559da9e1db84ce56eee9c81` from exact reviewed head
+  `8612d693bcca440c9dd2920e7cc4e6f6dc5af6b5`. Its exact base was the
+  post-Wave-C handoff checkpoint
+  `cc1f5dc64d85a8cf2edb6cb0134e247ccd1351aa`.
+- Migration 053 makes visit creation request-idempotent and adds a durable,
+  service-only one-per-visit acknowledgement claim outside campaign-attribution
+  `message_logs`. A replay returns before customer, consent, loyalty,
+  attribution, or acknowledgement side effects.
+- Migration 054 makes data-collection consent unconditional for every new
+  visit, OR-preserves both consent flags, append-logs data and optional
+  WhatsApp-marketing purposes separately, and excludes anonymized customers or
+  a later explicit data withdrawal from its backfill. It introduced no
+  caller-supplied data-consent, amount, item, points, stock, or inventory input.
+- Staging backfill aggregate readback found six non-erased visited customers
+  with data consent, six migration audit rows, zero eligible false rows
+  remaining, and zero explicit withdrawals overwritten. The rollback harness
+  then passed its invoice, visit, replay, two-purpose consent, loyalty,
+  attribution, approval, claim, privilege, and forbidden-side-effect
+  assertions. Staging migration history is continuous 001–054.
+- The billing header has an independent **Visit** action with `F6`; existing
+  F2/F3/F4/F5/F8 shortcuts and bill-draft behavior remain unchanged. New and
+  returning capture reuse the characterized customer search without reading,
+  changing, or clearing the in-progress bill.
+- The WhatsApp acknowledgement carries the flat one-point balance and requires
+  both independent gates: `shops.campaigns_approved = true` and persisted
+  customer marketing consent. Simulation redacts template variables; partial
+  Meta credentials fail closed. Acknowledgements never enter `message_logs`.
+- Counter marketing consent is recorded verbally and defaults checked in both
+  Visit and billing customer creation. Operators can untick a decline. The
+  known residual risk is a false record when a shop fails to ask; later
+  provenance and monitoring controls remain separately scoped.
+- Dashboard instrumentation reports observable **Customer captures** and
+  **Bills with customer** for the selected IST range, with `— / No bills`
+  rather than a fabricated zero-denominator rate.
+- Repository gates passed at the reviewed head: 42/42 test files and 215/215
+  tests, strict typecheck, zero-warning lint, optimized build with 26 routes,
+  and `git diff --check`. All four GitHub/Vercel checks were green.
+- Exact final Wave D branch Preview:
+  `dpl_9872jvBcUYv8HHaThiiiBdwBz2j8`,
+  `https://bharat-growth-36hs6hc4d-darshan-jahagirdars-projects.vercel.app`.
+  It was READY, Preview-only, exact branch/head, and its eight compiled browser
+  chunks contained staging ref `qokaaggeqahayxsybgds` once and no production
+  ref. Darshan completed the requested manual Preview pass before closeout.
+- Before merge, the three encrypted Preview variables were restored by
+  metadata-only PATCH to `codex/production-hardening-baseline`. Readback proved
+  exactly three on integration and zero on `codex/visit-capture-wave-d`, so the
+  merge-triggered integration deployment inherited staging scope.
+
 - PR #12, storefront loader → owner-phone RPC, merged at `3cca263`.
 - PR #13, migration 049, merged into integration.
 - Post-049 integration checkpoint before Auth work: `e5147d1`.
@@ -218,7 +271,9 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
 - PR #23, Wave C visit log and attribution generalization, squash-merged into
   integration as `7ba7fd5` (reviewed head `44adafb`; characterization
   checkpoint `50c60da`).
-- Current verified integration software checkpoint: `7ba7fd5`.
+- PR #25, Wave D visit capture and acknowledgement, squash-merged into
+  integration as `77cd697` (reviewed head `8612d69`).
+- Current verified integration software checkpoint: `77cd697`.
 - Production `main` remains exact `8c38909`.
 
 Before any new write, re-fetch and compare remote integration, remote main,
@@ -227,12 +282,14 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 ### Supabase staging
 
 - Linked staging project ref: `qokaaggeqahayxsybgds`.
-- Migrations 001–052 are applied and verified on staging. Migration 050 adds
+- Migrations 001–054 are applied and verified on staging. Migration 050 adds
   only `grocery` to the `shops.business_type` CHECK. Migration 051 adds the
   campaign approval columns, loud self-approval trigger, and approved-shop
   matching predicate. Migration 052 adds append-only visit capture and
   generalizes campaign source and conversion attribution without recording
-  visit amounts or moving inventory.
+  visit amounts or moving inventory. Migration 053 adds request idempotency and
+  a separate acknowledgement claim. Migration 054 makes visit data consent
+  required and separately append-logged.
 - Migration 049 removed direct anonymous invoice/user reads while preserving the
   constrained Receipt and Storefront facades and checkout contract.
 - The durable synthetic owner fixture documented in `MIGRATION_RUNBOOK.md`
@@ -250,6 +307,10 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 - The extended Wave C harness reproduced the invoice baseline unchanged and
   passed its visit/RPC assertions inside rollback-only transactions. Guarded
   post-run readback found zero Wave C fixture shops and Auth users.
+- The Wave D extension proved request replay, acknowledgement isolation, exact
+  approval/marketing gates, required visit data consent for both new and
+  existing customers, separate append-only purpose logs, and no amount/item/
+  stock side effects. Its final staging run rolled back cleanly.
 - Staging Auth has a permanent callback fixture: Site URL is the stable
   integration preview alias and the allowlist retains localhost plus the
   staging-only Vercel preview wildcard documented in `MIGRATION_RUNBOOK.md`.
@@ -260,19 +321,19 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 
 ### Vercel staging preview
 
-The exact post-Wave-C integration Preview is:
+The exact post-Wave-D integration Preview is:
 
-- Deployment ID: `dpl_A6h18hNnRpcZKmV6nAAm5FiRxLZq`
+- Deployment ID: `dpl_HT5gSP6yQXzWq3RMJFdxBowsb3kn`
 - URL:
-  `https://bharat-growth-g79eec4fv-darshan-jahagirdars-projects.vercel.app`
+  `https://bharat-growth-pc4l1dxff-darshan-jahagirdars-projects.vercel.app`
 - State/type: READY / Preview (`target = null`)
 - Git branch/SHA: `codex/production-hardening-baseline` /
-  `7ba7fd5ccd5d12a69e65bea42cf981519760269e`
+  `77cd697414250adca559da9e1db84ce56eee9c81`
 - The three existing sensitive Preview variables read back as encrypted,
   Preview-only, and scoped to integration before merge. Zero remained on the
-  closed Wave C branch.
+  closed Wave D branch.
 - The compiled login bundle contains staging ref `qokaaggeqahayxsybgds` and no
-  production ref.
+  production ref across all eight browser chunks.
 
 Do not treat an arbitrary PR preview as staging evidence. Verify exact commit,
 Preview state, and branch-scoped staging variables before login or mutations.
@@ -402,7 +463,7 @@ Stop and report before writes if any of these occur:
 - remote integration or `main` contradicts the exact checkpoints above;
 - an unexplained overlapping Claude/Codex branch changes the same scope;
 - the linked Supabase target is not staging `qokaaggeqahayxsybgds`;
-- migration history no longer matches 001–052;
+- migration history no longer matches 001–054;
 - the intended preview is not exact-commit, READY, Preview-only, and staging-
   wired;
 - a production endpoint, real customer identity, live provider send, secret,
@@ -411,15 +472,17 @@ Stop and report before writes if any of these occur:
 - work would require touching an excluded user-owned path;
 - a sale-readiness failure would have to be fixed without a separate scope.
 
-## 9. Recommended next task
+## 9. Open work and recommended next task
 
-Waves A–C are complete. Keep the remaining capture-and-tags work separately
-scoped in the sequence approved by `CAPTURE_AND_TAGS_DESIGN.md`:
+Waves A–D are complete.
 
-1. **Wave D:** visit capture UI and thank-you message.
-2. **Wave E:** CSV auto-tagging.
+- **POS consent debt:** POS billing customer creation omits
+  `dpdp_data_consent` and its `data_collection` consent log. Fix likely
+  requires a transactional RPC because the current path is client-side with a
+  non-transactional audit write. Scoped separately; touches Wave 1
+  characterized behaviour.
+- **Wave E:** CSV auto-tagging remains separately scoped and requires fresh
+  characterization and Darshan's explicit approval.
 
-Wave D is separately scoped and must not begin without fresh characterization,
-a new branch, staging plan, cleanup plan, risk review, and Darshan's explicit
-approval. Production `main` remains exact
+Production `main` remains exact
 `8c389098db7e31180b5bdd6f1661adfd4bdc902b`.
