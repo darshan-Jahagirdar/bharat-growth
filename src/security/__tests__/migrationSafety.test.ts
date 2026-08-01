@@ -135,7 +135,7 @@ describe('migration release safety', () => {
     expect(migration051.replace(approvalJoin, '')).toBe(migration037);
   });
 
-  it('keeps the migration 051 staging fixture isolated and rollback-backed', () => {
+  it('keeps the invoice campaign characterization isolated and rollback-backed', () => {
     const sql = readFileSync(
       resolve(
         process.cwd(),
@@ -147,11 +147,26 @@ describe('migration release safety', () => {
     expect(sql).toMatch(/qokaaggeqahayxsybgds/i);
     expect(sql).toMatch(/supabase db query --linked/i);
     expect(sql).not.toMatch(/\\set|\\if|\\gset|\\quit/i);
-    expect(sql).toMatch(/v_token\s+text := 'wave-b-051-' \|\| gen_random_uuid\(\)::text/i);
+    expect(sql).toMatch(/v_token\s+text := 'wave-c-char-' \|\| gen_random_uuid\(\)::text/i);
     expect(sql).toMatch(/BEGIN;[\s\S]+ROLLBACK;/i);
-    expect(sql).toMatch(/WHERE id = v_shop_id[\s\S]+settings->>'fixture' = v_token/i);
-    expect(sql).toMatch(/v_unapproved_count <> 0/i);
-    expect(sql).toMatch(/v_approved_count <> 1/i);
+    expect(sql).toMatch(/settings->>'fixture' = v_token/i);
+    expect(sql).toMatch(/unapproved guard shop returned/i);
+    expect(sql).toMatch(/inside_mid/i);
+    expect(sql).toMatch(/grace_lower/i);
+    expect(sql).toMatch(/grace_upper/i);
+    expect(sql).toMatch(/consent_false/i);
+    expect(sql).toMatch(/dedupe/i);
+    expect(sql).toMatch(/cooldown_active_source/i);
+    expect(sql).toMatch(/cooldown_boundary_source/i);
+    expect(sql).toMatch(/guard-alt-rule/i);
+    expect(sql).toMatch(/one-per-customer newest invoice assertion/i);
+    expect(sql).toMatch(/cap shop with one prior send and cap 3/i);
+    expect(sql).toMatch(/match\.shop_name = v_token \|\| '-guards'/i);
+    expect(sql).toMatch(/match\.customer_name = v_token \|\| '-guard-' \|\| c\.label/i);
+    expect(sql).toMatch(/match\.rule_name = v_token \|\| '-guard-rule'/i);
+    expect(sql).toMatch(/match\.tag_name = v_token \|\| '-guard-tag'/i);
+    expect(sql).toMatch(/match\.template_key = 'PROMO'/i);
+    expect(sql).toMatch(/match\.custom_variable = 'Invoice characterization'/i);
     expect(sql).toMatch(/fixture cleanup readback found residual rows/i);
   });
 });
