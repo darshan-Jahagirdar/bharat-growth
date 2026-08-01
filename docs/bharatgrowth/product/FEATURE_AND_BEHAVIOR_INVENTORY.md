@@ -70,8 +70,8 @@ A decomposition is not permission to repair an inherited behavior.
 | Route or surface | Why it exists | Current behavior to preserve |
 |---|---|---|
 | `/` | Product positioning and conversion | Existing Spline visuals, copy, sections, CTAs, pricing/benefit claims, and responsive output. |
-| `/login` | Shop-user authentication | Phone OTP and email magic-link tabs; `next` redirect; six-digit OTP entry, paste, backspace, auto-advance, and Enter behavior. Phone UI visibly shows `+91`; Auth sends the same number to Supabase in canonical `+91XXXXXXXXXX` E.164 form. |
-| `/auth/callback` | Completes email/magic-link auth | Exchanges the callback code and returns to the validated destination. Root `?code=` is redirected here by middleware. |
+| `/login` | Shop-user authentication | Phone OTP and email OTP tabs; `next` redirect; shared six-digit OTP entry, paste, backspace, auto-advance, Enter, and resend behavior. Phone UI visibly shows `+91`; Auth sends the same number to Supabase in canonical `+91XXXXXXXXXX` E.164 form. |
+| `/auth/callback` | OAuth callback compatibility | Exchanges an OAuth callback code and returns to the validated destination. Root `?code=` is redirected here by middleware. Email OTP does not use this route; it remains for the separately scoped Google OAuth flow. |
 | `/onboarding` | Creates the first shop and owner membership | Auth required; business profile, pincode/state resolution, shop creation, owner row creation, rollback/retry behavior, and inactive default campaign seeding. |
 | `/billing` | High-speed point of sale | Protected desktop billing workspace and the behavior detailed below. |
 | `/dashboard` | Owner operating view | Protected analytics, GST export, khata, stock, and retention actions. |
@@ -104,7 +104,7 @@ Preserve:
   `useAuth.sendOtp` normalization to canonical `+91XXXXXXXXXX` E.164 form;
 - six OTP cells, digit-only handling, full-code paste, forward focus, Backspace
   movement, Enter submit, resend, and loading/disabled states;
-- email magic link callback URL and onboarding-versus-billing routing;
+- email OTP send/verify/resend and onboarding-versus-billing routing;
 - no committed dev-login backdoor.
 
 Known non-product workaround: a temporary raw-ten-digit staging login variant

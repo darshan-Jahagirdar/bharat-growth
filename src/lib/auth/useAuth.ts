@@ -1,7 +1,7 @@
 'use client';
 
 // =============================================================================
-// BharatGrowth — Supabase Auth Hook (Mobile OTP)
+// BharatGrowth — Supabase Auth Hook (Phone and Email OTP)
 // Handles signInWithOtp, verifyOtp, session management
 // =============================================================================
 
@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { normalizeIndianPhoneToE164 } from './phone';
 
-export type AuthStep = 'phone' | 'otp' | 'email_sent' | 'authenticated';
+export type AuthStep = 'phone' | 'otp' | 'email_otp' | 'authenticated';
 
 export interface AuthState {
   step: AuthStep;
@@ -96,7 +96,7 @@ export function useAuth() {
     [supabase]
   );
 
-  const sendEmailLink = useCallback(
+  const sendEmailOtp = useCallback(
     async (email: string) => {
       const normalized = email.trim().toLowerCase();
       setState((s) => ({
@@ -106,16 +106,8 @@ export function useAuth() {
         email: normalized,
       }));
 
-      const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
-      const origin =
-        configuredAppUrl ||
-        (typeof window !== 'undefined' ? window.location.origin : '');
-
       const { error } = await supabase.auth.signInWithOtp({
         email: normalized,
-        options: {
-          emailRedirectTo: `${origin}/auth/callback?next=/billing`,
-        },
       });
 
       if (error) {
@@ -129,7 +121,7 @@ export function useAuth() {
 
       setState((s) => ({
         ...s,
-        step: 'email_sent',
+        step: 'email_otp',
         loading: false,
       }));
       return true;
@@ -142,11 +134,12 @@ export function useAuth() {
     async (otp: string) => {
       setState((s) => ({ ...s, loading: true, error: null }));
 
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: state.phone,
-        token: otp,
-        type: 'sms',
-      });
+      const verification =
+        state.step === 'email_otp'
+          ? { email: state.email, token: otp, type: 'email' as const }
+          : { phone: state.phone, token: otp, type: 'sms' as const };
+
+      const { data, error } = await supabase.auth.verifyOtp(verification);
 
       if (error) {
         setState((s) => ({
@@ -166,7 +159,7 @@ export function useAuth() {
       }));
       return true;
     },
-    [supabase, state.phone]
+    [supabase, state.email, state.phone, state.step]
   );
 
   // ── Sign out ──
@@ -200,7 +193,7 @@ export function useAuth() {
   return {
     ...state,
     sendOtp,
-    sendEmailLink,
+    sendEmailOtp,
     verifyOtp,
     signOut,
     goBack,

@@ -68,3 +68,57 @@ describe('phone OTP contract', () => {
     });
   });
 });
+
+describe('email OTP contract', () => {
+  it('sends, verifies, and resends a normalized email OTP without redirect options', async () => {
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      expect(await result.current.sendEmailOtp('  Test.User+OTP@Example.com  ')).toBe(true);
+    });
+    expect(authMocks.signInWithOtp).toHaveBeenNthCalledWith(1, {
+      email: 'test.user+otp@example.com',
+    });
+    expect(result.current.step).toBe('email_otp');
+
+    await act(async () => {
+      expect(await result.current.verifyOtp('654321')).toBe(true);
+    });
+    expect(authMocks.verifyOtp).toHaveBeenCalledWith({
+      email: 'test.user+otp@example.com',
+      token: '654321',
+      type: 'email',
+    });
+
+    await act(async () => {
+      expect(await result.current.sendEmailOtp(result.current.email)).toBe(true);
+    });
+    expect(authMocks.signInWithOtp).toHaveBeenNthCalledWith(2, {
+      email: 'test.user+otp@example.com',
+    });
+  });
+
+  it('keeps the email OTP step and exposes the provider error for a wrong code', async () => {
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendEmailOtp('wrong-code@example.com');
+    });
+
+    authMocks.verifyOtp.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { message: 'Token has expired or is invalid' },
+    });
+
+    await act(async () => {
+      expect(await result.current.verifyOtp('000000')).toBe(false);
+    });
+
+    expect(result.current.step).toBe('email_otp');
+    expect(result.current.error).toBe('Token has expired or is invalid');
+  });
+});
