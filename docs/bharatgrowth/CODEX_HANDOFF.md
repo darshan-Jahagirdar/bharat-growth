@@ -5,9 +5,9 @@ Owner: Darshan
 Maintainer signature: Sol/Codex
 
 This is the canonical operating handoff for BharatGrowth. It records the exact
-post-migration-050, post-email-OTP, post-Wave-A tag-taxonomy merge checkpoint.
-It does not authorize production access, external-gate work, Waves B–E, or a
-production rollout.
+post-migration-051, post-email-OTP, post-Wave-B campaign-approval-gate merge
+checkpoint. It does not authorize production access, external-gate work, Waves
+C–E, or a production rollout.
 
 ## 1. Product and branch model
 
@@ -19,14 +19,14 @@ campaigns, analytics, a public storefront, online checkout, and public receipts.
 - Production Git checkpoint: `8c389098db7e31180b5bdd6f1661adfd4bdc902b`
 - Immutable fallback tag: `pre-hardening-8c38909`
 - Integration/staging branch: `codex/production-hardening-baseline`
-- Current verified integration software commit after Wave A:
-  `7722ca15522b75bcbd3f9613b724c1b5bc8e84d8`
+- Current verified integration software commit after Wave B:
+  `74c785279abf63705a4a506da007a6bd5f47f95a`
 - New work branches from a freshly verified remote integration SHA and PRs only
   back to integration unless Darshan separately authorizes production.
 
-Production remained untouched throughout migrations 049–050, Auth
-normalization, email OTP, the sale-readiness matrix, and Wave A. No production
-Supabase or Vercel endpoint was accessed.
+Production remained untouched throughout migrations 049–051, Auth
+normalization, email OTP, the sale-readiness matrix, and Waves A–B. No
+production Supabase or Vercel endpoint was accessed.
 
 ## 2. Required reading order
 
@@ -108,6 +108,47 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   all three on integration and zero remaining on
   `codex/tag-taxonomy-wave-a`; their encrypted values were not copied.
 
+#### Wave B campaign approval gate — merged into integration
+
+- PR [#21](https://github.com/darshan-Jahagirdar/bharat-growth/pull/21)
+  targeted integration only and squash-merged as
+  `74c785279abf63705a4a506da007a6bd5f47f95a` from exact reviewed head
+  `5d53ba7ac46a7ec3c3db7268749c2d1c3c8d920a`. Its exact base was the
+  post-Wave-A handoff checkpoint
+  `ee882aee00cff2f8c8d2a1656600400c9a0c53db`.
+- Migration 051 adds `campaigns_approved`,
+  `campaigns_approved_at`, and `campaigns_approval_requested_at` to `shops`.
+  Existing and new shops deliberately default to unapproved.
+- A narrow `BEFORE UPDATE` trigger raises SQLSTATE `42501` if `anon` or
+  `authenticated` attempts to alter `campaigns_approved` or
+  `campaigns_approved_at`. Shops may update only the request timestamp through
+  the existing row-scoped update policy; privileged roles retain the manual
+  approval path.
+- `find_campaign_matches` retains its exact 11-column return signature and all
+  prior consent, dedupe, cooldown, per-customer, and daily-cap guards. Its only
+  behavioral addition is the approved-shop join predicate.
+- The Campaigns page now renders not-requested, pending, and approved states.
+  Shops can keep using the existing recommended-rule creation, Enable All, and
+  toggle controls while approval is pending; no rule editor or admin UI was
+  added. Dashboard Bring-Back copy is also approval-aware.
+- Repository gates passed at the reviewed head: 36/36 test files and 179/179
+  tests, strict typecheck, zero-warning lint, and optimized build with 25
+  routes.
+- Migration 051 was applied only to staging. The committed reusable harness
+  `supabase/tests/051_campaign_approval_gate.sql` proved zero RPC rows while
+  unapproved and the expected normal match after privileged approval. It
+  removed only its uniquely tagged disposable fixtures, verified zero
+  remaining fixture shops, and preserved the durable staging fixture.
+- Exact Wave B branch Preview:
+  `dpl_CJwy2TzyzBdSyYXqivNKR5UFRtTt`,
+  `https://bharat-growth-9xull2jsu-darshan-jahagirdars-projects.vercel.app`.
+  It was READY, Preview-only, exact branch/head, and staging-wired.
+- Before merge, the three encrypted Preview variables were restored by
+  metadata-only PATCH to `codex/production-hardening-baseline`. Readback proved
+  exactly three on integration and zero on `codex/campaign-approval-wave-b`.
+  The merge-triggered integration Preview therefore inherited staging scope
+  without the Wave A race.
+
 - PR #12, storefront loader → owner-phone RPC, merged at `3cca263`.
 - PR #13, migration 049, merged into integration.
 - Post-049 integration checkpoint before Auth work: `e5147d1`.
@@ -123,7 +164,9 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   `3c83cac` (reviewed head `f65cb386`).
 - PR #19, Wave A tag taxonomy, squash-merged into integration as `7722ca1`
   (reviewed head `76dbee6`; implementation head `5b09596`).
-- Current verified integration software checkpoint: `7722ca1`.
+- PR #21, Wave B campaign approval gate, squash-merged into integration as
+  `74c7852` (reviewed head `5d53ba7`).
+- Current verified integration software checkpoint: `74c7852`.
 - Production `main` remains exact `8c38909`.
 
 Before any new write, re-fetch and compare remote integration, remote main,
@@ -132,9 +175,10 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 ### Supabase staging
 
 - Linked staging project ref: `qokaaggeqahayxsybgds`.
-- Migrations 001–050 are applied and verified on staging. Migration 050 adds
-  only `grocery` to the `shops.business_type` CHECK and was applied once; it was
-  not reapplied after integration was merged into Wave A.
+- Migrations 001–051 are applied and verified on staging. Migration 050 adds
+  only `grocery` to the `shops.business_type` CHECK. Migration 051 adds the
+  campaign approval columns, loud self-approval trigger, and approved-shop
+  matching predicate.
 - Migration 049 removed direct anonymous invoice/user reads while preserving the
   constrained Receipt and Storefront facades and checkout contract.
 - The durable synthetic owner fixture documented in `MIGRATION_RUNBOOK.md`
@@ -147,6 +191,8 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 - The disposable `Wave A Grocery E2E` shop and its Auth identity were removed
   after onboarding verification with guarded zero-readback. Durable synthetic
   ownership infrastructure and unrelated staging shops were preserved.
+- The Wave B SQL harness completed inside an isolated transaction and its
+  guarded post-run readback found zero uniquely tagged fixture shops.
 - Staging Auth has a permanent callback fixture: Site URL is the stable
   integration preview alias and the allowlist retains localhost plus the
   staging-only Vercel preview wildcard documented in `MIGRATION_RUNBOOK.md`.
@@ -157,24 +203,19 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 
 ### Vercel staging preview
 
-The exact post-Wave-A integration Preview is:
+The exact post-Wave-B integration Preview is:
 
-- Deployment ID: `dpl_8naG4mxYizXyGcdkdJ3GXj1XNxZk`
+- Deployment ID: `dpl_FvSC25njoCfGuFSSLmHBCcosf9mU`
 - URL:
-  `https://bharat-growth-oyax4qh2w-darshan-jahagirdars-projects.vercel.app`
+  `https://bharat-growth-huwm5bt3o-darshan-jahagirdars-projects.vercel.app`
 - State/type: READY / Preview (`target = null`)
 - Git branch/SHA: `codex/production-hardening-baseline` /
-  `7722ca15522b75bcbd3f9613b724c1b5bc8e84d8`
+  `74c785279abf63705a4a506da007a6bd5f47f95a`
 - The three existing sensitive Preview variables read back as encrypted,
-  Preview-only, and scoped to integration. Zero remained on the closed Wave A
-  branch.
-- The compiled login bundle contains staging ref `qokaaggeqahayxsybgds`, no
-  production ref, and the six-digit email OTP copy.
-- The first Git-triggered merge deployment
-  `dpl_5LwHzxyrc3PxbPrN9ASeMqgZUKPj` started before the variable metadata
-  restore and compiled with the production ref. It was never used for login or
-  a backend call. After restoring all three scopes, exact commit `7722ca1` was
-  explicitly redeployed as the validated staging-wired Preview above.
+  Preview-only, and scoped to integration before merge. Zero remained on the
+  closed Wave B branch.
+- The compiled login bundle contains staging ref `qokaaggeqahayxsybgds` and no
+  production ref.
 
 Do not treat an arbitrary PR preview as staging evidence. Verify exact commit,
 Preview state, and branch-scoped staging variables before login or mutations.
@@ -304,7 +345,7 @@ Stop and report before writes if any of these occur:
 - remote integration or `main` contradicts the exact checkpoints above;
 - an unexplained overlapping Claude/Codex branch changes the same scope;
 - the linked Supabase target is not staging `qokaaggeqahayxsybgds`;
-- migration history no longer matches 001–049;
+- migration history no longer matches 001–051;
 - the intended preview is not exact-commit, READY, Preview-only, and staging-
   wired;
 - a production endpoint, real customer identity, live provider send, secret,
@@ -315,15 +356,16 @@ Stop and report before writes if any of these occur:
 
 ## 9. Recommended next task
 
-Wave A is complete. Keep the remaining capture-and-tags work separately scoped
-in the sequence approved by `CAPTURE_AND_TAGS_DESIGN.md`:
+Waves A and B are complete. Keep the remaining capture-and-tags work separately
+scoped in the sequence approved by `CAPTURE_AND_TAGS_DESIGN.md`:
 
-1. **Wave B:** campaign approval gate.
-2. **Wave C:** visit log plus `message_logs` /
+1. **Wave C:** visit log plus `message_logs` /
    `find_campaign_matches` generalization.
-3. **Wave D:** visit capture UI and thank-you message.
-4. **Wave E:** CSV auto-tagging.
+2. **Wave D:** visit capture UI and thank-you message.
+3. **Wave E:** CSV auto-tagging.
 
-Do not begin any of Waves B–E without a fresh branch, staging plan, cleanup
-plan, risk review, and Darshan's explicit scope approval. Production `main`
-remains exact `8c389098db7e31180b5bdd6f1661adfd4bdc902b`.
+Wave C requires characterization against the committed Wave B SQL harness
+before its UNION and return-signature change. Do not begin Waves C–E without a
+fresh branch, staging plan, cleanup plan, risk review, and Darshan's explicit
+scope approval. Production `main` remains exact
+`8c389098db7e31180b5bdd6f1661adfd4bdc902b`.
