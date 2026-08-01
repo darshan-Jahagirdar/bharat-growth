@@ -8,6 +8,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import {
+  WHATSAPP_CONSENT_HELPER,
+  WHATSAPP_CONSENT_LABEL,
+} from '@/lib/billing/customerConsentCopy';
 
 interface CreateCustomerModalProps {
   isOpen: boolean;
@@ -28,7 +32,7 @@ export function CreateCustomerModal({
   const [phone, setPhone] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -39,7 +43,7 @@ export function CreateCustomerModal({
       setPhone(prefillPhone);
       setPhotoFile(null);
       setPhotoPreview(null);
-      setMarketingConsent(false);
+      setMarketingConsent(true);
       setError(null);
     }
   }, [isOpen, prefillPhone]);
@@ -179,7 +183,7 @@ export function CreateCustomerModal({
             </div>
           </div>
 
-          {/* Marketing consent (DPDP — explicit, default unchecked) */}
+          {/* Marketing consent — shopkeeper records verbal affirmative; default checked */}
           <label className="flex items-start gap-2.5 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -188,8 +192,8 @@ export function CreateCustomerModal({
               className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 accent-orange-500"
             />
             <span className="text-xs text-gray-400">
-              Customer agreed to WhatsApp offers
-              <span className="block text-gray-600">Ask the customer before ticking (DPDP)</span>
+              {WHATSAPP_CONSENT_LABEL}
+              <span className="block text-gray-600">{WHATSAPP_CONSENT_HELPER}</span>
             </span>
           </label>
 

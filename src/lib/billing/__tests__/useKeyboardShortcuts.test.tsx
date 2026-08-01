@@ -11,6 +11,7 @@ function setupKeyboard(disabled = false) {
   const handlers = {
     onSaveBill: vi.fn(),
     onClearBill: vi.fn(),
+    onOpenVisit: vi.fn(),
     onCyclePaymentMode: vi.fn(),
     onRemoveActiveLine: vi.fn(),
     onNavigateUp: vi.fn(),
@@ -39,7 +40,7 @@ afterEach(() => {
 });
 
 describe('billing keyboard behavior contract', () => {
-  it('keeps F2, F3, F4, F5, and F8 available globally, including inside inputs', () => {
+  it('keeps F2, F3, F4, F5, F6, and F8 available globally, including inside inputs', () => {
     const { customerInput, productInput, handlers } = setupKeyboard();
     productInput.focus();
 
@@ -51,9 +52,11 @@ describe('billing keyboard behavior contract', () => {
 
     fireEvent.keyDown(productInput, { key: 'F4' });
     fireEvent.keyDown(productInput, { key: 'F5' });
+    fireEvent.keyDown(productInput, { key: 'F6' });
     fireEvent.keyDown(productInput, { key: 'F8' });
     expect(handlers.onClearBill).toHaveBeenCalledOnce();
     expect(handlers.onSaveBill).toHaveBeenCalledOnce();
+    expect(handlers.onOpenVisit).toHaveBeenCalledOnce();
     expect(handlers.onCyclePaymentMode).toHaveBeenCalledOnce();
   });
 
@@ -61,10 +64,12 @@ describe('billing keyboard behavior contract', () => {
     const { handlers } = setupKeyboard(true);
 
     fireEvent.keyDown(document.body, { key: 'F5' });
+    fireEvent.keyDown(document.body, { key: 'F6' });
     fireEvent.keyDown(document.body, { key: 'Delete' });
     fireEvent.keyDown(document.body, { key: '+' });
 
     expect(handlers.onSaveBill).not.toHaveBeenCalled();
+    expect(handlers.onOpenVisit).not.toHaveBeenCalled();
     expect(handlers.onRemoveActiveLine).not.toHaveBeenCalled();
     expect(handlers.onIncrementQty).not.toHaveBeenCalled();
   });

@@ -62,6 +62,14 @@ export interface RetentionStats {
   perRule: RetentionRuleStats[];
 }
 
+export interface CaptureMetrics {
+  billsWithCustomerPercent: number | null;
+  customerCaptures: number;
+  identifiedBills: number;
+  totalBills: number;
+  visits: number;
+}
+
 export interface DashboardData {
   kpis: DashboardKPIs;
   revenueTrend: RevenueTrendPoint[];
@@ -70,6 +78,7 @@ export interface DashboardData {
   lowStockProducts: LowStockProduct[];
   negativeStockProducts: NegativeStockProduct[];
   retentionStats: RetentionStats;
+  captureMetrics: CaptureMetrics;
 }
 
 export interface DateRange {

@@ -172,7 +172,10 @@ CREATE TABLE customer_visits (
 );
 ```
 
-No amount column exists and none may be added. RLS mirrors `customers`.
+No amount column exists and none may be added. Authenticated users may read
+their shop's visits, but cannot insert, update, or delete them directly. The
+tenant-scoped `log_customer_visit` RPC validates customer and tag ownership and
+is the only application write path; visits remain append-only.
 
 ### Attribution generalisation
 
@@ -234,14 +237,75 @@ invoice.
 
 ### Capture UX
 
-A **Visit** button on the billing screen. First time for a customer: phone,
-optional name, optional interest tag. Every subsequent visit: one tap on the
-existing customer. Consent uses the same capture the billing flow already has.
+A secondary **Visit** action in the billing header (`F6`). First time for a
+customer: phone, optional name, optional interest tag. Every subsequent visit:
+one tap on the existing customer. The modal owns a separate instance of the
+existing characterized customer search and never reads or changes the bill
+draft. Consent uses the same explicit, default-on record as billing:
+
+> Customer agreed to receive purchase acknowledgements, loyalty updates, and
+> offers on WhatsApp
+
+Consent is obtained verbally, in person: the shopkeeper asks at the counter and
+cross-checks the form before submitting. The checked box records that verbal
+affirmative; it is not the mechanism that obtains consent. Its helper says:
+
+> Untick if the customer declined. Consent is optional and can be withdrawn at
+> any time.
+
+Visit capture records two separate consent purposes transactionally. Required
+`data_collection` consent covers holding the customer's identity and visit
+context, so `dpdp_data_consent` is set unconditionally for every non-replayed
+visit and a separate append-only grant is written. Optional
+`whatsapp_marketing` consent remains driven by the checkbox, OR-preserves an
+existing affirmative, and is independently required for the acknowledgement
+send.
+
+Storefront checkout already follows the required-data / optional-marketing
+model. POS billing customer creation does not: it currently omits
+`dpdp_data_consent` and appends only a `whatsapp_marketing` log. That is a
+pre-existing gap, scoped separately because a correct fix likely requires a
+transactional RPC for the currently client-side creation path; Wave D does not
+change its characterized behaviour.
 
 The customer receives a thank-you with their points balance — this is the value
 exchange that makes both the customer accept being logged and the shopkeeper's
 tap feel productive. It is a WhatsApp utility message (~₹0.145 each); at 100
 visits/day that is ~₹435/month per shop and belongs in the COGS model.
+
+### Capture and acknowledgement replay safety
+
+The visit RPC requires a caller-generated request UUID, unique per shop. A
+replay returns the original visit before customer, consent, loyalty, or
+attribution side effects, so retrying an uncertain HTTP response cannot create
+a second visit or point.
+
+An acknowledgement requires both independent gates at send time:
+`shops.campaigns_approved = true` and persisted affirmative customer consent.
+A durable one-per-visit claim is written before the Meta call. Claims live in a
+separate service-only table, not `message_logs`, because acknowledgements are
+not campaign-attribution events and must not affect cooldown, cap, conversion,
+or ROI calculations. Simulation retains the claim like a successful send.
+Definite configuration/API rejection releases it; an ambiguous network outcome
+retains it to prevent duplicate paid messages. A crash after claiming but
+before the provider accepts the message can therefore lose one acknowledgement;
+that conservative residual risk is preferred to duplicate spend and duplicate
+customer messages on the shared platform number.
+
+Simulation logs redact all template variables. Simulation is enabled only when
+both Meta credentials are absent; partial credentials fail closed without a
+provider request.
+
+### Capture instrumentation
+
+The dashboard does not claim to measure a true capture rate because real
+unbilled transaction volume has no observable denominator. It reports:
+
+- **Customer captures** — completed identified bills plus visit events in the
+  selected IST period (events, not unique people).
+- **Bills with customer** — completed identified bills divided by all completed
+  bills in that period. With no bills, the result is `— / No bills`, never
+  `0%`.
 
 ## 5. Campaign approval gate
 
@@ -266,12 +330,29 @@ restrict or ban messaging **for every shop at once**. Therefore:
   cleanup, not part of this work.
 - Loyalty **redemption** design — separate work.
 
-## 7. Open decisions
+## 7. Decisions and open questions
 
 - Points awarded per visit is resolved at **1 flat point**, owned by the
   database RPC with no caller-supplied points or amount.
-- Whether the Visit button is primary or secondary in the billing UI.
-- UI label for the visit action.
+- The Visit action is resolved as a secondary billing-header action labeled
+  **Visit**, with `F6` as its shortcut.
+- The consent checkbox defaults **checked** in visit capture and billing
+  customer creation. Consent is obtained verbally in person; the checkbox is
+  the shopkeeper's explicit record of the affirmative. Default-on represents
+  the overwhelmingly common case and avoids silently excluding a consenting
+  customer when a busy operator forgets to tick. Consent remains optional,
+  persisted explicitly, independently required alongside campaign approval for
+  acknowledgement sending, append-logged, and withdrawable. **Residual risk:**
+  a shop that does not actually ask the customer creates a false consent record.
+  This requires later operational monitoring and consent-provenance controls;
+  the UI default does not make the record legally true.
+- Visit consent uses the storefront's two-purpose model: data collection is
+  unconditional because the visit stores identity and context; WhatsApp
+  marketing remains optional. Each purpose is append-logged separately and an
+  idempotent replay adds neither log.
+- POS billing customer creation still omits required data consent and its
+  `data_collection` log. This pre-existing Wave 1 characterization gap is
+  tracked separately rather than being changed inside Wave D.
 - Whether the 7-day cooldown needs to widen for the grocery vertical, where
   several tags fire on 20–45 day cycles.
 

@@ -122,6 +122,18 @@ describe('dashboardQueries characterization', () => {
       ],
       error: null,
     });
+    const captureInvoicesQuery = createQueryBuilder({
+      data: [
+        { customer_id: 'customer-1' },
+        { customer_id: null },
+        { customer_id: 'customer-2' },
+      ],
+      error: null,
+    });
+    const captureVisitsQuery = createQueryBuilder({
+      data: [{ id: 'visit-1' }, { id: 'visit-2' }],
+      error: null,
+    });
     const khataRows = [
       {
         id: 'customer-1',
@@ -186,7 +198,12 @@ describe('dashboardQueries characterization', () => {
       error: null,
     });
     const queues = {
-      invoices: [salesQuery, todayQuery, trendQuery],
+      invoices: [
+        salesQuery,
+        todayQuery,
+        trendQuery,
+        captureInvoicesQuery,
+      ],
       inventory_movements: [purchaseQuery],
       customers: [creditQuery, khataQuery],
       inventory: [
@@ -196,6 +213,7 @@ describe('dashboardQueries characterization', () => {
         negativeStockQuery,
       ],
       invoice_items: [topProductsQuery],
+      customer_visits: [captureVisitsQuery],
     };
     const client = queuedClient(queues);
     client.rpc.mockResolvedValue({
@@ -281,6 +299,13 @@ describe('dashboardQueries characterization', () => {
         },
       ],
     });
+    expect(result.captureMetrics).toEqual({
+      billsWithCustomerPercent: 67,
+      customerCaptures: 4,
+      identifiedBills: 2,
+      totalBills: 3,
+      visits: 2,
+    });
 
     expect(client.from.mock.calls.map(([table]) => table)).toEqual([
       'invoices',
@@ -294,6 +319,8 @@ describe('dashboardQueries characterization', () => {
       'customers',
       'inventory',
       'inventory',
+      'invoices',
+      'customer_visits',
     ]);
     expect(expectQueryCalls(salesQuery)).toEqual([
       { method: 'select', args: ['total_paise'] },
@@ -423,6 +450,31 @@ describe('dashboardQueries characterization', () => {
       {
         method: 'order',
         args: ['quantity_in_stock', { ascending: true }],
+      },
+    ]);
+    expect(expectQueryCalls(captureInvoicesQuery)).toEqual([
+      { method: 'select', args: ['customer_id'] },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      { method: 'eq', args: ['status', 'completed'] },
+      {
+        method: 'gte',
+        args: ['created_at', '2026-06-01T00:00:00+05:30'],
+      },
+      {
+        method: 'lte',
+        args: ['created_at', '2026-06-30T23:59:59+05:30'],
+      },
+    ]);
+    expect(expectQueryCalls(captureVisitsQuery)).toEqual([
+      { method: 'select', args: ['id'] },
+      { method: 'eq', args: ['shop_id', 'shop-1'] },
+      {
+        method: 'gte',
+        args: ['created_at', '2026-06-01T00:00:00+05:30'],
+      },
+      {
+        method: 'lte',
+        args: ['created_at', '2026-06-30T23:59:59+05:30'],
       },
     ]);
     expect(client.rpc.mock.calls).toEqual([

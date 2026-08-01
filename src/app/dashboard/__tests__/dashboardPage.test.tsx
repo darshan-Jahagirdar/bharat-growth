@@ -59,6 +59,13 @@ const DASHBOARD_DATA: DashboardData = {
     activeRulesCount: 1,
     perRule: [],
   },
+  captureMetrics: {
+    billsWithCustomerPercent: 75,
+    customerCaptures: 5,
+    identifiedBills: 3,
+    totalBills: 4,
+    visits: 2,
+  },
 };
 
 const shopQuery = {
@@ -159,6 +166,13 @@ describe('Dashboard page behavior contract before decomposition', () => {
     expect(screen.getByText('₹1,234.56')).toBeInTheDocument();
     expect(screen.getByText('₹9,000.00')).toBeInTheDocument();
     expect(screen.getAllByText('₹500.00')).toHaveLength(2);
+    expect(screen.getByText('Customer captures')).toBeInTheDocument();
+    expect(screen.getByText('Bills with customer')).toBeInTheDocument();
+    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(
+      screen.getByText('This Month: 3 identified bills + 2 visits')
+    ).toBeInTheDocument();
+    expect(screen.getByText('3 identified, 1 walk-in')).toBeInTheDocument();
     expect(screen.getByText('MRF Zapper')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /View Storefront/ })).toHaveAttribute(
       'href',
@@ -188,6 +202,28 @@ describe('Dashboard page behavior contract before decomposition', () => {
         end: '2026-06-30T23:59:59+05:30',
       });
     });
+  });
+
+  it('renders an honest no-bills state while still showing visit captures', async () => {
+    mocks.fetchAllDashboardData.mockResolvedValueOnce({
+      ...DASHBOARD_DATA,
+      captureMetrics: {
+        billsWithCustomerPercent: null,
+        customerCaptures: 2,
+        identifiedBills: 0,
+        totalBills: 0,
+        visits: 2,
+      },
+    });
+
+    render(<DashboardPage />);
+
+    expect(await screen.findByText('No bills')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('This Month: 0 identified bills + 2 visits')
+    ).toBeInTheDocument();
   });
 
   it('exports the current-month GST rows with the existing filename contract', async () => {
