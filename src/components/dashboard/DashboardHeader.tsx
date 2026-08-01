@@ -30,13 +30,13 @@ export function DashboardHeader({
               disabled={exporting}
               className={`border transition-colors rounded-lg px-4 py-2 flex items-center gap-2 text-sm font-medium
                 ${exportDone
-                  ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
-                  : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10'
+                  ? 'border-money/30 text-money bg-money/10'
+                  : 'border-white/10 text-gray-300 hover:bg-white/5 hover:border-white/20'
                 } disabled:opacity-50`}
             >
               {exporting ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
                   Exporting...
                 </>
               ) : exportDone ? (

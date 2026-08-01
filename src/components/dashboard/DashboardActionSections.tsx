@@ -74,7 +74,7 @@ export function DashboardActionSections({
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
                   <div className="text-right">
-                    <div className="text-xs font-bold text-red-400">
+                    <div className="font-mono text-xs font-bold text-dues">
                       {formatINR(customer.credit_balance_paise)}
                     </div>
                   </div>
