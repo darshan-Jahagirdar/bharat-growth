@@ -65,10 +65,15 @@ describe('VisitModal', () => {
     fireEvent.change(screen.getByLabelText(/Interest category/), {
       target: { value: 'tag-1' },
     });
+    const consentCheckbox = screen.getByLabelText(
+      /purchase acknowledgements, loyalty updates, and offers/
+    );
+    expect(consentCheckbox).toBeChecked();
     expect(
-      screen.getByText('Ask before ticking. Consent is optional and can be withdrawn at any time.')
+      screen.getByText(
+        'Untick if the customer declined. Consent is optional and can be withdrawn at any time.'
+      )
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText(/purchase acknowledgements, loyalty updates, and offers/));
     fireEvent.click(screen.getByRole('button', { name: 'Record Visit' }));
 
     await waitFor(() => {
@@ -81,6 +86,32 @@ describe('VisitModal', () => {
       });
     });
     expect(screen.getByText('Visit recorded. 1 loyalty point added.')).toBeInTheDocument();
+  });
+
+  it('records a declined customer as non-consented when the operator unticks', async () => {
+    render(
+      <VisitModal
+        isOpen
+        shopId="shop-1"
+        supabaseConfigured
+        demoMode={false}
+        onClose={vi.fn()}
+      />
+    );
+
+    fireEvent.mouseDown(screen.getByText('Test Customer'));
+    const consentCheckbox = screen.getByLabelText(
+      /purchase acknowledgements, loyalty updates, and offers/
+    );
+    fireEvent.click(consentCheckbox);
+    expect(consentCheckbox).not.toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Record Visit' }));
+
+    await waitFor(() => {
+      expect(mocks.logCustomerVisit).toHaveBeenCalledWith(
+        expect.objectContaining({ marketing_consent: false })
+      );
+    });
   });
 
   it('keeps one request id across a retry and never sends bill amount or items', async () => {

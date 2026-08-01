@@ -32,7 +32,7 @@ export function CreateCustomerModal({
   const [phone, setPhone] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -43,7 +43,7 @@ export function CreateCustomerModal({
       setPhone(prefillPhone);
       setPhotoFile(null);
       setPhotoPreview(null);
-      setMarketingConsent(false);
+      setMarketingConsent(true);
       setError(null);
     }
   }, [isOpen, prefillPhone]);
@@ -183,7 +183,7 @@ export function CreateCustomerModal({
             </div>
           </div>
 
-          {/* Marketing consent (DPDP — explicit, default unchecked) */}
+          {/* Marketing consent — shopkeeper records verbal affirmative; default checked */}
           <label className="flex items-start gap-2.5 cursor-pointer select-none">
             <input
               type="checkbox"

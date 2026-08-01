@@ -6,6 +6,7 @@ import { calculateTotals } from '@/lib/billing/calculateTotals';
 import type { BillingState, SelectedCustomer } from '@/lib/billing/useBillingStore';
 import { BillingFooter } from '../BillingFooter';
 import { BillingHeader } from '../BillingHeader';
+import { CreateCustomerModal } from '../CreateCustomerModal';
 import { CustomerBar } from '../CustomerBar';
 import { LineItemsGrid } from '../LineItemsGrid';
 import { ProductSearchBar } from '../ProductSearchBar';
@@ -108,6 +109,66 @@ describe('decomposed billing views behavior contract', () => {
     }));
 
     expect(screen.getByRole('button', { name: /Visit F6/ })).toBeDisabled();
+  });
+
+  it('records verbal WhatsApp consent by default when creating a customer', () => {
+    const onSave = vi.fn();
+    render(createElement(CreateCustomerModal, {
+      isOpen: true,
+      prefillPhone: '9876543210',
+      onSave,
+      onCancel: vi.fn(),
+      isSaving: false,
+    }));
+
+    const consentCheckbox = screen.getByLabelText(
+      /purchase acknowledgements, loyalty updates, and offers/
+    );
+    expect(consentCheckbox).toBeChecked();
+    expect(
+      screen.getByText(
+        'Untick if the customer declined. Consent is optional and can be withdrawn at any time.'
+      )
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('e.g. Rajesh Sharma'), {
+      target: { value: 'Test Customer' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Customer' }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      'Test Customer',
+      '+919876543210',
+      null,
+      true
+    );
+  });
+
+  it('records a customer decline when the operator unticks consent', () => {
+    const onSave = vi.fn();
+    render(createElement(CreateCustomerModal, {
+      isOpen: true,
+      prefillPhone: '9876543210',
+      onSave,
+      onCancel: vi.fn(),
+      isSaving: false,
+    }));
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Rajesh Sharma'), {
+      target: { value: 'Declined Customer' },
+    });
+    fireEvent.click(
+      screen.getByLabelText(
+        /purchase acknowledgements, loyalty updates, and offers/
+      )
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save Customer' }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      'Declined Customer',
+      '+919876543210',
+      null,
+      false
+    );
   });
 
   it('adds the first product on Enter and preserves the item count', () => {

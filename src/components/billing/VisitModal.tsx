@@ -52,7 +52,7 @@ export function VisitModal({
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [tagId, setTagId] = useState('');
-  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(true);
   const [tags, setTags] = useState<VisitTag[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +69,7 @@ export function VisitModal({
     setPhone('');
     setName('');
     setTagId('');
-    setMarketingConsent(false);
+    setMarketingConsent(true);
     setIsSaving(false);
     setError(null);
     setSaved(false);

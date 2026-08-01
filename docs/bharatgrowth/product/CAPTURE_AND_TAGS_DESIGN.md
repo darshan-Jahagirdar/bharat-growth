@@ -241,12 +241,17 @@ A secondary **Visit** action in the billing header (`F6`). First time for a
 customer: phone, optional name, optional interest tag. Every subsequent visit:
 one tap on the existing customer. The modal owns a separate instance of the
 existing characterized customer search and never reads or changes the bill
-draft. Consent uses the same explicit, default-off capture as billing:
+draft. Consent uses the same explicit, default-on record as billing:
 
 > Customer agreed to receive purchase acknowledgements, loyalty updates, and
 > offers on WhatsApp
 
-The helper makes clear that consent is optional and may be withdrawn.
+Consent is obtained verbally, in person: the shopkeeper asks at the counter and
+cross-checks the form before submitting. The checked box records that verbal
+affirmative; it is not the mechanism that obtains consent. Its helper says:
+
+> Untick if the customer declined. Consent is optional and can be withdrawn at
+> any time.
 
 The customer receives a thank-you with their points balance — this is the value
 exchange that makes both the customer accept being logged and the shopkeeper's
@@ -310,12 +315,22 @@ restrict or ban messaging **for every shop at once**. Therefore:
   cleanup, not part of this work.
 - Loyalty **redemption** design — separate work.
 
-## 7. Open decisions
+## 7. Decisions and open questions
 
 - Points awarded per visit is resolved at **1 flat point**, owned by the
   database RPC with no caller-supplied points or amount.
 - The Visit action is resolved as a secondary billing-header action labeled
   **Visit**, with `F6` as its shortcut.
+- The consent checkbox defaults **checked** in visit capture and billing
+  customer creation. Consent is obtained verbally in person; the checkbox is
+  the shopkeeper's explicit record of the affirmative. Default-on represents
+  the overwhelmingly common case and avoids silently excluding a consenting
+  customer when a busy operator forgets to tick. Consent remains optional,
+  persisted explicitly, independently required alongside campaign approval for
+  acknowledgement sending, append-logged, and withdrawable. **Residual risk:**
+  a shop that does not actually ask the customer creates a false consent record.
+  This requires later operational monitoring and consent-provenance controls;
+  the UI default does not make the record legally true.
 - Whether the 7-day cooldown needs to widen for the grocery vertical, where
   several tags fire on 20–45 day cycles.
 
