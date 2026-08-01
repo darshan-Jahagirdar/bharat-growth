@@ -12,14 +12,22 @@ import type { DashboardData } from '@/lib/dashboard/dashboardQueries';
 import { RetentionRoiCard } from './RetentionRoiCard';
 
 interface DashboardMetricsProps {
+  campaignsApproved: boolean | null;
   data: DashboardData;
   periodLabel: string;
 }
 
-export function DashboardMetrics({ data, periodLabel }: DashboardMetricsProps) {
+export function DashboardMetrics({
+  campaignsApproved,
+  data,
+  periodLabel,
+}: DashboardMetricsProps) {
   return (
     <>
-      <RetentionRoiCard stats={data.retentionStats} />
+      <RetentionRoiCard
+        campaignsApproved={campaignsApproved}
+        stats={data.retentionStats}
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-orange-500/20 transition-colors">

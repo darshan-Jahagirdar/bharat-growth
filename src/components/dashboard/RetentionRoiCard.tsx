@@ -3,10 +3,11 @@
 // =============================================================================
 // BharatGrowth — Retention ROI Card ("Bring-Back")
 // The rupee-proof hero card: "BharatGrowth brought back N customers worth ₹X
-// this month." Three states:
+// this month." Approval-aware states:
 //   1. Proof  — conversions exist: show the money
-//   2. Armed  — campaigns active, no conversions yet
-//   3. CTA    — no active campaigns: point to /dashboard/campaigns
+//   2. Armed + approved — campaigns are live, no conversions yet
+//   3. Armed + unapproved — configured, but sending is gated
+//   4. CTA — no active campaigns: point to /dashboard/campaigns
 // =============================================================================
 
 import Link from 'next/link';
@@ -24,11 +25,19 @@ function WhatsAppBadge() {
   );
 }
 
-export function RetentionRoiCard({ stats }: { stats: RetentionStats }) {
+interface RetentionRoiCardProps {
+  campaignsApproved: boolean | null;
+  stats: RetentionStats;
+}
+
+export function RetentionRoiCard({
+  campaignsApproved,
+  stats,
+}: RetentionRoiCardProps) {
   const hasProof = stats.customersReturned > 0 || stats.revenueAttributedPaise > 0;
   const isArmed = !hasProof && stats.activeRulesCount > 0;
 
-  // ── State 3: no active campaigns — CTA ──
+  // ── State 4: no active campaigns — CTA ──
   if (!hasProof && !isArmed) {
     return (
       <div className="bg-slate-900/50 border border-emerald-500/20 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
@@ -53,7 +62,31 @@ export function RetentionRoiCard({ stats }: { stats: RetentionStats }) {
     );
   }
 
-  // ── State 2: armed, waiting for the first conversion ──
+  // ── State 3: configured before approval, but not live yet ──
+  if (isArmed && campaignsApproved !== true) {
+    return (
+      <div className="bg-slate-900/50 border border-amber-500/20 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+        <WhatsAppBadge />
+        <div className="flex-1 min-w-0">
+          <div className="text-base font-bold text-gray-100">
+            Bring-Back is configured — campaign approval required
+          </div>
+          <div className="text-xs text-gray-500 mt-0.5">
+            Your active rules stay configured. WhatsApp reminders start only after
+            BharatGrowth approves campaigns for this shop.
+          </div>
+        </div>
+        <Link
+          href="/dashboard/campaigns"
+          className="text-xs text-amber-400 hover:text-amber-300 inline-flex items-center gap-1 flex-shrink-0"
+        >
+          Review campaign approval <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+    );
+  }
+
+  // ── State 2: approved and armed, waiting for the first conversion ──
   if (isArmed) {
     return (
       <div className="bg-slate-900/50 border border-emerald-500/20 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">

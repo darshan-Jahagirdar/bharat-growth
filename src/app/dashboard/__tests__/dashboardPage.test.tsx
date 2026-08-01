@@ -65,7 +65,7 @@ const shopQuery = {
   select: vi.fn(() => shopQuery),
   eq: vi.fn(() => shopQuery),
   single: vi.fn().mockResolvedValue({
-    data: { business_name: 'Ganesh Tyres' },
+    data: { business_name: 'Ganesh Tyres', campaigns_approved: true },
     error: null,
   }),
 };
@@ -149,6 +149,9 @@ describe('Dashboard page behavior contract before decomposition', () => {
     render(<DashboardPage />);
 
     expect(await screen.findByText('Ganesh Tyres')).toBeInTheDocument();
+    expect(shopQuery.select).toHaveBeenCalledWith(
+      'business_name, campaigns_approved'
+    );
     expect(mocks.fetchAllDashboardData).toHaveBeenCalledWith('shop-1', {
       start: '2026-07-01T00:00:00+05:30',
       end: '2026-07-13T23:59:59+05:30',
