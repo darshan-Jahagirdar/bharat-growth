@@ -134,7 +134,7 @@ CREATE TABLE shops (
                             gst_type IN ('regular', 'composition')
                           ),
   business_type           text NOT NULL CHECK (
-                            business_type IN ('tyre_shop', 'sweet_stall', 'garment_store', 'general')
+                            business_type IN ('tyre_shop', 'sweet_stall', 'garment_store', 'grocery', 'general')
                           ),
   address_line_1          text,
   address_line_2          text,

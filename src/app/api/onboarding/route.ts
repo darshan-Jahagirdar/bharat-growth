@@ -22,7 +22,13 @@ interface OnboardingBody {
   state_code?: unknown;
 }
 
-const VALID_BUSINESS_TYPES = new Set(['tyre_shop', 'sweet_stall', 'garment_store', 'general']);
+const VALID_BUSINESS_TYPES = new Set([
+  'tyre_shop',
+  'sweet_stall',
+  'garment_store',
+  'grocery',
+  'general',
+]);
 
 // ─── Retry helper with exponential backoff ──────────────────────────────────
 

@@ -1,6 +1,6 @@
 # Supabase Migration Runbook
 
-Last reconciled: 2026-07-19.
+Last reconciled: 2026-08-01.
 
 - Production project ref: `vyycczqhvsgkiqtxxxos`.
 - Decomposition staging project ref: `qokaaggeqahayxsybgds`.
@@ -28,7 +28,7 @@ Verified on 2026-07-19:
 
 - CLI link resolves to staging `qokaaggeqahayxsybgds`.
 - Fresh `supabase migration list --linked` returns matching continuous local and
-  remote migrations 001–049.
+  remote migrations 001–050.
 - The staging project was rebuilt from migrations with synthetic/shared test
   data; no production/customer data was copied.
 - Migration 049 removed direct anonymous invoice, invoice-item, and user table
@@ -39,9 +39,12 @@ Verified on 2026-07-19:
   recorded here. Remaining credential rotation is a pre-sale owner gate, not a
   decomposition action.
 
-Migration 049 was applied to staging and matrix-verified before this checkpoint.
-Production has not received it. Recheck the linked ref and migration-list
-readback before every later database action and stop on drift.
+Migration 050 adds `grocery` to the `shops.business_type` CHECK constraint and
+was applied to staging on 2026-08-01 after a reviewed dry run. It changes no
+campaign engine, message-log, retention-stat, attribution, RLS, policy, grant,
+or function behavior. Production has not received migrations 049–050. Recheck
+the linked ref and migration-list readback before every later database action
+and stop on drift.
 
 ## Durable staging fixtures
 

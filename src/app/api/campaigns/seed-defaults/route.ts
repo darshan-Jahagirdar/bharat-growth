@@ -16,6 +16,7 @@ const VALID_BUSINESS_TYPES = new Set<BusinessType>([
   'tyre_shop',
   'sweet_stall',
   'garment_store',
+  'grocery',
   'general',
 ]);
 

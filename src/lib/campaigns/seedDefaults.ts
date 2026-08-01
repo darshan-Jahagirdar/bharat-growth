@@ -5,8 +5,8 @@
 //   * /api/campaigns/seed-defaults (user's RLS client, retrofit for shops
 //     onboarded before the campaigns feature existed)
 //
-// Idempotent: existing tag names are reused (upsert on shop_id+name) and
-// rules whose names already exist for the shop are skipped.
+// Idempotent for sequential requests: existing tags and matching rules are
+// reused without writes.
 // =============================================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -25,37 +25,71 @@ export async function seedDefaultCampaigns(
 ): Promise<SeedResult> {
   const defaults = DEFAULT_CAMPAIGNS[businessType] ?? DEFAULT_CAMPAIGNS.general;
 
-  // ── 1. Upsert tags (reuse existing by shop_id + name) ──
+  // ── 1. Reuse existing tags and insert only missing names ──
   const tagNames = [...new Set(defaults.map((d) => d.tagName))];
 
-  const { data: tags, error: tagErr } = await client
+  const { data: existingTags, error: existingTagErr } = await client
     .from('tags')
-    .upsert(
-      tagNames.map((name) => ({ shop_id: shopId, name })),
-      { onConflict: 'shop_id,name', ignoreDuplicates: false }
-    )
-    .select('id, name');
+    .select('id, name')
+    .eq('shop_id', shopId)
+    .in('name', tagNames);
 
-  if (tagErr || !tags) {
-    throw new Error(`Tag seeding failed: ${tagErr?.message ?? 'no rows returned'}`);
+  if (existingTagErr) {
+    throw new Error(`Existing tags lookup failed: ${existingTagErr.message}`);
   }
 
-  const tagIdByName = new Map(tags.map((t) => [t.name as string, t.id as string]));
+  const existingTagNames = new Set(
+    (existingTags ?? []).map((tag) => tag.name as string)
+  );
+  const missingTagNames = tagNames.filter((name) => !existingTagNames.has(name));
 
-  // ── 2. Insert rules, skipping names that already exist for this shop ──
+  let createdTags: Array<{ id: string; name: string }> = [];
+  if (missingTagNames.length > 0) {
+    const { data, error: tagInsertErr } = await client
+      .from('tags')
+      .insert(missingTagNames.map((name) => ({ shop_id: shopId, name })))
+      .select('id, name');
+
+    if (tagInsertErr || !data) {
+      throw new Error(
+        `Tag seeding failed: ${tagInsertErr?.message ?? 'no rows returned'}`
+      );
+    }
+
+    createdTags = data as Array<{ id: string; name: string }>;
+  }
+
+  const tags = [...(existingTags ?? []), ...createdTags];
+  const tagIdByName = new Map(
+    tags.map((tag) => [tag.name as string, tag.id as string])
+  );
+
+  // ── 2. Insert only rules whose behavioral identity is not present ──
   const { data: existingRules, error: existingErr } = await client
     .from('campaign_rules')
-    .select('name')
+    .select('tag_id, trigger_days, template_key')
     .eq('shop_id', shopId);
 
   if (existingErr) {
     throw new Error(`Existing rules lookup failed: ${existingErr.message}`);
   }
 
-  const existingNames = new Set((existingRules ?? []).map((r) => r.name as string));
+  const ruleKey = (
+    tagId: string,
+    triggerDays: number,
+    templateKey: string
+  ) => JSON.stringify([tagId, triggerDays, templateKey]);
+  const existingRuleKeys = new Set(
+    (existingRules ?? []).map((rule) =>
+      ruleKey(
+        rule.tag_id as string,
+        rule.trigger_days as number,
+        rule.template_key as string
+      )
+    )
+  );
 
   const rulesToInsert = defaults
-    .filter((d) => !existingNames.has(d.ruleName))
     .map((d) => ({
       shop_id: shopId,
       tag_id: tagIdByName.get(d.tagName),
@@ -68,14 +102,25 @@ export async function seedDefaultCampaigns(
       is_active: false,
       message_template: null,
     }))
-    .filter((r) => r.tag_id != null);
+    .filter(
+      (rule): rule is typeof rule & { tag_id: string } =>
+        rule.tag_id != null &&
+        !existingRuleKeys.has(
+          ruleKey(rule.tag_id, rule.trigger_days, rule.template_key)
+        )
+    );
 
   if (rulesToInsert.length > 0) {
+    // Concurrent manually-triggered requests can still race. A DB uniqueness
+    // constraint is intentionally absent because duplicate custom rules are valid.
     const { error: ruleErr } = await client.from('campaign_rules').insert(rulesToInsert);
     if (ruleErr) {
       throw new Error(`Rule seeding failed: ${ruleErr.message}`);
     }
   }
 
-  return { tagsCreated: tags.length, rulesCreated: rulesToInsert.length };
+  return {
+    tagsCreated: createdTags.length,
+    rulesCreated: rulesToInsert.length,
+  };
 }
