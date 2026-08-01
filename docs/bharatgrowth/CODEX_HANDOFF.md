@@ -1,13 +1,13 @@
 # BharatGrowth Codex Handoff
 
-Last updated: 2026-07-24 (IST)
+Last updated: 2026-08-01 (IST)
 Owner: Darshan
 Maintainer signature: Sol/Codex
 
 This is the canonical operating handoff for BharatGrowth. It records the exact
-post-migration-049, post-sale-readiness closeout checkpoint plus the active
-email-OTP PR 1 work described below. It does not authorize production access,
-external-gate work, or a production rollout.
+post-migration-050, post-email-OTP, Wave A tag-taxonomy verification checkpoint.
+It does not authorize production access, external-gate work, Wave B, or a
+production rollout.
 
 ## 1. Product and branch model
 
@@ -19,8 +19,8 @@ campaigns, analytics, a public storefront, online checkout, and public receipts.
 - Production Git checkpoint: `8c389098db7e31180b5bdd6f1661adfd4bdc902b`
 - Immutable fallback tag: `pre-hardening-8c38909`
 - Integration/staging branch: `codex/production-hardening-baseline`
-- Last verified integration commit:
-  `524047a5d9968e262e43daf52cdd204b32950f26`
+- Last verified integration commit before Wave A:
+  `3c83cac57dd2c438cbbfa2312926b4cb07c3b2e2`
 - New work branches from a freshly verified remote integration SHA and PRs only
   back to integration unless Darshan separately authorizes production.
 
@@ -49,38 +49,61 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
 
 ### Git and GitHub
 
-#### Auth PR 1 worktree — continue here first
+#### Auth PR 1 — merged into integration
 
-- Working branch: `codex/email-otp-auth`, created from exact integration
-  `524047a5d9968e262e43daf52cdd204b32950f26`.
-- Intended approved change: replace the email magic-link UI with typed six-digit
-  email OTP while retaining `signInWithOtp({ email })`; verification uses
-  `verifyOtp({ email, token, type: 'email' })`. The existing phone E.164 contract
-  remains frozen. `/auth/callback` remains for the separately scoped Google
-  OAuth PR 2.
-- Current tracked edits are limited to `src/app/login/page.tsx`,
-  `src/lib/auth/useAuth.ts`, focused Auth/login tests, and the four matching
-  behavior/runbook/checklist documents. The new untracked test directory is
-  `src/app/login/__tests__/`. Preserve all unrelated user-owned untracked paths.
-- Darshan enabled staging custom SMTP through Resend and manually saved both
-  Confirm signup and Magic Link templates with the exact code-only
-  `{{ .Token }}` content in `MIGRATION_RUNBOOK.md`. Darshan verified both on
-  reload with no confirmation-link URL. Do not operate the Supabase dashboard;
-  stop and guide Darshan if a later dashboard-only action is required.
-- Full local gates at this worktree state: `npm test` passed 32/32 files and
-  149/149 tests; strict `npm run typecheck` passed; zero-warning
-  `npm run lint -- --max-warnings=0` passed; optimized `npm run build` passed.
-  `src/lib/auth/phone.ts` is byte-identical to the branch base.
-- Remaining sequence: commit and push only the scoped Auth work, PR into
-  integration, confirm green CI and a READY staging-wired branch Preview, run
-  new-identity and existing-identity email OTP E2E without recording either
-  code, clean disposable Auth identities with zero readback, update this
-  evidence, merge, update the canonical Google handoff, post one signed
-  `#bharatgrowth` milestone, confirm production remains untouched, and stop.
-- The product brand remains exactly `BharatGrowth`. Darshan purchased
-  `bharatgrowthshop.com`; that domain is context only and does not authorize a
-  product rename, DNS/domain change, Supabase URL change, sender change,
-  repository copy change, or production mutation.
+- PR [#18](https://github.com/darshan-Jahagirdar/bharat-growth/pull/18)
+  replaced email magic-link login with typed six-digit email OTP and
+  squash-merged into integration as
+  `3c83cac57dd2c438cbbfa2312926b4cb07c3b2e2` from reviewed head
+  `f65cb3864e6378f6d376df107212fe123ee6e250`.
+- New-user Confirm signup, returning-user Magic Link/OTP, and the frozen phone
+  E.164 path passed staging Preview E2E. Neither email contained a magic-link
+  URL, and no OTP or private identity was recorded.
+- The staging Confirm signup and Magic Link templates remain code-only
+  `{{ .Token }}` templates. Darshan owns Supabase dashboard changes; stop and
+  give exact instructions if a future dashboard-only change is required.
+- `/auth/callback` remains for the separately scoped Google OAuth PR 2. The
+  product brand remains exactly `BharatGrowth`; the purchased
+  `bharatgrowthshop.com` domain does not authorize DNS, sender, redirect,
+  repository-copy, or production changes.
+
+#### Wave A tag taxonomy — verified, PR pending merge
+
+- Working branch: `codex/tag-taxonomy-wave-a`.
+- PR [#19](https://github.com/darshan-Jahagirdar/bharat-growth/pull/19) targets
+  integration only. Exact reviewed head:
+  `5b09596cf3a568d9f8d5c07cd7ddbb926f758571`; exact base:
+  `3c83cac57dd2c438cbbfa2312926b4cb07c3b2e2`. The PR was open, draft,
+  mergeable/CLEAN, and all four GitHub/Vercel checks were green at this
+  evidence cutoff.
+- Wave A adds `grocery`, migration 050, the approved five-vertical taxonomy,
+  sequential retrofit idempotency, and matching tests/docs. The seven
+  pre-existing rules retain their exact definitions; the 22 additions use the
+  approved verbatim definitions. All seeded rules remain inactive.
+- Integration was merged into the Wave A branch after Auth PR 1. Post-merge
+  local gates passed: 34/34 test files and 170/170 tests, strict typecheck,
+  zero-warning lint, and optimized build with 25 routes.
+- The campaign-engine boundary remained zero-diff against integration:
+  `find_campaign_matches`, `message_logs`, `get_retention_stats`, the campaign
+  cron path, and invoice attribution were unchanged.
+- Exact Wave A Preview deployment:
+  `dpl_G773SdevmLDdX5xDqApbnttQbN6g`,
+  `https://bharat-growth-b1y8mk4j8-darshan-jahagirdars-projects.vercel.app`.
+  It was READY, Preview-only, exact branch/head, contained staging ref
+  `qokaaggeqahayxsybgds`, and contained no production ref.
+- Grocery onboarding E2E passed through the six-digit email OTP path with a
+  fresh disposable alias. `Wave A Grocery E2E` landed on Billing and displayed
+  exactly seven grocery campaign rules, all inactive.
+- Cleanup removed only that exact disposable grocery shop, its owner profile
+  and Auth identity, seven tags, and seven rules. Guarded zero-readback returned
+  zero target shops/profiles/tags/rules; unrelated staging shops and active
+  owners remained. No credentials, private identity, or OTP were printed or
+  persisted.
+- The three existing sensitive Preview variables remain value-preserving and
+  temporarily scoped by `gitBranch` to `codex/tag-taxonomy-wave-a`. After PR
+  merge, PATCH only their `gitBranch` metadata back to
+  `codex/production-hardening-baseline`, verify all three, and do not read their
+  values.
 
 - PR #12, storefront loader → owner-phone RPC, merged at `3cca263`.
 - PR #13, migration 049, merged into integration.
@@ -93,7 +116,9 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   integration as `43cae2e` (reviewed head `ed146357`).
 - PR #17, the `/settings` authentication guard, squash-merged into integration
   as `c6ac481` (reviewed head `f01f921`).
-- Current verified integration software checkpoint: `c6ac481`.
+- PR #18, typed six-digit email OTP, squash-merged into integration as
+  `3c83cac` (reviewed head `f65cb386`).
+- Current verified integration checkpoint before Wave A: `3c83cac`.
 - Production `main` remains exact `8c38909`.
 
 Before any new write, re-fetch and compare remote integration, remote main,
@@ -102,7 +127,9 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 ### Supabase staging
 
 - Linked staging project ref: `qokaaggeqahayxsybgds`.
-- Migrations 001–049 are applied and verified on staging.
+- Migrations 001–050 are applied and verified on staging. Migration 050 adds
+  only `grocery` to the `shops.business_type` CHECK and was applied once; it was
+  not reapplied after integration was merged into Wave A.
 - Migration 049 removed direct anonymous invoice/user reads while preserving the
   constrained Receipt and Storefront facades and checkout contract.
 - The durable synthetic owner fixture documented in `MIGRATION_RUNBOOK.md`
@@ -112,6 +139,9 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
   Both sets were removed. Burn-down zero-readback covered products, customer,
   receipt/item, throwaway shop, onboarding probe, and test email Auth aliases;
   one durable active owner/shop remained.
+- The disposable `Wave A Grocery E2E` shop and its Auth identity were removed
+  after onboarding verification with guarded zero-readback. Durable synthetic
+  ownership infrastructure and unrelated staging shops were preserved.
 - Staging Auth has a permanent callback fixture: Site URL is the stable
   integration preview alias and the allowlist retains localhost plus the
   staging-only Vercel preview wildcard documented in `MIGRATION_RUNBOOK.md`.
@@ -122,21 +152,21 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 
 ### Vercel staging preview
 
-The exact post-merge integration preview verified at sale-readiness closeout is:
+The exact Wave A Preview verified after Auth PR 1 was merged into the branch is:
 
-- Deployment ID: `dpl_HGFd9jsuihW51NUnFwttpza7qeU3`
+- Deployment ID: `dpl_G773SdevmLDdX5xDqApbnttQbN6g`
 - URL:
-  `https://bharat-growth-r0d28delj-darshan-jahagirdars-projects.vercel.app`
-- Stable alias:
-  `https://bharat-growth-git-codex-pro-fbbd8e-darshan-jahagirdars-projects.vercel.app`
-- State/type/region: READY / Preview / `bom1`
-- Git branch/SHA: `codex/production-hardening-baseline` /
-  `c6ac481756b48da7cb8b9be85c5eb54a955a9ab3`
-- Branch-scoped Preview variables: Supabase URL, anon key, and service-role key.
-- Compiled login bundles contain staging ref `qokaaggeqahayxsybgds` and no
-  production ref.
-- No Meta/WhatsApp provider credentials were present. WhatsApp was exercised
-  only as same-tab Web simulation; no message was sent.
+  `https://bharat-growth-b1y8mk4j8-darshan-jahagirdars-projects.vercel.app`
+- State/type: READY / Preview (`target = null`)
+- Git branch/SHA: `codex/tag-taxonomy-wave-a` /
+  `5b09596cf3a568d9f8d5c07cd7ddbb926f758571`
+- The three existing sensitive Preview variables are scoped to the Wave A
+  branch by metadata only. Their values were never requested, read, copied, or
+  printed.
+- The compiled login bundle contains staging ref `qokaaggeqahayxsybgds`, no
+  production ref, and the six-digit email OTP flow.
+- After Wave A merges, restore only the three `gitBranch` metadata fields to
+  `codex/production-hardening-baseline` and verify exact equality.
 
 Do not treat an arbitrary PR preview as staging evidence. Verify exact commit,
 Preview state, and branch-scoped staging variables before login or mutations.
@@ -277,24 +307,17 @@ Stop and report before writes if any of these occur:
 
 ## 9. Recommended next task
 
-Resume the active Auth PR 1 block in §3. Publish the scoped branch, open its PR
-only into integration, confirm green checks and a staging-wired READY Preview,
-then complete both new-identity and existing-identity email OTP E2E cases with
-disposable Gmail `+alias` addresses. Confirm each email contains a six-digit
-code and no magic-link URL without printing the code, clean both Auth identities
-with zero readback, merge, update this handoff plus the canonical Google handoff,
-and post one signed `#bharatgrowth` milestone. Stop after that merge; Google
-OAuth is PR 2 and separately scoped.
+Complete Wave A closeout only:
 
-After Auth PR 1, scope each remaining external gate separately with fresh
-Darshan approval:
+1. Commit and push this exact E2E/cleanup handoff evidence on
+   `codex/tag-taxonomy-wave-a`.
+2. Require PR #19 to remain exact-base/exact-head, mergeable, and fully green;
+   merge it into `codex/production-hardening-baseline` only.
+3. Restore only the three Vercel Preview variables' `gitBranch` metadata to
+   integration and verify all three without reading values.
+4. Post one signed `#bharatgrowth` merge milestone, confirm production `main`
+   remains exact `8c389098db7e31180b5bdd6f1661adfd4bdc902b`,
+   and stop.
 
-1. Meta configuration and approved templates;
-2. the production monitoring test event;
-3. rate limiting;
-4. key rotation;
-5. the migration-018 storage-bucket decision;
-6. only after those gates, the single approved staged-then-production rollout.
-
-Do not start any of these items from this closeout task. Each requires its own
-target, safety checks, evidence, cleanup or rollback plan, and explicit approval.
+Wave B is separately scoped. Do not begin campaign approval-gate work from this
+handoff.
