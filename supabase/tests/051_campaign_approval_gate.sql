@@ -1753,32 +1753,28 @@ BEGIN
       'visit RPC created forbidden invoice, line-item, or inventory effects';
   END IF;
 
-  DELETE FROM public.shops
+  -- consent_logs is intentionally append-only, including against cascaded
+  -- deletes. This block therefore relies on the enclosing transaction's final
+  -- ROLLBACK instead of trying to delete the RPC shop and its consent fixture.
+  -- A separate post-run readback verifies that rollback left zero rows.
+  SELECT count(*)
+  INTO v_count
+  FROM public.shops
   WHERE id IN (v_shop_id, v_other_shop_id)
     AND settings->>'fixture' = v_token;
 
-  DELETE FROM auth.users
-  WHERE id = v_user_id
-    AND email = v_token || '@example.invalid';
-
-  IF EXISTS (
+  IF v_count <> 2 OR NOT EXISTS (
     SELECT 1
-    FROM public.shops
-    WHERE id IN (v_shop_id, v_other_shop_id)
-    UNION ALL
-    SELECT 1 FROM public.customer_visits WHERE shop_id = v_shop_id
-    UNION ALL
-    SELECT 1 FROM public.loyalty_ledger WHERE shop_id = v_shop_id
-    UNION ALL
-    SELECT 1 FROM public.message_logs WHERE shop_id = v_shop_id
-    UNION ALL
-    SELECT 1 FROM auth.users WHERE id = v_user_id
+    FROM auth.users
+    WHERE id = v_user_id
+      AND email = v_token || '@example.invalid'
   ) THEN
-    RAISE EXCEPTION 'visit RPC fixture cleanup readback found residual rows';
+    RAISE EXCEPTION
+      'visit RPC fixtures were not fully present before rollback';
   END IF;
 
   RAISE NOTICE
-    'visit RPC characterization passed: tenant, identity, consent, flat loyalty, no spend/stock, attribution, rollback cleanup';
+    'visit RPC characterization passed: tenant, identity, consent, flat loyalty, no spend/stock, attribution, rollback-backed cleanup';
 END;
 $wave_c_visit_rpc$;
 
