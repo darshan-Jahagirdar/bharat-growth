@@ -218,6 +218,20 @@ Resulting ROI card: *"14 customers came back · ₹X attributed (billed returns)
 Honest, and the shop's headline number improves when they bill — the incentive
 points the compliant way without the product ever mentioning tax.
 
+### Residual attribution concurrency risk
+
+The source of a message is exclusive: every `message_logs` row belongs to
+exactly one invoice or one visit. Its conversion destination is deliberately
+not exclusive. A simultaneous billed return and logged visit can both select
+the same previously unconverted message before either update becomes visible,
+leaving both `conversion_invoice_id` and `conversion_visit_id` populated.
+
+This is accepted for now. `save_invoice` remains unchanged, and adding a
+conversion-destination `CHECK` could turn the race into a failed bill save.
+Retention stats remain honest in the residual state: the customer is counted
+once as returned, and revenue is included only from a completed conversion
+invoice.
+
 ### Capture UX
 
 A **Visit** button on the billing screen. First time for a customer: phone,
@@ -254,7 +268,8 @@ restrict or ban messaging **for every shop at once**. Therefore:
 
 ## 7. Open decisions
 
-- Points awarded per visit (flat value).
+- Points awarded per visit is resolved at **1 flat point**, owned by the
+  database RPC with no caller-supplied points or amount.
 - Whether the Visit button is primary or secondary in the billing UI.
 - UI label for the visit action.
 - Whether the 7-day cooldown needs to widen for the grocery vertical, where

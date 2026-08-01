@@ -135,7 +135,7 @@ describe('migration release safety', () => {
     expect(migration051.replace(approvalJoin, '')).toBe(migration037);
   });
 
-  it('keeps the migration 051 staging fixture isolated and rollback-backed', () => {
+  it('keeps the invoice campaign characterization isolated and rollback-backed', () => {
     const sql = readFileSync(
       resolve(
         process.cwd(),
@@ -147,11 +147,124 @@ describe('migration release safety', () => {
     expect(sql).toMatch(/qokaaggeqahayxsybgds/i);
     expect(sql).toMatch(/supabase db query --linked/i);
     expect(sql).not.toMatch(/\\set|\\if|\\gset|\\quit/i);
-    expect(sql).toMatch(/v_token\s+text := 'wave-b-051-' \|\| gen_random_uuid\(\)::text/i);
+    expect(sql).toMatch(/v_token\s+text := 'wave-c-char-' \|\| gen_random_uuid\(\)::text/i);
     expect(sql).toMatch(/BEGIN;[\s\S]+ROLLBACK;/i);
-    expect(sql).toMatch(/WHERE id = v_shop_id[\s\S]+settings->>'fixture' = v_token/i);
-    expect(sql).toMatch(/v_unapproved_count <> 0/i);
-    expect(sql).toMatch(/v_approved_count <> 1/i);
+    expect(sql).toMatch(/settings->>'fixture' = v_token/i);
+    expect(sql).toMatch(/unapproved guard shop returned/i);
+    expect(sql).toMatch(/inside_mid/i);
+    expect(sql).toMatch(/grace_lower/i);
+    expect(sql).toMatch(/grace_upper/i);
+    expect(sql).toMatch(/consent_false/i);
+    expect(sql).toMatch(/dedupe/i);
+    expect(sql).toMatch(/cooldown_active_source/i);
+    expect(sql).toMatch(/cooldown_boundary_source/i);
+    expect(sql).toMatch(/guard-alt-rule/i);
+    expect(sql).toMatch(/one-per-customer newest invoice assertion/i);
+    expect(sql).toMatch(/cap shop with one prior send and cap 3/i);
+    expect(sql).toMatch(/match\.shop_name = v_token \|\| '-guards'/i);
+    expect(sql).toMatch(/match\.customer_name = v_token \|\| '-guard-' \|\| c\.label/i);
+    expect(sql).toMatch(/match\.rule_name = v_token \|\| '-guard-rule'/i);
+    expect(sql).toMatch(/match\.tag_name = v_token \|\| '-guard-tag'/i);
+    expect(sql).toMatch(/match\.template_key = 'PROMO'/i);
+    expect(sql).toMatch(/match\.custom_variable = 'Invoice characterization'/i);
     expect(sql).toMatch(/fixture cleanup readback found residual rows/i);
+  });
+
+  it('makes visit capture RPC-only, amount-free, and source-exclusive in migration 052', () => {
+    const sql = migration('052_customer_visits_and_attribution.sql');
+    const visitTableStart = sql.indexOf('CREATE TABLE public.customer_visits');
+    const messageLogStart = sql.indexOf('ALTER TABLE public.message_logs');
+    const visitTable = sql.slice(visitTableStart, messageLogStart);
+    const rpcStart = sql.indexOf('CREATE FUNCTION public.log_customer_visit');
+    const statsStart = sql.indexOf(
+      'CREATE OR REPLACE FUNCTION public.get_retention_stats'
+    );
+    const visitRpc = sql.slice(rpcStart, statsStart);
+
+    expect(sql.trimStart()).toMatch(/^--[\s\S]*\bBEGIN;/i);
+    expect(sql.trimEnd()).toMatch(/COMMIT;$/i);
+    expect(visitTableStart).toBeGreaterThan(-1);
+    expect(visitTable).toMatch(/tag_id\s+uuid REFERENCES public\.tags\(id\) ON DELETE SET NULL/i);
+    expect(visitTable).toMatch(
+      /visit_date\s+date NOT NULL DEFAULT \(now\(\) AT TIME ZONE 'Asia\/Kolkata'\)::date/i
+    );
+    expect(visitTable).not.toMatch(/\bamount\b|\bprice\b|line_items?|inventory/i);
+    expect(visitTable).toMatch(/FOR SELECT TO authenticated/i);
+    expect(visitTable).not.toMatch(/FOR (INSERT|UPDATE|DELETE) TO authenticated/i);
+    expect(visitTable).toMatch(
+      /REVOKE ALL ON TABLE public\.customer_visits FROM PUBLIC, anon, authenticated/i
+    );
+    expect(visitTable).toMatch(
+      /GRANT SELECT ON TABLE public\.customer_visits TO authenticated/i
+    );
+
+    expect(sql).toMatch(
+      /preflight failed: existing message_logs rows without invoice_id/i
+    );
+    expect(sql).toMatch(
+      /DROP CONSTRAINT message_logs_invoice_id_rule_id_key/i
+    );
+    expect(sql).toMatch(/DROP INDEX public\.idx_message_logs_invoice_rule/i);
+    expect(sql).toMatch(/ALTER COLUMN invoice_id DROP NOT NULL/i);
+    expect(sql).toMatch(
+      /ADD CONSTRAINT message_logs_one_source CHECK \(\s*\(invoice_id IS NOT NULL AND visit_id IS NULL\)\s*OR \(invoice_id IS NULL AND visit_id IS NOT NULL\)/i
+    );
+    expect(sql).toMatch(
+      /CREATE UNIQUE INDEX message_logs_invoice_rule_unique[\s\S]+WHERE invoice_id IS NOT NULL/i
+    );
+    expect(sql).toMatch(
+      /CREATE UNIQUE INDEX message_logs_visit_rule_unique[\s\S]+WHERE visit_id IS NOT NULL/i
+    );
+    expect(sql).toMatch(
+      /CREATE INDEX idx_message_logs_conversion_visit[\s\S]+WHERE conversion_visit_id IS NOT NULL/i
+    );
+
+    expect(sql).toMatch(/DROP FUNCTION public\.find_campaign_matches\(integer\)/i);
+    expect(sql).toMatch(/invoice_id\s+uuid,\s*visit_id\s+uuid,/i);
+    expect(sql).toMatch(/SELECT \* FROM invoice_candidates\s+UNION ALL\s+SELECT \* FROM visit_candidates/i);
+    expect(sql.indexOf('combined_candidates AS')).toBeLessThan(
+      sql.indexOf('PARTITION BY cc.shop_id, cc.customer_id')
+    );
+    expect(sql).toMatch(
+      /ORDER BY\s*cc\.event_date DESC,\s*cc\.source_priority,\s*cc\.source_id,\s*cc\.rule_id/i
+    );
+    expect(sql).toMatch(/cv\.tag_id = cr\.tag_id/i);
+
+    expect(visitRpc).toMatch(
+      /v_points_awarded\s+constant integer := 1/i
+    );
+    expect(visitRpc).not.toMatch(
+      /p_(amount|price|points)|inventory|invoice_items/i
+    );
+    expect(visitRpc.match(/total_spent_paise/gi)).toHaveLength(1);
+    expect(visitRpc).toMatch(
+      /total_spent_paise,[\s\S]+VALUES \([\s\S]+v_customer_name,\s*'new',\s*0,\s*1,/i
+    );
+    expect(visitRpc).toMatch(/PERFORM public\.assert_authenticated_shop\(p_shop_id\)/i);
+    expect(visitRpc).toMatch(
+      /WHERE id = p_tag_id\s+AND shop_id = p_shop_id/i
+    );
+    expect(visitRpc).toMatch(
+      /c\.phone_number NOT LIKE 'ERASED-%'/i
+    );
+    expect(visitRpc).toMatch(
+      /dpdp_marketing_consent\s*=\s*dpdp_marketing_consent OR COALESCE\(p_marketing_consent, false\)/i
+    );
+    expect(visitRpc).toMatch(
+      /IF COALESCE\(p_marketing_consent, false\) THEN\s+INSERT INTO public\.consent_logs/i
+    );
+    expect(visitRpc).toMatch(/INSERT INTO public\.loyalty_ledger/i);
+    expect(visitRpc).toMatch(
+      /conversion_visit_id = v_visit_id[\s\S]+interval '14 days'/i
+    );
+    expect(sql).not.toMatch(/CREATE OR REPLACE FUNCTION public\.save_invoice/i);
+    expect(sql).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.log_customer_visit\(uuid, text, text, uuid, boolean\)\s+TO authenticated/i
+    );
+
+    expect(sql).toMatch(
+      /LEFT JOIN public\.invoices inv\s+ON inv\.id = ml\.conversion_invoice_id\s+AND inv\.status = 'completed'/i
+    );
+    expect(sql).not.toMatch(/AND inv\.id IS NOT NULL/i);
   });
 });
