@@ -2267,9 +2267,9 @@ BEGIN
   FROM public.customer_visits
   WHERE shop_id = v_shop_id;
 
-  IF v_count <> 3 THEN
+  IF v_count <> 4 THEN
     RAISE EXCEPTION
-      'rejected visit RPC left side effects; visits=%, expected 3',
+      'rejected visit RPC left side effects; visits=%, expected 4',
       v_count;
   END IF;
 
