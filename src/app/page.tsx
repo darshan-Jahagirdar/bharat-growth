@@ -132,7 +132,7 @@ export default function BharatGrowthLanding() {
               href="/onboarding"
               className="rounded-lg bg-brand px-5 py-2.5 text-sm font-bold text-gray-950 transition-colors hover:bg-orange-400"
             >
-              Start free
+              Request early access
             </Link>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function BharatGrowthLanding() {
               href="/onboarding"
               className="w-full rounded-lg bg-brand px-8 py-4 text-base font-bold text-gray-950 transition-colors hover:bg-orange-400 sm:w-auto"
             >
-              Start free
+              Request early access
             </Link>
             <a
               href="#the-loop"
@@ -355,7 +355,7 @@ export default function BharatGrowthLanding() {
               href="/onboarding"
               className="rounded-lg bg-brand px-10 py-4 text-base font-bold text-gray-950 transition-colors hover:bg-orange-400"
             >
-              Start free
+              Request early access
             </Link>
             <span className="text-sm text-gray-500">no card needed</span>
           </div>

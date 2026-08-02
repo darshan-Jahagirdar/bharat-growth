@@ -176,6 +176,38 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // ── Enforce platform access approval at the privileged write boundary ──
+  // The /onboarding page is only convenience. This service-role route creates
+  // the tenant, so it must independently fail closed for missing, pending, or
+  // dismissed requests immediately before the first mutation.
+  const { data: accessRequest, error: accessRequestError } = await withRetry<{
+    status: string;
+  }>(
+    async () => {
+      const result = await admin
+        .from('access_requests')
+        .select('status')
+        .eq('user_id', userId)
+        .maybeSingle();
+      return result;
+    },
+    'Check access approval'
+  );
+
+  if (accessRequestError) {
+    return NextResponse.json(
+      { error: 'Unable to verify access approval' },
+      { status: 503 }
+    );
+  }
+
+  if (accessRequest?.status !== 'approved') {
+    return NextResponse.json(
+      { error: 'Access approval required' },
+      { status: 403 }
+    );
+  }
+
   // ── Create shop (with retry) ──
   const { data: shop, error: shopErr } = await withRetry<{ id: string }>(
     async () => {
