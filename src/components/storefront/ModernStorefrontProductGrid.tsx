@@ -11,6 +11,29 @@ interface ModernStorefrontProductGridProps {
   products: StorefrontProduct[];
 }
 
+// The storefront product payload carries stock_quantity but not the product's
+// own low_stock_threshold, so the "Only N left" tier uses a fixed count.
+const LOW_STOCK_BADGE_AT = 5
+
+function StockBadge({ product }: { product: StorefrontProduct }) {
+  if (!product.is_stock_tracked || product.stock_quantity === null) return null
+
+  const base =
+    'absolute left-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-semibold'
+
+  if (product.stock_quantity <= 0) {
+    return <span className={`${base} bg-red-50 text-red-600`}>Out of stock</span>
+  }
+  if (product.stock_quantity <= LOW_STOCK_BADGE_AT) {
+    return (
+      <span className={`${base} bg-red-50 text-red-600`}>
+        Only {product.stock_quantity} left
+      </span>
+    )
+  }
+  return <span className={`${base} bg-emerald-50 text-emerald-700`}>In stock</span>
+}
+
 export function ModernStorefrontProductGrid({
   cart,
   products,
@@ -34,30 +57,33 @@ export function ModernStorefrontProductGrid({
                 className="bg-white rounded-2xl shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden
                            border border-gray-100/80 flex flex-col"
               >
-                {product.image_url ? (
-                  <div className="relative aspect-square bg-gray-50">
-                    <Image
-                      src={product.image_url}
-                      alt={product.name}
-                      fill
-                      sizes="(max-width: 640px) 50vw, 320px"
-                      unoptimized
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className="relative aspect-square flex items-center justify-center"
-                    style={{ backgroundColor: `${placeholderBg}12` }}
-                  >
-                    <span
-                      className="text-5xl font-bold opacity-30"
-                      style={{ color: placeholderBg }}
+                <div className="relative">
+                  <StockBadge product={product} />
+                  {product.image_url ? (
+                    <div className="relative aspect-square bg-gray-50">
+                      <Image
+                        src={product.image_url}
+                        alt={product.name}
+                        fill
+                        sizes="(max-width: 640px) 50vw, 320px"
+                        unoptimized
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="relative aspect-square flex items-center justify-center"
+                      style={{ backgroundColor: `${placeholderBg}12` }}
                     >
-                      {product.name.charAt(0)}
-                    </span>
-                  </div>
-                )}
+                      <span
+                        className="text-5xl font-bold opacity-30"
+                        style={{ color: placeholderBg }}
+                      >
+                        {product.name.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 <div className="p-3 flex flex-col flex-1">
                   <h3 className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-2 mb-0.5">
@@ -72,12 +98,6 @@ export function ModernStorefrontProductGrid({
                       <p className="font-mono text-base font-bold text-gray-900 leading-none">
                         {formatStorefrontPrice(product.selling_price_paise)}
                       </p>
-                      {product.is_stock_tracked && product.stock_quantity !== null && product.stock_quantity <= 0 && (
-                        <span className="mt-1 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5
-                                         text-[9px] font-semibold text-red-600">
-                          Out of stock
-                        </span>
-                      )}
                     </div>
 
                     {product.is_stock_tracked && product.stock_quantity !== null && product.stock_quantity <= 0 && qty === 0 ? (

@@ -1,3 +1,5 @@
+import Image from 'next/image';
+import { Lock } from 'lucide-react';
 import type { StorefrontShop } from '@/lib/storefront/queries';
 import { formatStorefrontPrice } from '@/lib/storefront/modernStorefrontTransforms';
 import type { ModernStorefrontCartController } from '@/lib/storefront/useModernStorefrontCart';
@@ -70,9 +72,23 @@ export function ModernStorefrontCheckoutDrawer({
           <div className="bg-gray-50 rounded-2xl p-4 mb-5 space-y-3">
             {cart.cartItems.map((cartItem) => (
               <div key={cartItem.product.id} className="flex items-center justify-between">
-                <div className="flex-1 min-w-0 mr-3">
+                <div className="mr-3 flex min-w-0 flex-1 items-center gap-3">
+                  {cartItem.product.image_url ? (
+                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                      <Image
+                        src={cartItem.product.image_url}
+                        alt={cartItem.product.name}
+                        fill
+                        sizes="48px"
+                        unoptimized
+                        className="object-cover"
+                      />
+                    </span>
+                  ) : null}
+                  <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{cartItem.product.name}</p>
                   <p className="font-mono text-xs text-gray-400">{formatStorefrontPrice(cartItem.product.selling_price_paise)} each</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center overflow-hidden rounded-lg border border-info/20 bg-info/5">
@@ -238,8 +254,9 @@ export function ModernStorefrontCheckoutDrawer({
             </div>
           )}
 
-          <p className="text-center text-[10px] text-gray-300 mt-3">
-            Powered by BharatGrowth
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-gray-500">
+            <Lock className="h-3 w-3" aria-hidden="true" />
+            Your details go only to this shop.
           </p>
         </div>
       </div>
