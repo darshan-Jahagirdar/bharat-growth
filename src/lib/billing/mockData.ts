@@ -2,7 +2,7 @@
 // Mock data for billing page — replaces Supabase calls during UI development
 // =============================================================================
 
-import type { Product, Customer } from '@/lib/types/database';
+import type { Product } from '@/lib/types/database';
 import type { SelectedCustomer } from './useBillingStore';
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -17,6 +17,7 @@ export const MOCK_PRODUCTS: Product[] = [
     selling_price_paise: 350000,
     unit: 'piece',
     category: 'Car Tyres',
+    tag_id: null,
     is_active: true,
     barcode: '8901234567001',
     vertical_attrs: { brand: 'CEAT', size: '155/80 R13', type: 'tubeless' },
@@ -38,6 +39,7 @@ export const MOCK_PRODUCTS: Product[] = [
     selling_price_paise: 520000,
     unit: 'piece',
     category: 'Car Tyres',
+    tag_id: null,
     is_active: true,
     barcode: '8901234567002',
     vertical_attrs: { brand: 'MRF', size: '185/65 R15', type: 'tubeless' },
@@ -59,6 +61,7 @@ export const MOCK_PRODUCTS: Product[] = [
     selling_price_paise: 210000,
     unit: 'piece',
     category: 'Bike Tyres',
+    tag_id: null,
     is_active: true,
     barcode: '8901234567003',
     vertical_attrs: { brand: 'Apollo', size: '3.00-18', type: 'tube' },
@@ -80,6 +83,7 @@ export const MOCK_PRODUCTS: Product[] = [
     selling_price_paise: 8000,
     unit: 'set',
     category: 'Accessories',
+    tag_id: null,
     is_active: true,
     barcode: '8901234567005',
     vertical_attrs: {},
@@ -101,6 +105,7 @@ export const MOCK_PRODUCTS: Product[] = [
     selling_price_paise: 60000,
     unit: 'piece',
     category: 'Services',
+    tag_id: null,
     is_active: true,
     barcode: null,
     vertical_attrs: {},

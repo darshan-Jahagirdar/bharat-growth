@@ -7,11 +7,16 @@
 // =============================================================================
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import {
+  WHATSAPP_CONSENT_HELPER,
+  WHATSAPP_CONSENT_LABEL,
+} from '@/lib/billing/customerConsentCopy';
 
 interface CreateCustomerModalProps {
   isOpen: boolean;
   prefillPhone: string;
-  onSave: (name: string, phone: string, photoFile: File | null) => void;
+  onSave: (name: string, phone: string, photoFile: File | null, marketingConsent: boolean) => void;
   onCancel: () => void;
   isSaving: boolean;
 }
@@ -27,6 +32,7 @@ export function CreateCustomerModal({
   const [phone, setPhone] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [marketingConsent, setMarketingConsent] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -37,6 +43,7 @@ export function CreateCustomerModal({
       setPhone(prefillPhone);
       setPhotoFile(null);
       setPhotoPreview(null);
+      setMarketingConsent(true);
       setError(null);
     }
   }, [isOpen, prefillPhone]);
@@ -81,7 +88,7 @@ export function CreateCustomerModal({
       normalizedPhone = '+91' + normalizedPhone.replace(/^91/, '');
     }
 
-    onSave(trimmedName, normalizedPhone, photoFile);
+    onSave(trimmedName, normalizedPhone, photoFile, marketingConsent);
   }
 
   function handleClose() {
@@ -100,28 +107,35 @@ export function CreateCustomerModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={handleClose} />
+      <button
+        type="button"
+        aria-label="Close customer dialog"
+        className="absolute inset-0 bg-black/60"
+        onClick={handleClose}
+      />
 
       {/* Modal */}
-      <div className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-sm p-6">
-        <h3 className="text-base font-bold text-gray-200 mb-4">New Customer</h3>
+      <div role="dialog" aria-modal="true" aria-labelledby="create-customer-title" className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-sm p-6">
+        <h3 id="create-customer-title" className="text-base font-bold text-gray-200 mb-4">New Customer</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Avatar — click to upload photo */}
           <div className="flex items-center gap-4">
-            <div
-              className="w-16 h-16 rounded-full bg-gray-800 border-2 border-dashed border-gray-600
+            <button
+              type="button"
+              aria-label="Add customer photo"
+              className="relative w-16 h-16 rounded-full bg-gray-800 border-2 border-dashed border-gray-600
                          overflow-hidden flex-shrink-0 flex items-center justify-center
                          cursor-pointer hover:border-orange-500 transition-colors"
               title="Click to add photo (optional)"
               onClick={() => fileRef.current?.click()}
             >
               {photoPreview ? (
-                <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                <Image src={photoPreview} alt="Preview" fill sizes="64px" unoptimized className="object-cover" />
               ) : (
                 <span className="text-gray-500 text-lg font-bold">{initials}</span>
               )}
-            </div>
+            </button>
             <div className="text-xs text-gray-500">
               <div>Click circle to add photo</div>
               <div className="text-gray-600">(optional)</div>
@@ -168,6 +182,20 @@ export function CreateCustomerModal({
               />
             </div>
           </div>
+
+          {/* Marketing consent — shopkeeper records verbal affirmative; default checked */}
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={marketingConsent}
+              onChange={(e) => setMarketingConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 accent-orange-500"
+            />
+            <span className="text-xs text-gray-400">
+              {WHATSAPP_CONSENT_LABEL}
+              <span className="block text-gray-600">{WHATSAPP_CONSENT_HELPER}</span>
+            </span>
+          </label>
 
           {/* Error */}
           {error && (

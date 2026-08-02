@@ -15,6 +15,8 @@ const checkoutBodySchema = z.object({
   delivery_address: z.string().trim().max(500).nullable().optional(),
   payment_method: z.enum(['upi', 'khata']),
   data_consent: z.literal(true),
+  // Optional marketing opt-in — never required for checkout (DPDP)
+  marketing_consent: z.boolean().optional().default(false),
   // Per-attempt key so rapid double-clicks / retries dedupe to one order.
   idempotency_key: z.string().uuid().optional(),
   items: z.array(checkoutItemSchema).min(1).max(100),
@@ -77,6 +79,7 @@ export async function POST(req: NextRequest) {
       delivery_address: body.delivery_address || null,
       payment_method: body.payment_method,
       data_consent: body.data_consent,
+      marketing_consent: body.marketing_consent,
       idempotency_key: body.idempotency_key ?? null,
       items: body.items,
       ip_address: getClientIp(req),

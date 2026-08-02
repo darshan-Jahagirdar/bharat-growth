@@ -11,6 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { seedDefaultCampaigns } from '@/lib/campaigns/seedDefaults';
+import type { BusinessType } from '@/lib/types/database';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface OnboardingBody {
@@ -20,7 +22,13 @@ interface OnboardingBody {
   state_code?: unknown;
 }
 
-const VALID_BUSINESS_TYPES = new Set(['tyre_shop', 'sweet_stall', 'garment_store', 'general']);
+const VALID_BUSINESS_TYPES = new Set([
+  'tyre_shop',
+  'sweet_stall',
+  'garment_store',
+  'grocery',
+  'general',
+]);
 
 // ─── Retry helper with exponential backoff ──────────────────────────────────
 
@@ -168,6 +176,38 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // ── Enforce platform access approval at the privileged write boundary ──
+  // The /onboarding page is only convenience. This service-role route creates
+  // the tenant, so it must independently fail closed for missing, pending, or
+  // dismissed requests immediately before the first mutation.
+  const { data: accessRequest, error: accessRequestError } = await withRetry<{
+    status: string;
+  }>(
+    async () => {
+      const result = await admin
+        .from('access_requests')
+        .select('status')
+        .eq('user_id', userId)
+        .maybeSingle();
+      return result;
+    },
+    'Check access approval'
+  );
+
+  if (accessRequestError) {
+    return NextResponse.json(
+      { error: 'Unable to verify access approval' },
+      { status: 503 }
+    );
+  }
+
+  if (accessRequest?.status !== 'approved') {
+    return NextResponse.json(
+      { error: 'Access approval required' },
+      { status: 403 }
+    );
+  }
+
   // ── Create shop (with retry) ──
   const { data: shop, error: shopErr } = await withRetry<{ id: string }>(
     async () => {
@@ -226,6 +266,15 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to create user profile' },
       { status: 500 }
     );
+  }
+
+  // ── Seed default Bring-Back campaigns for the vertical (non-fatal) ──
+  // Shop + user creation is already committed; never fail onboarding over
+  // seed data. Missing defaults can be recreated from /dashboard/campaigns.
+  try {
+    await seedDefaultCampaigns(admin, shop.id, business_type as BusinessType);
+  } catch (err) {
+    console.error('[Onboarding] Default campaign seeding failed:', err);
   }
 
   return NextResponse.json({

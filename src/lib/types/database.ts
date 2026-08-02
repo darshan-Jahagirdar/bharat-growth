@@ -5,7 +5,7 @@
 
 // ── Enums ──
 
-export type BusinessType = 'tyre_shop' | 'sweet_stall' | 'garment_store' | 'general';
+export type BusinessType = 'tyre_shop' | 'sweet_stall' | 'garment_store' | 'grocery' | 'general';
 export type GstType = 'regular' | 'composition';
 export type ThemePreference = 'modern' | 'festive' | 'industrial';
 export type SubscriptionPlan = 'free' | 'pro' | 'enterprise';
@@ -74,6 +74,9 @@ export interface Shop {
   theme_preference: ThemePreference;
   primary_color: string;
   monthly_ai_scans: number;
+  campaigns_approved: boolean;
+  campaigns_approved_at: string | null;
+  campaigns_approval_requested_at: string | null;
   settings: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -102,6 +105,8 @@ export interface Product {
   selling_price_paise: number;
   unit: ProductUnit;
   category: string | null;
+  /** Bring-Back campaign tag (tags.id) — drives repurchase-cycle reminders */
+  tag_id: string | null;
   is_active: boolean;
   barcode: string | null;
   vertical_attrs: VerticalAttrs;
@@ -134,6 +139,16 @@ export interface Customer {
   notes: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CustomerVisit {
+  id: string;
+  shop_id: string;
+  customer_id: string;
+  tag_id: string | null;
+  request_id: string | null;
+  visit_date: string;
+  created_at: string;
 }
 
 export interface CreditLedgerEntry {
@@ -235,6 +250,19 @@ export interface ConsentLog {
   created_at: string;
 }
 
+export interface MessageLog {
+  id: string;
+  shop_id: string;
+  customer_id: string;
+  invoice_id: string | null;
+  visit_id: string | null;
+  rule_id: string;
+  sent_at: string;
+  converted_at: string | null;
+  conversion_invoice_id: string | null;
+  conversion_visit_id: string | null;
+}
+
 export interface InventoryRecord {
   id: string;
   shop_id: string;
@@ -280,6 +308,23 @@ export interface PurchaseBill {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// ── Platform Access Approval ──
+
+export type AccessRequestStatus = 'pending' | 'approved' | 'dismissed';
+
+export interface AccessRequest {
+  id: string;
+  user_id: string;
+  full_name: string;
+  business_name: string;
+  business_type: BusinessType;
+  city: string;
+  email: string;
+  status: AccessRequestStatus;
+  requested_at: string;
+  reviewed_at: string | null;
 }
 
 // ── Order Engine Types (Phase 29) ──
@@ -347,10 +392,34 @@ export type ShopInsert = Omit<Shop, 'id' | 'created_at' | 'updated_at'> & { id?:
 export type UserInsert = Omit<User, 'created_at' | 'updated_at' | 'last_login_at'>;
 export type ProductInsert = Omit<Product, 'id' | 'created_at' | 'updated_at'> & { id?: string };
 export type CustomerInsert = Omit<Customer, 'id' | 'created_at' | 'updated_at' | 'total_spent_paise' | 'visit_count' | 'last_visit_at'> & { id?: string };
+export type CustomerVisitInsert = Omit<CustomerVisit, 'id' | 'visit_date' | 'created_at'> & {
+  id?: string;
+  visit_date?: string;
+};
 export type InvoiceInsert = Omit<Invoice, 'id' | 'created_at' | 'updated_at' | 'deleted_at'> & { id?: string };
 export type InvoiceItemInsert = Omit<InvoiceItem, 'id' | 'created_at' | 'updated_at' | 'deleted_at'> & { id?: string };
 export type LoyaltyLedgerInsert = Omit<LoyaltyLedgerEntry, 'id' | 'created_at' | 'updated_at' | 'deleted_at'> & { id?: string };
 export type ConsentLogInsert = Omit<ConsentLog, 'id' | 'created_at'> & { id?: string };
+type MessageLogInsertBase = Omit<
+  MessageLog,
+  | 'id'
+  | 'invoice_id'
+  | 'visit_id'
+  | 'sent_at'
+  | 'converted_at'
+  | 'conversion_invoice_id'
+  | 'conversion_visit_id'
+> & {
+  id?: string;
+  sent_at?: string;
+  converted_at?: string | null;
+  conversion_invoice_id?: string | null;
+  conversion_visit_id?: string | null;
+};
+export type MessageLogInsert = MessageLogInsertBase & (
+  | { invoice_id: string; visit_id?: null }
+  | { invoice_id?: null; visit_id: string }
+);
 export type InventoryInsert = Omit<InventoryRecord, 'id' | 'created_at' | 'updated_at'> & { id?: string };
 export type InventoryMovementInsert = Omit<InventoryMovement, 'id' | 'created_at'> & { id?: string };
 export type CreditLedgerInsert = Omit<CreditLedgerEntry, 'id' | 'created_at'> & { id?: string };

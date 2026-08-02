@@ -57,3 +57,11 @@ CREATE INDEX idx_users_shop_id ON users (shop_id);
 CREATE INDEX idx_users_shop_role ON users (shop_id, role);
 CREATE TRIGGER set_users_updated_at BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ── Resolve current user's shop_id ──
+-- Defined only after public.users exists so a fresh migration run succeeds.
+-- Wraps auth.uid() in (SELECT ...) for initplan optimization.
+CREATE OR REPLACE FUNCTION get_current_shop_id()
+RETURNS uuid AS $$
+  SELECT shop_id FROM public.users WHERE id = (SELECT auth.uid());
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;

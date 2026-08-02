@@ -5,6 +5,7 @@
 // F3          → Focus product search / add item
 // F4          → New bill (clear all)
 // F5          → Save & print invoice
+// F6          → Record a customer visit
 // F8          → Toggle payment mode (Cash → UPI → Card)
 // Enter       → Add selected product / confirm action
 // Escape      → Clear current focus / cancel search
@@ -28,6 +29,7 @@ export interface KeyboardShortcutRefs {
 export interface KeyboardShortcutHandlers {
   onSaveBill: () => void;
   onClearBill: () => void;
+  onOpenVisit: () => void;
   onCyclePaymentMode: () => void;
   onRemoveActiveLine: () => void;
   onNavigateUp: () => void;
@@ -39,10 +41,13 @@ export interface KeyboardShortcutHandlers {
 
 export function useKeyboardShortcuts(
   refs: KeyboardShortcutRefs,
-  handlers: KeyboardShortcutHandlers
+  handlers: KeyboardShortcutHandlers,
+  disabled: boolean = false
 ) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if (disabled) return;
+
       const target = e.target as HTMLElement;
       const tagName = target.tagName.toLowerCase();
       const isInInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
@@ -69,6 +74,11 @@ export function useKeyboardShortcuts(
         case 'F5':
           e.preventDefault();
           handlers.onSaveBill();
+          return;
+
+        case 'F6':
+          e.preventDefault();
+          handlers.onOpenVisit();
           return;
 
         case 'F8':
@@ -120,7 +130,7 @@ export function useKeyboardShortcuts(
         (target as HTMLInputElement).blur();
       }
     },
-    [refs, handlers]
+    [refs, handlers, disabled]
   );
 
   useEffect(() => {

@@ -21,9 +21,15 @@ export const WA_TEMPLATES = {
   NEW_ARRIVAL: 'bg_new_arrival_v1',
   /** Generic promotional / campaign message */
   PROMO: 'bg_promo_v1',
+  /** Purchase acknowledgement after an unbilled visit capture */
+  VISIT_ACKNOWLEDGEMENT: 'bg_visit_ack_v1',
 } as const;
 
 export type TemplateKey = keyof typeof WA_TEMPLATES;
+export type CampaignTemplateKey = Extract<
+  TemplateKey,
+  'PROMO' | 'RESTOCK' | 'NEW_ARRIVAL'
+>;
 export type TemplateName = (typeof WA_TEMPLATES)[TemplateKey];
 
 /**
@@ -56,6 +62,12 @@ export type TemplateName = (typeof WA_TEMPLATES)[TemplateKey];
  *   {{1}} = customer_name
  *   {{2}} = shop_name
  *   {{3}} = promo_message (custom text from campaign rule)
+ *
+ * bg_visit_ack_v1:
+ *   {{1}} = customer_name
+ *   {{2}} = shop_name
+ *   {{3}} = flat_points_awarded
+ *   {{4}} = current_loyalty_balance
  */
 
 /** Human-readable labels for simulation logging */
@@ -65,4 +77,5 @@ export const TEMPLATE_LABELS: Record<TemplateName, string> = {
   [WA_TEMPLATES.RESTOCK]: 'Restock Nudge',
   [WA_TEMPLATES.NEW_ARRIVAL]: 'New Arrival',
   [WA_TEMPLATES.PROMO]: 'Promotional Campaign',
+  [WA_TEMPLATES.VISIT_ACKNOWLEDGEMENT]: 'Visit Acknowledgement',
 };

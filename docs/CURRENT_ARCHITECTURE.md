@@ -1,5 +1,11 @@
 # BharatGrowth Current Architecture
 
+> Historical architecture detail from July 7. Its project refs, routes, and
+> readiness statements may be stale. The maintained overview is
+> [`docs/bharatgrowth/architecture/CURRENT_ARCHITECTURE.md`](bharatgrowth/architecture/CURRENT_ARCHITECTURE.md),
+> with full behavior in
+> [`docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md`](bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md).
+
 Last verified from local code: July 7, 2026.
 
 ## Runtime Stack
@@ -95,18 +101,54 @@ Current behavior:
 External requirements still apply:
 
 - Meta-approved templates for production campaigns.
-- Explicit opt-in before marketing messages.
-- Opt-out handling for marketing automation.
-- Rate limiting and provider-level error monitoring before broad use.
+- Provider-level error monitoring before broad use.
+
+## Bring-Back Campaign Engine (July 2026)
+
+The campaign engine is consent-gated and template-based end to end:
+
+- Matching lives in the `find_campaign_matches()` RPC (migration 037): enforces
+  `dpdp_marketing_consent = true`, completed invoices only, IST date windows
+  with a 2-day grace window, `(invoice_id, rule_id)` dedupe, a 7-day
+  per-customer cooldown, and a per-shop daily send cap (default 50).
+- The cron route (`/api/cron/campaigns`) authenticates via
+  `Authorization: Bearer CRON_SECRET` (Vercel Cron, 10:00 IST daily) and uses
+  claim-then-send: the `message_logs` row is inserted before the WhatsApp call
+  so overlapping runs cannot double-send. Consent is re-checked immediately
+  before each send.
+- Campaign sends use Meta template keys (`campaign_rules.template_key` +
+  `custom_variable`, migration 036) — no free text in template variables.
+- Opt-out: `/api/whatsapp/webhook` (Meta signature-verified) revokes marketing
+  consent across all shops for the replying phone number via
+  `revoke_marketing_consent_by_phone()` (migration 038) and writes
+  `consent_logs` rows. Requires `WHATSAPP_WEBHOOK_VERIFY_TOKEN` and
+  `WHATSAPP_APP_SECRET` in production.
+- Marketing consent capture: POS customer-create modal (verbal_recorded) and
+  optional storefront checkout checkbox (migration 039, OR semantics — an
+  unticked box never downgrades an existing opt-in).
+- ROI proof: `get_retention_stats()` RPC (migration 041) powers the dashboard
+  Bring-Back card and the per-rule stats on `/dashboard/campaigns`. Attribution
+  itself is unchanged (save_invoice marks conversions within 14 days).
+- Vertical defaults: onboarding seeds inactive per-vertical tags + rules
+  (`src/lib/campaigns/defaults.ts`); pre-existing shops retrofit via
+  `POST /api/campaigns/seed-defaults`.
+- Known gap: `accept_online_order` has no attribution block, so storefront
+  conversions do not yet count toward Bring-Back ROI (v1.1 follow-up).
 
 ## Database Migrations
 
-Migrations currently run through `035_save_invoice_ownership_guards.sql`.
+Migrations currently run through `041_get_retention_stats_rpc.sql`.
 
 Important recent migrations:
 
 - `034_storefront_idempotency.sql`
 - `035_save_invoice_ownership_guards.sql`
+- `036_campaign_rules_template_columns.sql` (template_key / custom_variable / name)
+- `037_find_campaign_matches_rpc.sql` (consent-gated campaign matching)
+- `038_revoke_marketing_consent_rpc.sql` (webhook opt-out)
+- `039_online_order_marketing_consent.sql` (storefront marketing opt-in)
+- `040_message_logs_roi_indexes.sql`
+- `041_get_retention_stats_rpc.sql` (Bring-Back ROI stats)
 
 Before applying migrations to production:
 

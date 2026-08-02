@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 // ── Shared Enums ──
 
-export const businessTypeEnum = z.enum(['tyre_shop', 'sweet_stall', 'garment_store', 'general']);
+export const businessTypeEnum = z.enum(['tyre_shop', 'sweet_stall', 'garment_store', 'grocery', 'general']);
 export const gstTypeEnum = z.enum(['regular', 'composition']);
 export const subscriptionPlanEnum = z.enum(['free', 'pro', 'enterprise']);
 export const userRoleEnum = z.enum(['owner', 'manager', 'cashier']);
@@ -26,11 +26,32 @@ export const movementTypeEnum = z.enum(['sale', 'purchase', 'return', 'adjustmen
 
 // ── Shared Validators ──
 
-/** GSTIN: 15-char alphanumeric (e.g., 27AAPFU0939F1ZV) */
-export const gstinSchema = z.string().regex(
-  /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z][Z][0-9A-Z]$/,
-  'Invalid GSTIN format'
-);
+const GSTIN_FORMAT = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/;
+const GSTIN_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+/** GSTIN mod-36 checksum defined over the first 14 characters. */
+export function hasValidGstinChecksum(gstin: string): boolean {
+  if (!GSTIN_FORMAT.test(gstin)) return false;
+
+  let factor = 2;
+  let sum = 0;
+
+  for (let index = 13; index >= 0; index -= 1) {
+    const codePoint = GSTIN_ALPHABET.indexOf(gstin[index]);
+    const addend = factor * codePoint;
+    factor = factor === 2 ? 1 : 2;
+    sum += Math.floor(addend / 36) + (addend % 36);
+  }
+
+  const checkCodePoint = (36 - (sum % 36)) % 36;
+  return gstin[14] === GSTIN_ALPHABET[checkCodePoint];
+}
+
+/** GSTIN: 15-character format plus mod-36 checksum. */
+export const gstinSchema = z
+  .string()
+  .regex(GSTIN_FORMAT, 'Invalid GSTIN format')
+  .refine(hasValidGstinChecksum, 'Invalid GSTIN checksum');
 
 /** Indian phone number: +91XXXXXXXXXX or 10-digit */
 export const phoneSchema = z.string().regex(

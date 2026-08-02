@@ -1,76 +1,97 @@
-# BharatGrowth — Project Bible
+# BharatGrowth Project Bible
 
-> **Vertical SaaS for Indian SMBs** — Desktop-first billing + automated WhatsApp loyalty marketing
-> Target verticals: Tyre Shops, Sweet Stalls, Garment Stores
+> Vertical SaaS for Indian SMBs: desktop speed-billing plus consent-aware
+> WhatsApp retention. Initial verticals are tyre shops, sweet stalls, garment
+> stores, and general retail.
 
----
+This file is a compact orientation guide. The canonical continuation state is
+[`docs/bharatgrowth/CODEX_HANDOFF.md`](docs/bharatgrowth/CODEX_HANDOFF.md), and
+the source-backed product contract is
+[`docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md`](docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md).
+Read both before structural work.
 
-## Tech Stack
+## Current stack
 
-| Layer | Technology | Notes |
-|-------|-----------|-------|
-| **Frontend** | Next.js 14+ (App Router) | Desktop-optimized, keyboard-driven |
-| **Backend/DB** | Supabase (Postgres + Auth + Edge Functions + Realtime) | Mumbai region for data residency |
-| **Auth** | Supabase Auth | Phone OTP primary, RBAC via custom claims |
-| **Payments** | Razorpay | SaaS subscriptions + UPI QR for shops |
-| **Messaging** | WhatsApp Business API (Cloud API) | Loyalty campaigns + transactional |
-| **Hosting** | Vercel | Edge-optimized, preview deployments |
-| **CI/CD** | GitHub Actions | Lint → Test → Deploy pipeline |
-| **Monitoring** | Sentry + Supabase Dashboard | Error tracking + DB metrics |
+| Layer | Current implementation | Status note |
+|---|---|---|
+| Frontend | Next.js 15 App Router, React 19, TypeScript, Tailwind | Protected operator UI is desktop/keyboard-oriented; storefront and receipt are mobile-oriented. |
+| Backend/data | Supabase Postgres, Auth, Storage, Realtime, RLS, RPCs | `shops.id` / `shop_id` is the tenant boundary. |
+| Auth | Supabase phone OTP and email magic link | Auth/provider redesign is future work. |
+| Messaging | WhatsApp Cloud API integration and simulation paths | Production Meta configuration/templates remain external gates. |
+| Hosting | Vercel Git previews and production hosting | Decomposition uses staging-only previews; production is untouched. |
+| CI | GitHub Actions | Typecheck, lint, Vitest, build, and public smoke. |
+| Monitoring | Vercel/Supabase operational surfaces | Production error monitoring/test event remains a launch blocker. |
+| Payments | Shop UPI QR and khata behavior exist | Razorpay subscriptions/payment gateway are planned, not current. |
 
-## Architecture Principles
+Money crossing application/API/database boundaries is integer paise. Database
+timestamps are UTC; documented billing, date-range, and financial-year behavior
+uses IST.
 
-- **Multi-tenant**: Shared Postgres schema, `tenant_id` on every table, RLS enforced
-- **Desktop-first**: Optimize for 1366x768, keyboard shortcuts, no mobile-first
-- **Offline-capable**: Service workers for billing flows, sync on reconnect
-- **Speed-billing**: Invoice generation < 5 seconds end-to-end
-- **Bilingual**: Hindi/English with Indian number formatting (₹1,23,456)
+## Product and architecture principles
 
-## Regulatory Compliance (MANDATORY)
+- Fast billing is the wedge; consent-aware customer retention is the moat.
+- The primary operator is a single-store owner or staff member processing
+  roughly 20–200 bills per day.
+- Protected data is scoped through the authenticated user's active
+  `users.shop_id` membership and RLS.
+- The Receipt UI uses a constrained RPC. The current Storefront loader still
+  relies on temporary anonymous compatibility policies for selected table
+  fields; constrained RPC/query support exists but the contract cleanup is not
+  complete until migration 049 and consumer verification.
+- Transactional RPCs own multi-table money, stock, ledger, loyalty, and order
+  effects.
+- POS may intentionally sell into negative stock; storefront and online order
+  paths enforce strict stock.
+- Current behavior, copy, visual output, payloads, focus, keyboard, consent,
+  RLS, and workflows are frozen during decomposition.
+- Planned offline billing, bilingual UI, e-invoicing, subscriptions, loyalty
+  redemption, and broad redesign are separate product work.
 
-### Indian Digital Personal Data Protection (DPDP) Act 2026
-- **Explicit consent** required before collecting any personal data
-- **Purpose limitation**: Data used only for stated purpose
-- **Data minimization**: Collect only what's necessary
-- **Right to erasure**: Users can request complete data deletion
-- **Data localization**: Indian user data stored in India (Supabase Mumbai)
-- **Consent manager**: Must maintain auditable consent records
-- **Breach notification**: 72-hour mandatory reporting to DPBI
+## Compliance and accounting contracts
 
-### GST Billing Rules
-- Invoices must comply with **Rule 46 of CGST Rules 2017**
-- Mandatory fields: GSTIN, HSN/SAC codes, tax breakup (CGST+SGST/IGST)
-- Sequential invoice numbering per financial year (April-March)
-- **E-invoicing**: Mandatory for turnover > ₹5 crore (IRN via NIC portal)
-- Tax slabs: 0%, 5%, 12%, 18%, 28% — correctly applied per HSN code
-- Credit/debit notes must reference original invoice number
-- GSTIN validation with checksum verification
+These are engineering/product constraints, not a substitute for current legal or
+professional review before launch:
 
-### WhatsApp Business Policy
-- Explicit opt-in before any marketing messages
-- Template messages pre-approved by Meta
-- 24-hour customer service window rules
-- Opt-out mechanism in every marketing message
+- obtain explicit, auditable marketing consent and keep order-data consent
+  separate from optional marketing opt-in;
+- honor opt-out behavior and use approved provider templates for marketing;
+- minimize public/customer data and preserve tenant isolation;
+- preserve GST slabs, HSN/GSTIN fields, CGST/SGST versus IGST, composition Bill
+  of Supply, sequential financial-year numbering, and paise rounding;
+- do not invent e-invoicing, PDF, credit-note, erasure, or other incomplete
+  workflows during decomposition.
 
-## Coding Conventions
+## Coding conventions
 
-- TypeScript strict mode — no `any` types
-- Supabase client via `createServerClient` / `createBrowserClient` pattern
-- All DB queries through typed Supabase client (generated types from schema)
-- Zod for runtime validation at API boundaries
-- Tailwind CSS for styling — no CSS modules
-- `snake_case` for DB columns, `camelCase` for TypeScript
-- All financial amounts stored as integers (paise, not rupees)
-- UTC timestamps in DB, IST display in UI
+- TypeScript strict mode; avoid untyped boundary data.
+- Use the established Supabase server/browser/admin/public client for its
+  documented trust boundary.
+- Use Zod at API boundaries.
+- Keep database columns `snake_case` and TypeScript values `camelCase`.
+- Keep financial amounts in paise and preserve item/payload order.
+- Extract pure transforms first, controllers/hooks second, focused views last.
+- Do not refactor generated/general UI primitives without a demonstrated need.
+- Query-facade decomposition belongs only to Wave 7.
 
-## Agent Swarm
+## Collaboration roles
 
-All agent personas live in `.claude/agents/`. Each agent has a defined mission and domain boundary. The **Project Shipper** coordinates all agents. See individual agent files for detailed responsibilities.
+- Darshan owns product direction, priorities, locked scope, and approvals.
+- Codex / Sol owns implementation, backend/cross-cutting work, verification,
+  cleanup, and the durable handoff.
+- Claude Code is the architecture/review/frontend counterpart.
+- Perplexity is for deep research and Gemini for broad exploration when asked.
 
-## Key Business Context
+GitHub carries reviewable code and exact checks. The existing Google handoff is
+the human-readable continuity mirror. `#bharatgrowth` is the concise verified
+milestone feed. Follow
+[`docs/bharatgrowth/COLLABORATION_WORKFLOW.md`](docs/bharatgrowth/COLLABORATION_WORKFLOW.md)
+for target IDs, write/readback rules, and stop conditions.
 
-- **Competitors**: Vyapar, Khatabook, myBillBook, Zoho Invoice
-- **Wedge**: Speed-billing (fastest invoice generation)
-- **Moat**: WhatsApp loyalty marketing automation
-- **ICP**: Single-store Indian SMBs doing 20-200 bills/day
-- **Pricing**: Freemium billing → paid WhatsApp marketing credits
+## Business context
+
+- Competitors: Vyapar, Khatabook, myBillBook, and Zoho Invoice.
+- Wedge: fast GST billing.
+- Moat: WhatsApp-enabled loyalty and repurchase automation.
+- ICP: single-store Indian SMBs doing 20–200 bills per day.
+- Intended model: freemium billing leading to paid retention/messaging value.
+  Monetization plumbing is not yet a current implemented contract.

@@ -309,6 +309,85 @@ INSERT INTO loyalty_ledger (shop_id, customer_id, entry_type, points, running_ba
 ('a0000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000007',
  'redeem', -300, 1400, 'Redeemed — ₹300 off Kurti purchase');
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- BRING-BACK CAMPAIGNS (tags → rules → tagged products → backdated invoices)
+-- One invoice per shop is backdated exactly trigger_days ago, so running the
+-- campaign cron immediately after seeding produces matches:
+--   curl -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/cron/campaigns
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Tags
+INSERT INTO tags (id, shop_id, name) VALUES
+('f0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Tyres'),
+('f0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'Sweets'),
+('f0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003', 'Garments');
+
+-- Campaign rules stay INACTIVE in shared staging. Test code may activate one
+-- rule deliberately after confirming messaging is in simulation mode.
+INSERT INTO campaign_rules (id, shop_id, tag_id, name, trigger_days, template_key, custom_variable, is_active, message_template) VALUES
+('f1000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001',
+ 'f0000000-0000-0000-0000-000000000001',
+ 'Free alignment check · 6 months', 180, 'RESTOCK', 'a free wheel alignment & rotation check', false, NULL),
+('f1000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002',
+ 'f0000000-0000-0000-0000-000000000002',
+ 'Fresh sweets nudge · 25 days', 25, 'RESTOCK', 'fresh sweets, made today', false, NULL),
+('f1000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003',
+ 'f0000000-0000-0000-0000-000000000003',
+ 'New season collection · 6 months', 170, 'NEW_ARRIVAL', 'the new season collection', false, NULL);
+
+-- Tag the relevant products
+UPDATE products SET tag_id = 'f0000000-0000-0000-0000-000000000001'
+WHERE id IN ('b0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002',
+             'b0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000008');
+
+UPDATE products SET tag_id = 'f0000000-0000-0000-0000-000000000002'
+WHERE id IN ('c0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000003');
+
+UPDATE products SET tag_id = 'f0000000-0000-0000-0000-000000000003'
+WHERE id IN ('d0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000003');
+
+-- Backdated invoices (customer has dpdp_marketing_consent = true in each case)
+-- High invoice_sequence values (9001+) avoid collisions with app-created bills.
+INSERT INTO invoices (
+  id, shop_id, invoice_number, invoice_sequence, financial_year,
+  invoice_date, customer_id, customer_name, customer_phone,
+  billing_state_code, subtotal_paise, cgst_total_paise, sgst_total_paise,
+  total_paise, payment_mode, status
+) VALUES
+-- Ganesh Tyres: Rajesh bought 2 MRF tyres exactly 180 days ago
+('f2000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001',
+ 'BG/SEED/09001', 9001, get_financial_year((CURRENT_DATE - 180)::date),
+ (CURRENT_DATE - 180)::date,
+ 'e0000000-0000-0000-0000-000000000001', 'Rajesh Sharma', '+919876500001',
+ '27', 1040000, 145600, 145600, 1331200, 'upi', 'completed'),
+-- Bikaner Sweets: Sunita bought Kaju Katli exactly 25 days ago
+('f2000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002',
+ 'BG/SEED/09002', 9002, get_financial_year((CURRENT_DATE - 25)::date),
+ (CURRENT_DATE - 25)::date,
+ 'e0000000-0000-0000-0000-000000000004', 'Sunita Gupta', '+919123400001',
+ '09', 80000, 0, 0, 80000, 'cash', 'completed'),
+-- Trends Boutique: Kavitha bought a saree exactly 170 days ago
+('f2000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003',
+ 'BG/SEED/09003', 9003, get_financial_year((CURRENT_DATE - 170)::date),
+ (CURRENT_DATE - 170)::date,
+ 'e0000000-0000-0000-0000-000000000007', 'Kavitha Nair', '+919988700001',
+ '29', 1200000, 72000, 72000, 1344000, 'upi', 'completed');
+
+INSERT INTO invoice_items (
+  shop_id, invoice_id, product_id, product_name, hsn_code,
+  quantity, unit, unit_price_paise, taxable_amount_paise, gst_rate_percent,
+  cgst_paise, sgst_paise, total_paise
+) VALUES
+('a0000000-0000-0000-0000-000000000001', 'f2000000-0000-0000-0000-000000000001',
+ 'b0000000-0000-0000-0000-000000000002', 'MRF ZVTV 185/65 R15', '40111000',
+ 2, 'piece', 520000, 1040000, 28, 145600, 145600, 1331200),
+('a0000000-0000-0000-0000-000000000002', 'f2000000-0000-0000-0000-000000000002',
+ 'c0000000-0000-0000-0000-000000000001', 'Kaju Katli', '17049090',
+ 1, 'kg', 80000, 80000, 0, 0, 0, 80000),
+('a0000000-0000-0000-0000-000000000003', 'f2000000-0000-0000-0000-000000000003',
+ 'd0000000-0000-0000-0000-000000000003', 'Women''s Silk Saree (Kanchipuram)', '50071090',
+ 1, 'piece', 1200000, 1200000, 12, 72000, 72000, 1344000);
+
 -- =============================================================================
 -- END OF SEED DATA
 -- =============================================================================
