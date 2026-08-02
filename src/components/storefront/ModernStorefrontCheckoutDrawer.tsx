@@ -258,6 +258,9 @@ export function ModernStorefrontCheckoutDrawer({
             <Lock className="h-3 w-3" aria-hidden="true" />
             Your details go only to this shop.
           </p>
+          <p className="mt-1.5 text-center text-[10px] text-gray-300">
+            Powered by BharatGrowth
+          </p>
         </div>
       </div>
     </div>

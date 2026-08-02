@@ -40,6 +40,11 @@ interface ReceiptData {
   payment_mode: string;
   is_inter_state: boolean;
   created_at: string;
+  // Both null for walk-in sales: no customer means no loyalty ledger row.
+  // points_balance is the running balance *at the time of this invoice*, not a
+  // live balance — it must never be relabelled as the customer's current total.
+  points_earned: number | null;
+  points_balance: number | null;
   shop: {
     business_name: string;
     gstin: string | null;
@@ -294,6 +299,35 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
               </tbody>
             </table>
           </div>
+
+          {/* ── Loyalty ──
+           * Hidden entirely for walk-in sales, where the RPC returns null for
+           * both fields, and for bills that earned nothing — there is no reward
+           * to announce, and "0 points" reads worse than silence. */}
+          {receipt.points_earned !== null &&
+            receipt.points_balance !== null &&
+            receipt.points_earned > 0 && (
+              <div className="px-5 pb-3">
+                <div className="flex items-center gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand/15">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-brand" aria-hidden="true">
+                      <path d="M12 2l2.9 6.26 6.85.72-5.12 4.62 1.46 6.73L12 16.9l-6.09 3.43 1.46-6.73L2.25 8.98l6.85-.72L12 2z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-brand">
+                      You earned{' '}
+                      <span className="font-mono">{receipt.points_earned}</span>{' '}
+                      point{receipt.points_earned === 1 ? '' : 's'}
+                    </p>
+                    <p className="text-[11px] uppercase tracking-wider text-brand/70">
+                      Balance:{' '}
+                      <span className="font-mono">{receipt.points_balance}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
           {/* ── Totals ── */}
           <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 space-y-1.5">
