@@ -75,7 +75,7 @@ export function ModernStorefrontCheckoutDrawer({
                   <p className="font-mono text-xs text-gray-400">{formatStorefrontPrice(cartItem.product.selling_price_paise)} each</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white">
+                  <div className="flex items-center overflow-hidden rounded-lg border border-info/20 bg-info/5">
                     <button
                       onClick={() => cart.removeFromCart(cartItem.product.id)}
                       className="flex h-8 w-8 items-center justify-center text-sm
@@ -100,7 +100,7 @@ export function ModernStorefrontCheckoutDrawer({
             ))}
           </div>
 
-          <div className="mb-5 flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
+          <div className="mb-5 flex items-center justify-between rounded-2xl border border-info/20 bg-info/5 px-4 py-4">
             <div>
               <p className="text-sm font-bold text-gray-900">Grand Total</p>
               <p className="text-xs text-gray-500">Including taxes</p>

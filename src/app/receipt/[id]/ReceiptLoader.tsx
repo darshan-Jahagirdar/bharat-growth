@@ -225,9 +225,9 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
 
           {/* ── Invoice Meta ── */}
           <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-            <div>
-              <p className="text-[11px] text-gray-400 uppercase tracking-wider">Invoice</p>
-              <p className="text-sm font-semibold text-gray-800 font-mono">{receipt.invoice_number}</p>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider text-gray-400">Invoice No.</p>
+              <p className="font-mono text-sm font-semibold text-gray-800">{receipt.invoice_number}</p>
             </div>
             <div className="text-right">
               <p className="text-[11px] text-gray-400 uppercase tracking-wider">Date</p>
@@ -256,11 +256,11 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
           <div className="px-5 py-3">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                  <th className="text-left py-2 font-medium">Item</th>
+                <tr className="text-[11px] text-gray-500 uppercase tracking-wider bg-info/5">
+                  <th className="text-left py-2 pl-2 font-medium rounded-l-md">Item</th>
                   <th className="text-center py-2 font-medium w-12">Qty</th>
                   <th className="text-right py-2 font-medium w-20">Rate</th>
-                  <th className="text-right py-2 font-medium w-24">Amount</th>
+                  <th className="text-right py-2 pr-2 font-medium w-24 rounded-r-md">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -375,7 +375,7 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
           {/* ── Footer ── */}
           <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 text-center">
             <p className="text-xs text-gray-400">Thank you for your purchase!</p>
-            <p className="text-[10px] text-gray-300 mt-1">
+            <p className="mt-1 text-[10px] text-emerald-600/70">
               Powered by BharatGrowth · This is a computer-generated receipt
             </p>
           </div>
