@@ -11,7 +11,7 @@
 // =============================================================================
 
 import Link from 'next/link';
-import { ArrowRight, Users, Send } from 'lucide-react';
+import { ArrowRight, Users, Send, TrendingUp } from 'lucide-react';
 import { formatINR } from '@/lib/types/database';
 import type { RetentionStats } from '@/lib/dashboard/dashboardQueries';
 
@@ -40,13 +40,13 @@ export function RetentionRoiCard({
   // ── State 4: no active campaigns — CTA ──
   if (!hasProof && !isArmed) {
     return (
-      <div className="bg-slate-900/50 border border-emerald-500/20 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="bg-gray-900 border border-white/5 border-l-4 border-l-money rounded-xl p-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <WhatsAppBadge />
         <div className="flex-1 min-w-0">
           <div className="text-base font-bold text-gray-100">
             Bring customers back automatically
           </div>
-          <div className="text-xs text-gray-500 mt-0.5">
+          <div className="text-sm text-gray-400 mt-1">
             WhatsApp reminders timed to your products&apos; repurchase cycle — and proof in rupees when they return.
           </div>
         </div>
@@ -65,13 +65,13 @@ export function RetentionRoiCard({
   // ── State 3: configured before approval, but not live yet ──
   if (isArmed && campaignsApproved !== true) {
     return (
-      <div className="bg-slate-900/50 border border-amber-500/20 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="bg-gray-900 border border-white/5 border-l-4 border-l-amber-500 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <WhatsAppBadge />
         <div className="flex-1 min-w-0">
           <div className="text-base font-bold text-gray-100">
             Bring-Back is configured — campaign approval required
           </div>
-          <div className="text-xs text-gray-500 mt-0.5">
+          <div className="text-sm text-gray-400 mt-1">
             Your active rules stay configured. WhatsApp reminders start only after
             BharatGrowth approves campaigns for this shop.
           </div>
@@ -89,14 +89,14 @@ export function RetentionRoiCard({
   // ── State 2: approved and armed, waiting for the first conversion ──
   if (isArmed) {
     return (
-      <div className="bg-slate-900/50 border border-emerald-500/20 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="bg-gray-900 border border-white/5 border-l-4 border-l-money rounded-xl p-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <WhatsAppBadge />
         <div className="flex-1 min-w-0">
           <div className="text-base font-bold text-gray-100">
             Bring-Back is live — {stats.activeRulesCount} campaign
             {stats.activeRulesCount === 1 ? '' : 's'} watching your customers
           </div>
-          <div className="text-xs text-gray-500 mt-0.5">
+          <div className="text-sm text-gray-400 mt-1">
             {stats.messagesSent > 0
               ? `${stats.messagesSent} message${stats.messagesSent === 1 ? '' : 's'} sent this month — returns show up here.`
               : 'Reminders go out automatically when a customer is due to come back.'}
@@ -113,49 +113,52 @@ export function RetentionRoiCard({
   }
 
   // ── State 1: proof — show the money ──
+  // This is the hero of the dashboard: the moat stated as a number. It gets the
+  // largest type on the screen and the emerald money accent.
   return (
-    <div className="bg-slate-900/50 border border-emerald-500/25 rounded-xl p-5 hover:border-emerald-500/40 transition-colors">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <WhatsAppBadge />
-        <div className="flex-1 min-w-0">
-          <div className="text-[11px] text-emerald-500 uppercase tracking-wider font-medium mb-1">
-            Bring-Back · this month
-          </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
-            {formatINR(stats.revenueAttributedPaise)}
-            <span className="text-sm font-medium text-gray-400 ml-2">brought back</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-6 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-emerald-400" />
-            <div>
-              <div className="text-lg font-bold text-gray-100 leading-none">
-                {stats.customersReturned}
-              </div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">
-                Returned
-              </div>
+    <div className="bg-gray-900 border border-white/5 border-l-4 border-l-money rounded-xl p-6 sm:p-8 hover:border-money/30 transition-colors">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-start gap-4 min-w-0">
+          <WhatsAppBadge />
+          <div className="min-w-0">
+            <div className="text-[11px] text-money uppercase tracking-[0.2em] font-bold">
+              Bring-Back · this month
+            </div>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="font-mono text-4xl sm:text-5xl font-bold text-money tracking-tight">
+                {formatINR(stats.revenueAttributedPaise)}
+              </span>
+              <span className="text-base font-medium text-gray-400">
+                brought back
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-400">
+              <span className="inline-flex items-center gap-2">
+                <Users className="w-4 h-4 text-money" />
+                <span className="font-mono font-bold text-gray-100">
+                  {stats.customersReturned}
+                </span>
+                customer{stats.customersReturned === 1 ? '' : 's'} returned
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Send className="w-4 h-4 text-gray-500" />
+                <span className="font-mono font-bold text-gray-100">
+                  {stats.messagesSent}
+                </span>
+                message{stats.messagesSent === 1 ? '' : 's'} sent
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Send className="w-4 h-4 text-gray-400" />
-            <div>
-              <div className="text-lg font-bold text-gray-100 leading-none">
-                {stats.messagesSent}
-              </div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">
-                Sent
-              </div>
-            </div>
-          </div>
-          <Link
-            href="/dashboard/campaigns"
-            className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1"
-          >
-            View campaigns <ArrowRight className="w-3 h-3" />
-          </Link>
         </div>
+
+        <Link
+          href="/dashboard/campaigns"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:text-orange-300 transition-colors flex-shrink-0"
+        >
+          <TrendingUp className="w-4 h-4" />
+          View campaigns
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
     </div>
   );

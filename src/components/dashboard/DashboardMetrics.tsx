@@ -40,7 +40,7 @@ export function DashboardMetrics({
               <IndianRupee className="w-4 h-4 text-orange-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+          <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.todayRevenuePaise)}
           </div>
           <div className="mt-1.5 flex items-center gap-1 text-[11px] text-emerald-500">
@@ -49,7 +49,7 @@ export function DashboardMetrics({
           </div>
         </div>
 
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-red-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 border-l-2 border-l-dues/60 rounded-xl p-5 hover:border-red-500/20 transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
               Total Udhaar
@@ -58,7 +58,7 @@ export function DashboardMetrics({
               <FileText className="w-4 h-4 text-red-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+          <div className="font-mono text-xl font-bold text-dues tracking-tight">
             {formatINR(data.kpis.totalUdhaarPaise)}
           </div>
           <div className="mt-1.5 text-[11px] text-red-400/70">
@@ -75,7 +75,7 @@ export function DashboardMetrics({
               <Receipt className="w-4 h-4 text-blue-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+          <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {data.kpis.billsToday}
           </div>
           <div className="mt-1.5 text-[11px] text-gray-500">
@@ -92,7 +92,7 @@ export function DashboardMetrics({
               <Package className="w-4 h-4 text-emerald-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+          <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.inventoryValuePaise)}
           </div>
           <div className="mt-1.5 text-[11px] text-gray-500">
@@ -111,7 +111,7 @@ export function DashboardMetrics({
               <Users className="w-4 h-4 text-cyan-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+          <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {data.captureMetrics.customerCaptures}
           </div>
           <div className="mt-1.5 text-[11px] text-gray-500">
@@ -131,7 +131,7 @@ export function DashboardMetrics({
               <Receipt className="w-4 h-4 text-indigo-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+          <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {data.captureMetrics.billsWithCustomerPercent === null
               ? '—'
               : `${data.captureMetrics.billsWithCustomerPercent}%`}
@@ -157,7 +157,7 @@ export function DashboardMetrics({
               <TrendingUp className="w-4 h-4 text-teal-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+          <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.monthlySalesPaise)}
           </div>
           <div className="mt-1.5 text-[11px] text-gray-500">
@@ -174,7 +174,7 @@ export function DashboardMetrics({
               <ShoppingCart className="w-4 h-4 text-violet-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+          <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.monthlyPurchasesPaise)}
           </div>
           <div className="mt-1.5 text-[11px] text-gray-500">Stock in</div>
@@ -189,7 +189,7 @@ export function DashboardMetrics({
               <Warehouse className="w-4 h-4 text-amber-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-100 tracking-tight">
+          <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.stockValueCostPaise)}
           </div>
           <div className="mt-1.5 text-[11px] text-gray-500">
