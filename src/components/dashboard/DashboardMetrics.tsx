@@ -31,49 +31,43 @@ export function DashboardMetrics({
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-orange-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+            <span className="text-sm text-gray-400">
               Today&apos;s Revenue
             </span>
-            <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-              <IndianRupee className="w-4 h-4 text-orange-400" />
-            </div>
+            <IndianRupee className="h-4 w-4 text-gray-500" />
           </div>
           <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.todayRevenuePaise)}
           </div>
-          <div className="mt-1.5 flex items-center gap-1 text-[11px] text-emerald-500">
+          <div className="mt-1.5 flex items-center gap-1 text-[11px] text-money">
             <TrendingUp className="w-3 h-3" />
             Live
           </div>
         </div>
 
-        <div className="bg-slate-900/50 border border-white/5 border-l-2 border-l-dues/60 rounded-xl p-5 hover:border-red-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 border-l-[3px] border-l-dues rounded-xl p-5 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+            <span className="text-sm text-gray-400">
               Total Udhaar
             </span>
-            <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-              <FileText className="w-4 h-4 text-red-400" />
-            </div>
+            <FileText className="h-4 w-4 text-gray-500" />
           </div>
           <div className="font-mono text-xl font-bold text-dues tracking-tight">
             {formatINR(data.kpis.totalUdhaarPaise)}
           </div>
-          <div className="mt-1.5 text-[11px] text-red-400/70">
+          <div className="mt-1.5 text-[11px] text-dues/70">
             {data.khataCustomers.length} customer{data.khataCustomers.length !== 1 ? 's' : ''} owe
           </div>
         </div>
 
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-blue-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+            <span className="text-sm text-gray-400">
               Bills Today
             </span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Receipt className="w-4 h-4 text-blue-400" />
-            </div>
+            <Receipt className="h-4 w-4 text-gray-500" />
           </div>
           <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {data.kpis.billsToday}
@@ -83,14 +77,12 @@ export function DashboardMetrics({
           </div>
         </div>
 
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-emerald-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+            <span className="text-sm text-gray-400">
               Inventory Value
             </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <Package className="w-4 h-4 text-emerald-400" />
-            </div>
+            <Package className="h-4 w-4 text-gray-500" />
           </div>
           <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.inventoryValuePaise)}
@@ -102,14 +94,12 @@ export function DashboardMetrics({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-cyan-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+            <span className="text-sm text-gray-400">
               Customer captures
             </span>
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-              <Users className="w-4 h-4 text-cyan-400" />
-            </div>
+            <Users className="h-4 w-4 text-gray-500" />
           </div>
           <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {data.captureMetrics.customerCaptures}
@@ -122,14 +112,12 @@ export function DashboardMetrics({
           </div>
         </div>
 
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-indigo-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+            <span className="text-sm text-gray-400">
               Bills with customer
             </span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-              <Receipt className="w-4 h-4 text-indigo-400" />
-            </div>
+            <Receipt className="h-4 w-4 text-gray-500" />
           </div>
           <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {data.captureMetrics.billsWithCustomerPercent === null
@@ -148,14 +136,12 @@ export function DashboardMetrics({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-teal-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+            <span className="text-sm text-gray-400">
               Sales ({periodLabel})
             </span>
-            <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-teal-400" />
-            </div>
+            <TrendingUp className="h-4 w-4 text-gray-500" />
           </div>
           <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.monthlySalesPaise)}
@@ -165,14 +151,12 @@ export function DashboardMetrics({
           </div>
         </div>
 
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-violet-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+            <span className="text-sm text-gray-400">
               Purchases ({periodLabel})
             </span>
-            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-              <ShoppingCart className="w-4 h-4 text-violet-400" />
-            </div>
+            <ShoppingCart className="h-4 w-4 text-gray-500" />
           </div>
           <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.monthlyPurchasesPaise)}
@@ -180,14 +164,12 @@ export function DashboardMetrics({
           <div className="mt-1.5 text-[11px] text-gray-500">Stock in</div>
         </div>
 
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-amber-500/20 transition-colors">
+        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">
+            <span className="text-sm text-gray-400">
               Current Stock Value
             </span>
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <Warehouse className="w-4 h-4 text-amber-400" />
-            </div>
+            <Warehouse className="h-4 w-4 text-gray-500" />
           </div>
           <div className="font-mono text-xl font-bold text-gray-100 tracking-tight">
             {formatINR(data.kpis.stockValueCostPaise)}
