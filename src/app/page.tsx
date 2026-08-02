@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Users,
 } from "lucide-react"
+import { HeroBackdrop } from "@/components/landing/HeroBackdrop"
 
 const NAV_LINKS = [
   { label: "Bring-Back", href: "#bring-back" },
@@ -139,16 +140,34 @@ export default function BharatGrowthLanding() {
 
       {/* Hero */}
       <header className="relative overflow-hidden px-6 pb-24 pt-36 lg:px-8">
-        {/* Growth-line motif */}
-        <div className="pointer-events-none absolute inset-x-0 top-1/2 -z-0 opacity-30" aria-hidden="true">
+        <HeroBackdrop />
+
+        {/* Growth-line motif. Each SVG is two identical wave periods across a
+         * 200%-wide box, so translating it by -50% lands on an identical
+         * frame — the drift loops with no visible seam. */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-1/2 z-0 overflow-hidden opacity-30"
+          aria-hidden="true"
+        >
           <svg
-            className="h-32 w-full"
-            viewBox="0 0 1000 100"
+            className="hero-wave h-32 w-[200%]"
+            viewBox="0 0 2000 100"
             preserveAspectRatio="none"
           >
-            <path d="M0,50 Q250,10 500,50 T1000,50" fill="none" stroke="#F97316" strokeWidth="1" />
             <path
-              d="M0,60 Q250,90 500,60 T1000,60"
+              d="M0,50 Q250,10 500,50 T1000,50 Q1250,10 1500,50 T2000,50"
+              fill="none"
+              stroke="#F97316"
+              strokeWidth="1"
+            />
+          </svg>
+          <svg
+            className="hero-wave hero-wave--alt absolute inset-0 h-32 w-[200%]"
+            viewBox="0 0 2000 100"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M0,60 Q250,90 500,60 T1000,60 Q1250,90 1500,60 T2000,60"
               fill="none"
               stroke="#10B981"
               strokeWidth="0.5"
@@ -183,9 +202,10 @@ export default function BharatGrowthLanding() {
           </div>
         </div>
 
-        {/* POS terminal frame */}
-        <div className="relative z-10 mx-auto mt-20 w-full max-w-6xl">
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-gray-900">
+        {/* POS terminal frame. Tilt is deliberately shallow — the panel's
+         * contents are the pitch, so legibility wins over the angle. */}
+        <div className="relative z-10 mx-auto mt-20 w-full max-w-6xl [perspective:1600px]">
+          <div className="hero-mockup overflow-hidden rounded-xl border border-white/10 bg-gray-900">
             {/* Terminal chrome */}
             <div className="flex items-center justify-between border-b border-white/5 bg-gray-950 px-4 py-3">
               <div className="flex gap-2.5">
@@ -378,6 +398,40 @@ export default function BharatGrowthLanding() {
           </p>
         </div>
       </footer>
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        @keyframes hero-wave-drift {
+          from { transform: translate3d(0, 0, 0); }
+          to   { transform: translate3d(-50%, 0, 0); }
+        }
+        .hero-wave {
+          animation: hero-wave-drift 38s linear infinite;
+          will-change: transform;
+        }
+        /* Different speed for depth; each period is self-contained so the
+           loop stays seamless at any duration. */
+        .hero-wave--alt { animation-duration: 54s; }
+
+        /* Tilt is a wide-screen flourish. On a phone the panel is a narrow
+           stacked column and the angle only costs legibility, so it stays
+           flat below md. */
+        @media (min-width: 768px) {
+          .hero-mockup {
+            transform: rotateX(5deg) rotateY(-3deg);
+            transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          .hero-mockup:hover { transform: rotateX(1.5deg) rotateY(-1deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .hero-wave { animation: none; }
+          .hero-mockup { transition: none; }
+        }
+      `,
+        }}
+      />
     </div>
   )
 }
