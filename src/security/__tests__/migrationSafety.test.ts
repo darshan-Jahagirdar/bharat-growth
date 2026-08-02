@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -47,6 +47,140 @@ describe('migration release safety', () => {
     expect(sql).toMatch(/CREATE OR REPLACE FUNCTION get_public_receipt/i);
     expect(sql).toMatch(/CREATE OR REPLACE FUNCTION get_storefront_owner_phone/i);
     expect(sql).not.toMatch(/DROP POLICY|REVOKE SELECT ON TABLE/i);
+  });
+
+  it('locks anonymous table grants to the exact storefront column allowlist', () => {
+    const migrationsDir = resolve(process.cwd(), 'supabase/migrations');
+    const migrationSql = readdirSync(migrationsDir)
+      .filter((name) => name.endsWith('.sql'))
+      .sort()
+      .map((name) => readFileSync(resolve(migrationsDir, name), 'utf8'))
+      .join('\n');
+
+    const createdPublicTables = new Set(
+      [...migrationSql.matchAll(
+        /\bCREATE TABLE(?: IF NOT EXISTS)?\s+(?:public\.)?([a-z_][a-z0-9_]*)\s*\(/gi
+      )].map((match) => match[1])
+    );
+
+    for (const table of createdPublicTables) {
+      const explicitAnonRevoke = new RegExp(
+        `REVOKE ALL(?: PRIVILEGES)? ON TABLE public\\.${table}\\s+FROM\\s+[^;]*\\banon\\b`,
+        'i'
+      );
+
+      expect(
+        migrationSql,
+        `public.${table} must explicitly revoke inherited anon table grants`
+      ).toMatch(explicitAnonRevoke);
+    }
+
+    expect(migrationSql).not.toMatch(
+      /GRANT[^;]+ON ALL TABLES IN SCHEMA public[^;]+TO[^;]*\banon\b/i
+    );
+    expect(migrationSql).not.toMatch(
+      /GRANT[^;]+ON (?:ALL )?TABLES?(?: IN SCHEMA public)?[^;]+TO[^;]*\bPUBLIC\b/i
+    );
+    expect(migrationSql).not.toMatch(
+      /ALTER DEFAULT PRIVILEGES[^;]*GRANT[^;]+ON TABLES[^;]+TO[^;]*\b(?:anon|PUBLIC)\b/i
+    );
+
+    const allowedColumns: Record<string, string[]> = {
+      shops: [
+        'id',
+        'business_name',
+        'business_type',
+        'city',
+        'state_code',
+        'logo_url',
+        'theme_preference',
+        'primary_color',
+      ],
+      products: [
+        'id',
+        'name',
+        'sku',
+        'hsn_code',
+        'selling_price_paise',
+        'gst_rate_percent',
+        'unit',
+        'category',
+        'image_url',
+        'vertical_attrs',
+        'is_stock_tracked',
+        'shop_id',
+        'is_active',
+      ],
+      inventory: ['quantity_in_stock', 'product_id'],
+    };
+
+    const anonTableGrant = /\bGRANT\s+([^;]+?)\s+ON\s+TABLE\s+(?:public\.)?([a-z_][a-z0-9_]*)\s+TO\s+([^;]+);/gi;
+
+    for (const match of migrationSql.matchAll(anonTableGrant)) {
+      const [, privilegeSql, table, grantees] = match;
+      expect(
+        grantees,
+        `public.${table} must not grant table access through PUBLIC`
+      ).not.toMatch(/\bPUBLIC\b/i);
+
+      if (!/\banon\b/i.test(grantees)) continue;
+
+      expect(Object.keys(allowedColumns)).toContain(table);
+      const selectColumns = privilegeSql.match(/^SELECT\s*\(([\s\S]+)\)$/i);
+      expect(
+        selectColumns,
+        `anon grant on public.${table} must be a column SELECT`
+      ).not.toBeNull();
+
+      const actualColumns = selectColumns![1]
+        .split(',')
+        .map((column) => column.trim())
+        .sort();
+
+      expect(actualColumns).toEqual([...allowedColumns[table]].sort());
+    }
+  });
+
+  it('widens public receipts only through the invoice-linked stored loyalty row', () => {
+    const sql = migration('055_public_receipt_loyalty_and_anon_grant_cleanup.sql');
+    const functionStart = sql.indexOf(
+      'CREATE OR REPLACE FUNCTION public.get_public_receipt'
+    );
+    const functionEnd = sql.indexOf(
+      'REVOKE ALL ON FUNCTION public.get_public_receipt',
+      functionStart
+    );
+    const receiptFunction = sql.slice(functionStart, functionEnd);
+
+    expect(sql).toMatch(
+      /Migration 049 built its cleanup list from tables carrying anon policies/i
+    );
+    expect(sql).toMatch(
+      /REVOKE ALL PRIVILEGES ON TABLE public\.customers FROM anon/i
+    );
+    expect(sql).toMatch(
+      /REVOKE ALL PRIVILEGES ON TABLE public\.consent_logs FROM anon/i
+    );
+    expect(sql).toMatch(
+      /REVOKE ALL PRIVILEGES ON TABLE public\.credit_ledger FROM anon/i
+    );
+    expect(sql).toMatch(
+      /REVOKE ALL PRIVILEGES ON TABLE public\.message_logs FROM anon/i
+    );
+
+    expect(receiptFunction).toMatch(/'points_earned', loyalty\.points/i);
+    expect(receiptFunction).toMatch(
+      /'points_balance', loyalty\.running_balance/i
+    );
+    expect(receiptFunction).toMatch(/ll\.invoice_id = i\.id/i);
+    expect(receiptFunction).toMatch(/ll\.shop_id = i\.shop_id/i);
+    expect(receiptFunction).toMatch(/ll\.customer_id = i\.customer_id/i);
+    expect(receiptFunction).toMatch(/ll\.entry_type = 'earn'/i);
+    expect(receiptFunction).toMatch(/ll\.deleted_at IS NULL/i);
+    expect(receiptFunction).not.toMatch(/SUM\s*\(|total_paise\s*\/|customer_id',/i);
+    expect(sql).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.get_public_receipt\(uuid\) TO anon, authenticated/i
+    );
   });
 
   it('declares the read-only tenant guard stable and authenticated-only', () => {
