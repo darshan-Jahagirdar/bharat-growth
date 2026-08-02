@@ -310,6 +310,23 @@ export interface PurchaseBill {
   updated_at: string;
 }
 
+// ── Platform Access Approval ──
+
+export type AccessRequestStatus = 'pending' | 'approved' | 'dismissed';
+
+export interface AccessRequest {
+  id: string;
+  user_id: string;
+  full_name: string;
+  business_name: string;
+  business_type: BusinessType;
+  city: string;
+  email: string;
+  status: AccessRequestStatus;
+  requested_at: string;
+  reviewed_at: string | null;
+}
+
 // ── Order Engine Types (Phase 29) ──
 
 export type PurchaseOrderStatus = 'draft' | 'sent' | 'fulfilled' | 'cancelled';

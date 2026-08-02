@@ -576,4 +576,98 @@ describe('migration release safety', () => {
       /GRANT EXECUTE ON FUNCTION public\.log_customer_visit\([\s\S]+TO (anon|service_role)/i
     );
   });
+
+  it('makes access requests self-owned while review writes fail loudly', () => {
+    const sql = migration('056_access_approval_gate.sql');
+    const guardStart = sql.indexOf(
+      'CREATE FUNCTION public.prevent_access_request_review_mutation()'
+    );
+    const guardEnd = sql.indexOf(
+      '$$ LANGUAGE plpgsql SET search_path = public;',
+      guardStart
+    );
+    const guard = sql.slice(guardStart, guardEnd);
+
+    expect(sql.trimStart()).toMatch(/^--[\s\S]*\bBEGIN;/i);
+    expect(sql.trimEnd()).toMatch(/COMMIT;$/i);
+    expect(sql).toMatch(/CREATE TABLE public\.access_requests/i);
+    expect(sql).toMatch(
+      /user_id uuid NOT NULL UNIQUE REFERENCES auth\.users\(id\) ON DELETE CASCADE/i
+    );
+    expect(sql).toMatch(
+      /status IN \('pending', 'approved', 'dismissed'\)/i
+    );
+    expect(sql).toMatch(
+      /status = 'pending' AND reviewed_at IS NULL[\s\S]+status IN \('approved', 'dismissed'\) AND reviewed_at IS NOT NULL/i
+    );
+    expect(sql).toMatch(
+      /CREATE INDEX idx_access_requests_status_requested\s+ON public\.access_requests \(status, requested_at, id\)/i
+    );
+    expect(sql).toMatch(
+      /ALTER TABLE public\.access_requests ENABLE ROW LEVEL SECURITY/i
+    );
+    expect(sql).toMatch(
+      /ALTER TABLE public\.access_requests FORCE ROW LEVEL SECURITY/i
+    );
+    expect(sql).toMatch(
+      /FOR INSERT\s+TO authenticated\s+WITH CHECK \(\s*user_id = \(SELECT auth\.uid\(\)\)\s+AND status = 'pending'\s+AND reviewed_at IS NULL/i
+    );
+    expect(sql).toMatch(
+      /FOR SELECT\s+TO authenticated\s+USING \(user_id = \(SELECT auth\.uid\(\)\)\)/i
+    );
+    expect(sql).toMatch(
+      /FOR UPDATE\s+TO authenticated\s+USING \(user_id = \(SELECT auth\.uid\(\)\)\)\s+WITH CHECK \(user_id = \(SELECT auth\.uid\(\)\)\)/i
+    );
+
+    expect(guard).toMatch(
+      /current_user IN \('anon', 'authenticated'\)/i
+    );
+    expect(guard).toMatch(/NEW\.status IS DISTINCT FROM OLD\.status/i);
+    expect(guard).toMatch(
+      /NEW\.reviewed_at IS DISTINCT FROM OLD\.reviewed_at/i
+    );
+    expect(guard).toMatch(/RAISE EXCEPTION USING/i);
+    expect(guard).toMatch(/ERRCODE = '42501'/i);
+    expect(sql).toMatch(
+      /BEFORE UPDATE OF status, reviewed_at ON public\.access_requests/i
+    );
+
+    expect(sql).toMatch(
+      /REVOKE ALL PRIVILEGES ON TABLE public\.access_requests\s+FROM PUBLIC, anon, authenticated, service_role/i
+    );
+    expect(sql).toMatch(
+      /GRANT INSERT \(\s*user_id,\s*full_name,\s*business_name,\s*business_type,\s*city,\s*email\s*\) ON TABLE public\.access_requests TO authenticated/i
+    );
+    expect(sql).toMatch(
+      /GRANT SELECT \(status\)\s+ON TABLE public\.access_requests TO authenticated/i
+    );
+    expect(sql).toMatch(
+      /GRANT UPDATE \(status, reviewed_at\)\s+ON TABLE public\.access_requests TO authenticated/i
+    );
+    expect(sql).toMatch(
+      /GRANT SELECT, UPDATE\s+ON TABLE public\.access_requests TO service_role/i
+    );
+    expect(sql).not.toMatch(
+      /ALTER TABLE public\.shops|UPDATE public\.shops|campaigns_approved\s*=/i
+    );
+  });
+
+  it('keeps the access approval harness isolated and proves both denial and privilege paths', () => {
+    const sql = readFileSync(
+      resolve(process.cwd(), 'supabase/tests/056_access_approval_gate.sql'),
+      'utf8'
+    );
+
+    expect(sql).toMatch(/qokaaggeqahayxsybgds/i);
+    expect(sql).toMatch(/supabase db query --linked/i);
+    expect(sql).toMatch(/BEGIN;[\s\S]+ROLLBACK;/i);
+    expect(sql).toMatch(/access-gate-' \|\| gen_random_uuid\(\)::text/i);
+    expect(sql).toMatch(/SET LOCAL ROLE authenticated/i);
+    expect(sql).toMatch(/self-approval update was not rejected/i);
+    expect(sql).toMatch(/reviewed_at mutation was not rejected/i);
+    expect(sql).toMatch(/SQLERRM NOT LIKE 'access request review is managed by BharatGrowth%'/i);
+    expect(sql).toMatch(/SET LOCAL ROLE service_role/i);
+    expect(sql).toMatch(/status = 'approved'[\s\S]+reviewed_at = now\(\)/i);
+    expect(sql).toMatch(/access approval unexpectedly created a shop membership/i);
+  });
 });
