@@ -121,6 +121,7 @@ export function DashboardCharts({
                   paddingAngle={3}
                   dataKey="sales"
                   stroke="none"
+                  isAnimationActive={false}
                 >
                   {topProducts.map((_, index) => (
                     <Cell
