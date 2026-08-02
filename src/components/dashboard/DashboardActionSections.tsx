@@ -81,6 +81,10 @@ export function DashboardActionSections({
                   <button
                     onClick={() => onReminder(customer)}
                     title={`Send WhatsApp reminder to ${customer.name ?? customer.phone_number}`}
+                    // The visible label is just "WhatsApp", so every row would
+                    // otherwise expose the same accessible name. The label keeps
+                    // the visible text as its first words to satisfy WCAG 2.5.3.
+                    aria-label={`WhatsApp reminder to ${customer.name ?? customer.phone_number}`}
                     className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-money/30
                                bg-money/10 px-2.5 py-1 text-[11px] font-semibold text-money
                                transition-colors hover:bg-money/20"
