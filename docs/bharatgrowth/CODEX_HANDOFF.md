@@ -5,9 +5,9 @@ Owner: Darshan
 Maintainer signature: Sol/Codex
 
 This is the canonical operating handoff for BharatGrowth. It records the exact
-post-migration-054, post-email-OTP, post-Wave-D visit-capture-and-
-acknowledgement checkpoint plus the merged Claude design/frontend track. It
-does not authorize production access, external-gate work, Wave E, or a
+post-migration-056, post-access-approval checkpoint plus email OTP, Waves A–D,
+the Claude design/frontend track, receipt-loyalty hardening, and the access
+gate. It does not authorize production access, DNS/domain changes, Wave E, or a
 production rollout.
 
 ## 1. Product and branch model
@@ -20,29 +20,30 @@ campaigns, analytics, a public storefront, online checkout, and public receipts.
 - Production Git checkpoint: `8c389098db7e31180b5bdd6f1661adfd4bdc902b`
 - Immutable fallback tag: `pre-hardening-8c38909`
 - Integration/staging branch: `codex/production-hardening-baseline`
-- Current verified integration software commit after the Claude design/frontend
-  track: `2566d9df4fb949dfb2595ccbc40352161cb10960`
+- Current verified integration software commit after the access approval gate:
+  `cedcaeee49c194169654e11aa661759ff8895939`
 - New work branches from a freshly verified remote integration SHA and PRs only
   back to integration unless Darshan separately authorizes production.
 
-Production remained untouched throughout migrations 049–054, Auth
-normalization, email OTP, the sale-readiness matrix, Waves A–D, and the five
-Claude design/frontend merges. No production Supabase or Vercel endpoint was
-accessed.
+Production remained untouched throughout migrations 049–056, Auth
+normalization, email OTP, the sale-readiness matrix, Waves A–D, the Claude
+design/frontend merges, receipt-loyalty hardening, and the access approval
+gate. No production Supabase or Vercel endpoint was mutated.
 
 ## 2. Required reading order
 
 Read these completely before continuing work:
 
 1. `docs/bharatgrowth/CODEX_HANDOFF.md`
-2. `docs/bharatgrowth/product/CAPTURE_AND_TAGS_DESIGN.md`
-3. `docs/bharatgrowth/COLLABORATION_WORKFLOW.md`
-4. `docs/bharatgrowth/quality/BEHAVIOR_CONTRACTS.md`
-5. `docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md`
-6. `docs/bharatgrowth/database/MIGRATION_RUNBOOK.md`
-7. `docs/bharatgrowth/database/MIGRATION_049_PLAN.md`
-8. `docs/bharatgrowth/testing/MANUAL_REGRESSION_CHECKLIST.md`
-9. `docs/bharatgrowth/testing/SALE_READINESS_RESULTS.md`
+2. `docs/bharatgrowth/product/ACCESS_APPROVAL_DESIGN.md`
+3. `docs/bharatgrowth/product/CAPTURE_AND_TAGS_DESIGN.md`
+4. `docs/bharatgrowth/COLLABORATION_WORKFLOW.md`
+5. `docs/bharatgrowth/quality/BEHAVIOR_CONTRACTS.md`
+6. `docs/bharatgrowth/product/FEATURE_AND_BEHAVIOR_INVENTORY.md`
+7. `docs/bharatgrowth/database/MIGRATION_RUNBOOK.md`
+8. `docs/bharatgrowth/database/MIGRATION_049_PLAN.md`
+9. `docs/bharatgrowth/testing/MANUAL_REGRESSION_CHECKLIST.md`
+10. `docs/bharatgrowth/testing/SALE_READINESS_RESULTS.md`
 
 Do not open, edit, stage, or infer from excluded user-owned paths:
 `designs/`, `designs_mobile/`, `docs/bharatgrowth/design/`, or
@@ -296,6 +297,74 @@ edit its contents.
   `2566d9df4fb949dfb2595ccbc40352161cb10960` was READY, Preview-only, and
   staging-wired.
 
+- The frontend continuation then merged:
+  - [#31](https://github.com/darshan-Jahagirdar/bharat-growth/pull/31),
+    landing hero motion head
+    `e7349c7312738cf9d653f199d034c7ff87b5f572`, merged as
+    `5a4d40903d330d0aca873f06a9c91008d0977137`;
+  - [#33](https://github.com/darshan-Jahagirdar/bharat-growth/pull/33),
+    design accents and receipt-loyalty UI head
+    `bf26f9c26e6ca8ffa3f26db360982219edebcec6`, merged as
+    `80ba4dc5168ee41786fd69af63bba1314fd8f195`.
+- [#32](https://github.com/darshan-Jahagirdar/bharat-growth/pull/32)
+  added migration 055 and the receipt-loyalty backend from head
+  `8aa17c2dcc2084bcfc379029fc44daff67ba23d7`, merged as
+  `ccc97939f7cf5cf0170ab205461c292bd39902cd`. It exposes invoice-earned points
+  and the stored post-invoice balance only through `get_public_receipt`, and
+  removes every unintended direct anon table grant while preserving migration
+  049's three exact storefront column allowlists.
+
+#### Access approval gate — merged into integration
+
+- PR [#34](https://github.com/darshan-Jahagirdar/bharat-growth/pull/34)
+  targeted integration only and merged as
+  `cedcaeee49c194169654e11aa661759ff8895939` from exact reviewed software head
+  `0d3ebad5f6c12f45843c08741a50d883a8b5707b`. Its exact base was
+  `80ba4dc5168ee41786fd69af63bba1314fd8f195`.
+- Migration 056 adds `access_requests` with forced RLS, own pending INSERT,
+  own status SELECT, exact column grants, and a loud SQLSTATE `42501`
+  `BEFORE UPDATE` review guard. INSERT cannot supply decision/audit fields,
+  and the own-row UPDATE policy deliberately lets protected writes reach the
+  trigger rather than succeed with zero affected rows.
+- Access approval and `shops.campaigns_approved` are independent. Migration
+  056 never touches `shops`; the onboarding shop INSERT continues to inherit
+  `campaigns_approved = false`.
+- `/onboarding` is a three-state server router: request form, pending message
+  (also used for dismissed), or the preserved existing onboarding form after
+  approval. Existing users with `users.shop_id` remain grandfathered.
+- The service-role `POST /api/onboarding` independently requires the caller's
+  request to be approved immediately before shop creation. Server layouts also
+  redirect profile-less `/billing` and `/dashboard` users to onboarding;
+  middleware remains database-free.
+- `/admin` is unlinked, request-dynamic, and noindex. Page load and every
+  approve/dismiss action freshly compare the verified auth email against
+  server-only `PLATFORM_ADMIN_EMAIL`, case-insensitively. Pending-only updates
+  make actions race/replay safe.
+- Approval commits before the direct Resend courtesy email. Missing
+  configuration, network failure, or provider rejection is logged and cannot
+  roll back approval. `RESEND_FROM_EMAIL` is configurable and initially
+  `hello@bharatgrowthshop.com`; production still needs real server-only
+  `PLATFORM_ADMIN_EMAIL` and `RESEND_API_KEY` values before rollout.
+- Dismissed status remains technically visible through the user's RLS-scoped
+  status SELECT while the product UI presents it as pending. This accepted
+  observability is documented in `ACCESS_APPROVAL_DESIGN.md`.
+- Repository gates passed at the reviewed head: 51/51 test files and 260/260
+  tests, strict typecheck, zero-warning lint, optimized build with 27 routes,
+  and all four GitHub/Vercel checks green.
+- Migration 056 was applied only to staging. The rollback harness proved own
+  pending INSERT/SELECT, cross-user and pre-approved INSERT denial, loud status
+  and review-time UPDATE denial, privileged approval, zero shop membership
+  creation, and transaction-backed fixture cleanup. History is continuous
+  001–056.
+- Exact feature-branch Preview:
+  `dpl_BDh5yoyogKuHef7TEYZA96ggs9EH`,
+  `https://bharat-growth-gqswyb8t2-darshan-jahagirdars-projects.vercel.app`.
+  It was READY, Preview-only, exact software head, and its eight login chunks
+  contained staging ref `qokaaggeqahayxsybgds` once and no other Supabase ref.
+- Before merge, all three Wave branch Preview overrides were removed. Readback
+  proved exactly three on integration and zero on the Wave branch, so the
+  merge-triggered integration deployment inherited staging scope.
+
 - PR #12, storefront loader → owner-phone RPC, merged at `3cca263`.
 - PR #13, migration 049, merged into integration.
 - Post-049 integration checkpoint before Auth work: `e5147d1`.
@@ -320,7 +389,13 @@ edit its contents.
   integration as `77cd697` (reviewed head `8612d69`).
 - PRs #26–#30, the Claude design/frontend track, merged sequentially into
   integration with final software checkpoint `2566d9d`.
-- Current verified integration software checkpoint: `2566d9d`.
+- PR #31, landing hero motion, merged as `5a4d409`.
+- PR #32, public receipt loyalty and anonymous-grant cleanup, merged as
+  `ccc9793`.
+- PR #33, design accents and receipt loyalty UI, merged as `80ba4dc`.
+- PR #34, access approval gate, merged as `cedcaee` from reviewed head
+  `0d3ebad`.
+- Current verified integration software checkpoint: `cedcaee`.
 - Production `main` remains exact `8c38909`.
 
 Before any new write, re-fetch and compare remote integration, remote main,
@@ -329,14 +404,17 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 ### Supabase staging
 
 - Linked staging project ref: `qokaaggeqahayxsybgds`.
-- Migrations 001–054 are applied and verified on staging. Migration 050 adds
+- Migrations 001–056 are applied and verified on staging. Migration 050 adds
   only `grocery` to the `shops.business_type` CHECK. Migration 051 adds the
   campaign approval columns, loud self-approval trigger, and approved-shop
   matching predicate. Migration 052 adds append-only visit capture and
   generalizes campaign source and conversion attribution without recording
   visit amounts or moving inventory. Migration 053 adds request idempotency and
   a separate acknowledgement claim. Migration 054 makes visit data consent
-  required and separately append-logged.
+  required and separately append-logged. Migration 055 restores the exact
+  anonymous grant allowlist and widens only the constrained receipt RPC with
+  stored loyalty values. Migration 056 adds the independent access-request
+  gate and loud self-review boundary.
 - Migration 049 removed direct anonymous invoice/user reads while preserving the
   constrained Receipt and Storefront facades and checkout contract.
 - The durable synthetic owner fixture documented in `MIGRATION_RUNBOOK.md`
@@ -358,6 +436,9 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
   approval/marketing gates, required visit data consent for both new and
   existing customers, separate append-only purpose logs, and no amount/item/
   stock side effects. Its final staging run rolled back cleanly.
+- The migration 056 harness proved both allowed request operations and loud
+  review denials under the authenticated role, then privileged approval with
+  no shop membership side effect. Its transaction rolled back cleanly.
 - Staging Auth has a permanent callback fixture: Site URL is the stable
   integration preview alias and the allowlist retains localhost plus the
   staging-only Vercel preview wildcard documented in `MIGRATION_RUNBOOK.md`.
@@ -368,18 +449,18 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 
 ### Vercel staging preview
 
-The exact post-design-track integration Preview is:
+The exact post-access-gate integration Preview is:
 
-- Deployment ID: `dpl_CKrYntRAeRdpnP45JkJFcUKREBq9`
+- Deployment ID: `dpl_6iVD6AgH3RTuufToX3T1ZrRqJ9pS`
 - URL:
-  `https://bharat-growth-7gy64rxfm-darshan-jahagirdars-projects.vercel.app`
+  `https://bharat-growth-jvrrmxkl7-darshan-jahagirdars-projects.vercel.app`
 - State/type: READY / Preview (`target = null`)
 - Git branch/SHA: `codex/production-hardening-baseline` /
-  `2566d9df4fb949dfb2595ccbc40352161cb10960`
+  `cedcaeee49c194169654e11aa661759ff8895939`
 - The three existing sensitive Preview variables read back as encrypted,
   Preview-only, and scoped to integration. No scoping changes were made for the
   frontend-only design track.
-- The compiled login bundle contains staging ref `qokaaggeqahayxsybgds` once
+- The eight compiled login chunks contain staging ref `qokaaggeqahayxsybgds` once
   and no production ref across all eight browser chunks.
 
 Do not treat an arbitrary PR preview as staging evidence. Verify exact commit,
@@ -495,6 +576,10 @@ This closeout does not authorize any remaining external gate or rollout action.
   `https://github.com/darshan-Jahagirdar/bharat-growth/pull/16`
 - `/settings` auth-guard PR:
   `https://github.com/darshan-Jahagirdar/bharat-growth/pull/17`
+- Access approval gate PR:
+  `https://github.com/darshan-Jahagirdar/bharat-growth/pull/34`
+- Signed access approval milestone:
+  `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1785690975164029`
 - Signed burn-down milestone:
   `https://bharatgrowth.slack.com/archives/C0BG39UE1A9/p1784406156886699`
 - Milestone messages from this track are signed `— Sol/Codex`.
@@ -510,7 +595,7 @@ Stop and report before writes if any of these occur:
 - remote integration or `main` contradicts the exact checkpoints above;
 - an unexplained overlapping Claude/Codex branch changes the same scope;
 - the linked Supabase target is not staging `qokaaggeqahayxsybgds`;
-- migration history no longer matches 001–054;
+- migration history no longer matches 001–056;
 - the intended preview is not exact-commit, READY, Preview-only, and staging-
   wired;
 - a production endpoint, real customer identity, live provider send, secret,
@@ -521,7 +606,13 @@ Stop and report before writes if any of these occur:
 
 ## 9. Open work and recommended next task
 
-Waves A–D are complete.
+Waves A–D and the access approval gate are complete.
+
+- **Production access-gate configuration:** before the separately authorized
+  production/domain rollout, set server-only `PLATFORM_ADMIN_EMAIL` and
+  `RESEND_API_KEY`, and set `RESEND_FROM_EMAIL` to
+  `hello@bharatgrowthshop.com`. The code fails closed without admin identity;
+  approval itself remains committed if email delivery fails.
 
 - **POS consent debt:** POS billing customer creation omits
   `dpdp_data_consent` and its `data_collection` consent log. Fix likely
