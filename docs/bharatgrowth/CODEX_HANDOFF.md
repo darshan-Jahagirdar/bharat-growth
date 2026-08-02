@@ -6,8 +6,9 @@ Maintainer signature: Sol/Codex
 
 This is the canonical operating handoff for BharatGrowth. It records the exact
 post-migration-054, post-email-OTP, post-Wave-D visit-capture-and-
-acknowledgement merge checkpoint. It does not authorize production access,
-external-gate work, Wave E, or a production rollout.
+acknowledgement checkpoint plus the merged Claude design/frontend track. It
+does not authorize production access, external-gate work, Wave E, or a
+production rollout.
 
 ## 1. Product and branch model
 
@@ -19,14 +20,15 @@ campaigns, analytics, a public storefront, online checkout, and public receipts.
 - Production Git checkpoint: `8c389098db7e31180b5bdd6f1661adfd4bdc902b`
 - Immutable fallback tag: `pre-hardening-8c38909`
 - Integration/staging branch: `codex/production-hardening-baseline`
-- Current verified integration software commit after Wave D:
-  `77cd697414250adca559da9e1db84ce56eee9c81`
+- Current verified integration software commit after the Claude design/frontend
+  track: `2566d9df4fb949dfb2595ccbc40352161cb10960`
 - New work branches from a freshly verified remote integration SHA and PRs only
   back to integration unless Darshan separately authorizes production.
 
 Production remained untouched throughout migrations 049–054, Auth
-normalization, email OTP, the sale-readiness matrix, and Waves A–D. No
-production Supabase or Vercel endpoint was accessed.
+normalization, email OTP, the sale-readiness matrix, Waves A–D, and the five
+Claude design/frontend merges. No production Supabase or Vercel endpoint was
+accessed.
 
 ## 2. Required reading order
 
@@ -43,9 +45,10 @@ Read these completely before continuing work:
 9. `docs/bharatgrowth/testing/SALE_READINESS_RESULTS.md`
 
 Do not open, edit, stage, or infer from excluded user-owned paths:
-`designs/`, `designs_mobile/`, `docs/bharatgrowth/design/`, and
-`docs/bharatgrowth/CLAUDE_HANDOFF.md` or
-`docs/bharatgrowth/LAUNCH_PLAN.md`.
+`designs/`, `designs_mobile/`, `docs/bharatgrowth/design/`, or
+`docs/bharatgrowth/LAUNCH_PLAN.md`. `docs/bharatgrowth/CLAUDE_HANDOFF.md` is
+now tracked and may arrive through Claude-owned branches, but Codex must not
+edit its contents.
 
 ## 3. Exact current checkpoint
 
@@ -251,6 +254,48 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   exactly three on integration and zero on `codex/visit-capture-wave-d`, so the
   merge-triggered integration deployment inherited staging scope.
 
+#### Claude design/frontend track — merged into integration
+
+- Five frontend-only PRs targeted integration and merged in the required
+  stacked order. None added migrations, schema, RLS, API routes, or `src/lib`
+  changes:
+  - [#26](https://github.com/darshan-Jahagirdar/bharat-growth/pull/26),
+    `claude/design-foundation` head
+    `90f404cf56ad3e05fc0152ecd2511daa3f53834f`, merged as
+    `871a4aad430e7756edb756868b430818a75833fe`;
+  - [#27](https://github.com/darshan-Jahagirdar/bharat-growth/pull/27),
+    `claude/fix-donut-chart` head
+    `b28d3eec6e949e367b253235e79c4a646d6f0c34`, merged as
+    `b897d6d62799bcc1829a3a6ae89f9491d3d4a287`;
+  - [#28](https://github.com/darshan-Jahagirdar/bharat-growth/pull/28),
+    `claude/landing-page` head
+    `13c66cbb9a12d73c884380d5786b6d25537e5df9`, merged as
+    `3e233e57f842658daed0c3bd4e3954da13581088`;
+  - [#29](https://github.com/darshan-Jahagirdar/bharat-growth/pull/29),
+    `claude/dashboard` head
+    `cdb17f01d565aaa067d2063193f541af31b2c036`, merged as
+    `122aaf5383071450194aa5e6b825dcf155ab9d41`;
+  - [#30](https://github.com/darshan-Jahagirdar/bharat-growth/pull/30),
+    `claude/mobile-surfaces` head
+    `14107e017d676e03ebd1e78ea8347a140c36d64c`, merged as
+    `2566d9df4fb949dfb2595ccbc40352161cb10960`.
+- The foundation adds Space Grotesk, Hanken Grotesk, JetBrains Mono, and shared
+  surface tokens. The landing page is rewritten, the collapsed Top Products
+  donut is fixed, the dashboard and Bring-Back ROI card are restyled, and the
+  Modern storefront plus public receipt are reskinned.
+- The surface branches retained their single-commit diffs because the two
+  foundation commits merged first. Before every merge the exact head and
+  current base were confirmed, the tracked tree was clean, and quality,
+  public-smoke, Vercel, and Vercel Preview Comments were green.
+- `docs/bharatgrowth/CLAUDE_HANDOFF.md` became tracked through the foundation
+  branch and remained byte-identical after all five merges; Codex did not edit
+  it. The excluded `designs/`, `designs_mobile/`, and
+  `docs/bharatgrowth/design/` paths remained untracked and untouched.
+- No per-branch staging verification or Vercel variable rescoping was
+  performed. The one final integration Preview at exact design-track tip
+  `2566d9df4fb949dfb2595ccbc40352161cb10960` was READY, Preview-only, and
+  staging-wired.
+
 - PR #12, storefront loader → owner-phone RPC, merged at `3cca263`.
 - PR #13, migration 049, merged into integration.
 - Post-049 integration checkpoint before Auth work: `e5147d1`.
@@ -273,7 +318,9 @@ Do not open, edit, stage, or infer from excluded user-owned paths:
   checkpoint `50c60da`).
 - PR #25, Wave D visit capture and acknowledgement, squash-merged into
   integration as `77cd697` (reviewed head `8612d69`).
-- Current verified integration software checkpoint: `77cd697`.
+- PRs #26–#30, the Claude design/frontend track, merged sequentially into
+  integration with final software checkpoint `2566d9d`.
+- Current verified integration software checkpoint: `2566d9d`.
 - Production `main` remains exact `8c38909`.
 
 Before any new write, re-fetch and compare remote integration, remote main,
@@ -321,19 +368,19 @@ open PRs, and the working tree. Stop on an unexplained contradiction.
 
 ### Vercel staging preview
 
-The exact post-Wave-D integration Preview is:
+The exact post-design-track integration Preview is:
 
-- Deployment ID: `dpl_HT5gSP6yQXzWq3RMJFdxBowsb3kn`
+- Deployment ID: `dpl_CKrYntRAeRdpnP45JkJFcUKREBq9`
 - URL:
-  `https://bharat-growth-pc4l1dxff-darshan-jahagirdars-projects.vercel.app`
+  `https://bharat-growth-7gy64rxfm-darshan-jahagirdars-projects.vercel.app`
 - State/type: READY / Preview (`target = null`)
 - Git branch/SHA: `codex/production-hardening-baseline` /
-  `77cd697414250adca559da9e1db84ce56eee9c81`
+  `2566d9df4fb949dfb2595ccbc40352161cb10960`
 - The three existing sensitive Preview variables read back as encrypted,
-  Preview-only, and scoped to integration before merge. Zero remained on the
-  closed Wave D branch.
-- The compiled login bundle contains staging ref `qokaaggeqahayxsybgds` and no
-  production ref across all eight browser chunks.
+  Preview-only, and scoped to integration. No scoping changes were made for the
+  frontend-only design track.
+- The compiled login bundle contains staging ref `qokaaggeqahayxsybgds` once
+  and no production ref across all eight browser chunks.
 
 Do not treat an arbitrary PR preview as staging evidence. Verify exact commit,
 Preview state, and branch-scoped staging variables before login or mutations.
