@@ -160,7 +160,7 @@ export function ModernStorefrontCheckoutDrawer({
                 onClick={() => setPaymentMethod('upi')}
                 className={`py-3.5 rounded-xl text-sm font-semibold border-2 transition-all
                   ${paymentMethod === 'upi'
-                    ? 'border-green-600 bg-green-50 text-green-700'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                     : 'border-gray-200 bg-white text-gray-600 active:bg-gray-50'
                   }`}
               >

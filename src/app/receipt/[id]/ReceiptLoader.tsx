@@ -205,7 +205,7 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
               {isTaxInvoice ? 'TAX INVOICE' : 'BILL OF SUPPLY'}
             </p>
             {isComposition && (
-              <p className="mt-1 text-[9px] leading-tight text-amber-600">
+              <p className="mt-1 text-[9px] leading-tight text-gray-600">
                 Composition taxable person, not eligible to collect tax on supplies
               </p>
             )}
@@ -325,7 +325,7 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
             )}
 
             {receipt.discount_paise > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
+              <div className="flex justify-between text-sm text-emerald-600">
                 <span>Discount</span>
                 <span className="font-mono">-{formatINR(receipt.discount_paise)}</span>
               </div>
@@ -367,8 +367,8 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
                 </p>
               </div>
             </div>
-            <div className="bg-green-50 border border-green-200 rounded-full px-3 py-1">
-              <span className="text-green-700 text-xs font-semibold">✓ Paid</span>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+              <span className="text-emerald-700 text-xs font-semibold">✓ Paid</span>
             </div>
           </div>
 
