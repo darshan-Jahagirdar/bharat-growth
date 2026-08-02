@@ -72,69 +72,85 @@ export function ModernStorefrontCheckoutDrawer({
               <div key={cartItem.product.id} className="flex items-center justify-between">
                 <div className="flex-1 min-w-0 mr-3">
                   <p className="text-sm font-medium text-gray-900 truncate">{cartItem.product.name}</p>
-                  <p className="text-xs text-gray-400">{formatStorefrontPrice(cartItem.product.selling_price_paise)} each</p>
+                  <p className="font-mono text-xs text-gray-400">{formatStorefrontPrice(cartItem.product.selling_price_paise)} each</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white">
                     <button
                       onClick={() => cart.removeFromCart(cartItem.product.id)}
-                      className="w-7 h-7 flex items-center justify-center text-gray-500
-                                 active:bg-gray-100 text-sm font-bold"
+                      className="flex h-8 w-8 items-center justify-center text-sm
+                                 font-bold text-gray-500 active:bg-gray-100"
                     >
                       -
                     </button>
-                    <span className="w-5 text-center text-sm font-semibold text-gray-900">{cartItem.qty}</span>
+                    <span className="w-6 text-center font-mono text-sm font-semibold text-gray-900">{cartItem.qty}</span>
                     <button
                       onClick={() => cart.addToCart(cartItem.product)}
-                      className="w-7 h-7 flex items-center justify-center text-green-600
-                                 active:bg-gray-100 text-sm font-bold"
+                      className="flex h-8 w-8 items-center justify-center text-sm
+                                 font-bold text-brand active:bg-gray-100"
                     >
                       +
                     </button>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900 w-16 text-right">
+                  <span className="w-20 text-right font-mono text-sm font-semibold text-gray-900">
                     {formatStorefrontPrice(cartItem.product.selling_price_paise * cartItem.qty)}
                   </span>
                 </div>
               </div>
             ))}
-
-            <div className="pt-3 border-t border-gray-200 flex items-center justify-between">
-              <span className="text-sm font-bold text-gray-900">Total</span>
-              <span className="text-lg font-bold text-gray-900">{formatStorefrontPrice(cart.cartTotal)}</span>
-            </div>
           </div>
 
-          <div className="space-y-3 mb-5">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Details</p>
-            <input
-              type="text"
-              value={checkoutName}
-              onChange={(event) => setCheckoutName(event.target.value)}
-              placeholder="Your Name *"
-              className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900
-                         placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/30
-                         focus:bg-white border border-transparent focus:border-green-500/30"
-            />
-            <input
-              type="tel"
-              value={checkoutPhone}
-              onChange={(event) => setCheckoutPhone(event.target.value)}
-              placeholder="Phone Number *"
-              maxLength={10}
-              className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900
-                         placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/30
-                         focus:bg-white border border-transparent focus:border-green-500/30"
-            />
-            <textarea
-              value={checkoutAddress}
-              onChange={(event) => setCheckoutAddress(event.target.value)}
-              placeholder="Delivery Address (optional)"
-              rows={2}
-              className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900
-                         placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/30
-                         focus:bg-white border border-transparent focus:border-green-500/30 resize-none"
-            />
+          <div className="mb-5 flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
+            <div>
+              <p className="text-sm font-bold text-gray-900">Grand Total</p>
+              <p className="text-xs text-gray-500">Including taxes</p>
+            </div>
+            <span className="font-mono text-2xl font-bold tracking-tight text-gray-900">
+              {formatStorefrontPrice(cart.cartTotal)}
+            </span>
+          </div>
+
+          <div className="mb-5 space-y-3">
+            <p className="text-base font-bold text-gray-900">Your Details</p>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-gray-700">Full Name</span>
+              <input
+                type="text"
+                value={checkoutName}
+                onChange={(event) => setCheckoutName(event.target.value)}
+                placeholder="Your Name *"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900
+                           placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/30
+                           focus:border-brand/40"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-gray-700">Phone Number</span>
+              <input
+                type="tel"
+                value={checkoutPhone}
+                onChange={(event) => setCheckoutPhone(event.target.value)}
+                placeholder="Phone Number *"
+                maxLength={10}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-mono text-sm text-gray-900
+                           placeholder:font-sans placeholder:text-gray-400 focus:outline-none focus:ring-2
+                           focus:ring-brand/30 focus:border-brand/40"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Delivery Address <span className="font-normal text-gray-400">(optional)</span>
+              </span>
+              <textarea
+                value={checkoutAddress}
+                onChange={(event) => setCheckoutAddress(event.target.value)}
+                placeholder="Delivery Address (optional)"
+                rows={2}
+                className="w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900
+                           placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/30
+                           focus:border-brand/40"
+              />
+            </label>
           </div>
 
           <div className="mb-6">
@@ -168,7 +184,7 @@ export function ModernStorefrontCheckoutDrawer({
               type="checkbox"
               checked={dataConsent}
               onChange={(event) => setDataConsent(event.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
             />
             <span className="text-xs leading-5 text-gray-600">
               I agree to share my name, phone, address, and order details with this shop for fulfilling this order.
@@ -180,7 +196,7 @@ export function ModernStorefrontCheckoutDrawer({
               type="checkbox"
               checked={marketingConsent}
               onChange={(event) => setMarketingConsent(event.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
             />
             <span className="text-xs leading-5 text-gray-600">
               Send me offers &amp; reminders on WhatsApp <span className="text-gray-400">(optional)</span>

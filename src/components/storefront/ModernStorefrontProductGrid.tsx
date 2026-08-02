@@ -69,47 +69,53 @@ export function ModernStorefrontProductGrid({
 
                   <div className="mt-auto flex items-end justify-between gap-1.5">
                     <div>
-                      <p className="text-base font-bold text-gray-900 leading-none">
+                      <p className="font-mono text-base font-bold text-gray-900 leading-none">
                         {formatStorefrontPrice(product.selling_price_paise)}
                       </p>
                       {product.is_stock_tracked && product.stock_quantity !== null && product.stock_quantity <= 0 && (
-                        <p className="text-[9px] text-red-500 font-semibold mt-0.5">Out of Stock</p>
+                        <span className="mt-1 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5
+                                         text-[9px] font-semibold text-red-600">
+                          Out of stock
+                        </span>
                       )}
                     </div>
 
                     {product.is_stock_tracked && product.stock_quantity !== null && product.stock_quantity <= 0 && qty === 0 ? (
                       <button
                         disabled
-                        className="px-4 py-1.5 rounded-lg text-xs font-bold border-2 border-gray-300
-                                   text-gray-400 bg-gray-100 cursor-not-allowed"
+                        aria-label="ADD"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full
+                                   bg-gray-100 text-xl font-bold text-gray-300 cursor-not-allowed"
                       >
-                        ADD
+                        +
                       </button>
                     ) : qty === 0 ? (
                       <button
                         onClick={() => cart.addToCart(product)}
-                        className="px-4 py-1.5 rounded-lg text-xs font-bold border-2 border-green-600
-                                   text-green-600 bg-green-50 active:bg-green-100 transition-all"
+                        aria-label="ADD"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full
+                                   bg-brand text-xl font-bold text-white shadow-sm
+                                   active:bg-orange-600 transition-colors"
                       >
-                        ADD
+                        +
                       </button>
                     ) : (
-                      <div className="flex items-center bg-green-600 rounded-lg overflow-hidden shadow-sm">
+                      <div className="flex items-center overflow-hidden rounded-full bg-brand shadow-sm">
                         <button
                           onClick={() => cart.removeFromCart(product.id)}
-                          className="w-8 h-8 flex items-center justify-center text-white text-lg
-                                     font-bold active:bg-green-700 transition-colors"
+                          className="flex h-9 w-8 items-center justify-center text-lg
+                                     font-bold text-white active:bg-orange-600 transition-colors"
                         >
                           -
                         </button>
-                        <span className="w-6 text-center text-white text-sm font-bold">
+                        <span className="w-6 text-center font-mono text-sm font-bold text-white">
                           {qty}
                         </span>
                         <button
                           onClick={() => cart.addToCart(product)}
                           disabled={product.is_stock_tracked && product.stock_quantity !== null && qty >= product.stock_quantity}
-                          className="w-8 h-8 flex items-center justify-center text-white text-lg
-                                     font-bold active:bg-green-700 transition-colors disabled:opacity-40"
+                          className="flex h-9 w-8 items-center justify-center text-lg
+                                     font-bold text-white active:bg-orange-600 transition-colors disabled:opacity-40"
                         >
                           +
                         </button>

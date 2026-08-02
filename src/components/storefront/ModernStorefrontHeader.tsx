@@ -46,11 +46,11 @@ export function ModernStorefrontHeader({
             </div>
           )}
           <div className="min-w-0">
-            <h1 className="text-sm font-bold text-gray-900 truncate leading-tight">
+            <h1 className="truncate text-base font-bold leading-tight text-brand">
               {shop.business_name}
             </h1>
             {shop.city && (
-              <p className="text-[11px] text-gray-400 leading-tight">{shop.city}</p>
+              <p className="text-xs leading-tight text-gray-500">{shop.city}</p>
             )}
           </div>
         </div>
@@ -68,9 +68,9 @@ export function ModernStorefrontHeader({
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder={`Search in ${shop.business_name}...`}
-            className="w-full pl-9 pr-4 py-2.5 bg-gray-100 rounded-xl text-sm text-gray-900
-                       placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/30
-                       focus:bg-white transition-all"
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900
+                       placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/30
+                       focus:border-brand/40 transition-all"
           />
           {searchQuery && (
             <button
@@ -94,10 +94,10 @@ export function ModernStorefrontHeader({
           <button
             key={category}
             onClick={() => setActiveCategory(category)}
-            className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all
+            className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-all
               ${activeCategory === category
-                ? 'bg-green-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 active:bg-gray-200'
+                ? 'bg-brand text-white shadow-sm'
+                : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
               }`}
           >
             {category}
