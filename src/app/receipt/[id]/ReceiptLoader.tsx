@@ -195,35 +195,31 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
   const totalTaxPaise = receipt.cgst_total_paise + receipt.sgst_total_paise + receipt.igst_total_paise;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="receipt-page min-h-screen bg-gray-50">
       {/* ── Receipt Card ── */}
       <div className="max-w-lg mx-auto px-4 py-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="receipt-sheet bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {/* ── Header ── */}
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 px-5 py-5 text-white">
-            <div className="text-center mb-3">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/90">
-                {isTaxInvoice ? 'TAX INVOICE' : 'BILL OF SUPPLY'}
+          <div className="border-b border-gray-100 px-5 py-5">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand">
+              {isTaxInvoice ? 'TAX INVOICE' : 'BILL OF SUPPLY'}
+            </p>
+            {isComposition && (
+              <p className="mt-1 text-[9px] leading-tight text-amber-600">
+                Composition taxable person, not eligible to collect tax on supplies
               </p>
-              {isComposition && (
-                <p className="text-[9px] text-yellow-400/80 mt-0.5 leading-tight">
-                  Composition taxable person, not eligible to collect tax on supplies
-                </p>
+            )}
+            <div className="mt-3">
+              <h1 className="text-lg font-bold text-gray-900">{receipt.shop.business_name}</h1>
+              {receipt.shop.gstin && (
+                <p className="mt-0.5 font-mono text-[11px] text-gray-500">GSTIN: {receipt.shop.gstin}</p>
               )}
-            </div>
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-lg font-bold">{receipt.shop.business_name}</h1>
-                {receipt.shop.gstin && (
-                  <p className="text-gray-400 text-[11px] mt-0.5 font-mono">GSTIN: {receipt.shop.gstin}</p>
-                )}
-                {receipt.shop.city && (
-                  <p className="text-gray-400 text-xs mt-0.5">{receipt.shop.city}</p>
-                )}
-                {receipt.shop.phone && (
-                  <p className="text-gray-400 text-xs">Ph: {receipt.shop.phone}</p>
-                )}
-              </div>
+              {receipt.shop.city && (
+                <p className="mt-0.5 text-xs text-gray-500">{receipt.shop.city}</p>
+              )}
+              {receipt.shop.phone && (
+                <p className="text-xs text-gray-500">Ph: {receipt.shop.phone}</p>
+              )}
             </div>
           </div>
 
@@ -347,7 +343,7 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
             {/* Grand Total */}
             <div className="flex justify-between items-center pt-2 border-t border-gray-200">
               <span className="text-base font-bold text-gray-900">Total</span>
-              <span className="text-2xl font-bold text-gray-900 font-mono">
+              <span className="font-mono text-2xl font-bold tracking-tight text-brand">
                 {formatINR(receipt.total_paise)}
               </span>
             </div>
@@ -386,11 +382,11 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
         </div>
 
         {/* ── Share / Print buttons (outside the card) ── */}
-        <div className="flex gap-3 mt-4">
+        <div className="receipt-actions flex gap-3 mt-4">
           <button
             onClick={() => window.print()}
-            className="flex-1 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-medium
-                       hover:bg-gray-50 active:scale-95 transition-all"
+            className="flex-1 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold
+                       hover:bg-orange-600 active:scale-95 transition-all"
           >
             🖨️ Print
           </button>
@@ -412,6 +408,24 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
           </button>
         </div>
       </div>
+
+      {/* The receipt doubles as a printed document, so strip the screen chrome
+       * and keep the card from being split across pages. */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page { margin: 12mm; }
+          html, body { background: #fff !important; }
+          .receipt-actions { display: none !important; }
+          .receipt-page { background: #fff !important; min-height: 0 !important; }
+          .receipt-sheet {
+            box-shadow: none !important;
+            border-color: #d1d5db !important;
+            break-inside: avoid;
+          }
+          .receipt-sheet table { break-inside: auto; }
+          .receipt-sheet tr { break-inside: avoid; }
+        }
+      `}} />
     </div>
   );
 }

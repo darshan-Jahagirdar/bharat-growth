@@ -15,19 +15,19 @@ export function ModernStorefrontCartBar({
     <div className="fixed bottom-0 left-0 right-0 z-50 p-3">
       <button
         onClick={onCheckout}
-        className="w-full flex items-center justify-between bg-green-600 text-white
+        className="w-full flex items-center justify-between bg-brand text-white
                    rounded-2xl px-5 py-4 shadow-[0_-4px_24px_rgba(0,0,0,0.15)]
-                   active:bg-green-700 transition-colors"
+                   active:bg-orange-600 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="bg-white/20 rounded-lg px-2 py-1">
-            <span className="text-sm font-bold">{cartCount}</span>
+          <div className="rounded-lg bg-white/20 px-2.5 py-1">
+            <span className="font-mono text-sm font-bold">{cartCount}</span>
           </div>
           <div className="text-left">
-            <p className="text-[11px] text-green-100 leading-tight">
+            <p className="text-[11px] leading-tight text-orange-100">
               {cartCount} {cartCount === 1 ? 'item' : 'items'}
             </p>
-            <p className="text-base font-bold leading-tight">{formatStorefrontPrice(cartTotal)}</p>
+            <p className="font-mono text-base font-bold leading-tight">{formatStorefrontPrice(cartTotal)}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
