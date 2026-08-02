@@ -40,6 +40,11 @@ interface ReceiptData {
   payment_mode: string;
   is_inter_state: boolean;
   created_at: string;
+  // Both null for walk-in sales: no customer means no loyalty ledger row.
+  // points_balance is the running balance *at the time of this invoice*, not a
+  // live balance — it must never be relabelled as the customer's current total.
+  points_earned: number | null;
+  points_balance: number | null;
   shop: {
     business_name: string;
     gstin: string | null;
@@ -205,7 +210,7 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
               {isTaxInvoice ? 'TAX INVOICE' : 'BILL OF SUPPLY'}
             </p>
             {isComposition && (
-              <p className="mt-1 text-[9px] leading-tight text-amber-600">
+              <p className="mt-1 text-[9px] leading-tight text-gray-600">
                 Composition taxable person, not eligible to collect tax on supplies
               </p>
             )}
@@ -225,9 +230,9 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
 
           {/* ── Invoice Meta ── */}
           <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-            <div>
-              <p className="text-[11px] text-gray-400 uppercase tracking-wider">Invoice</p>
-              <p className="text-sm font-semibold text-gray-800 font-mono">{receipt.invoice_number}</p>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider text-gray-400">Invoice No.</p>
+              <p className="font-mono text-sm font-semibold text-gray-800">{receipt.invoice_number}</p>
             </div>
             <div className="text-right">
               <p className="text-[11px] text-gray-400 uppercase tracking-wider">Date</p>
@@ -256,11 +261,11 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
           <div className="px-5 py-3">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                  <th className="text-left py-2 font-medium">Item</th>
+                <tr className="text-[11px] text-gray-500 uppercase tracking-wider bg-info/5">
+                  <th className="text-left py-2 pl-2 font-medium rounded-l-md">Item</th>
                   <th className="text-center py-2 font-medium w-12">Qty</th>
                   <th className="text-right py-2 font-medium w-20">Rate</th>
-                  <th className="text-right py-2 font-medium w-24">Amount</th>
+                  <th className="text-right py-2 pr-2 font-medium w-24 rounded-r-md">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -295,6 +300,35 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
             </table>
           </div>
 
+          {/* ── Loyalty ──
+           * Hidden entirely for walk-in sales, where the RPC returns null for
+           * both fields, and for bills that earned nothing — there is no reward
+           * to announce, and "0 points" reads worse than silence. */}
+          {receipt.points_earned !== null &&
+            receipt.points_balance !== null &&
+            receipt.points_earned > 0 && (
+              <div className="px-5 pb-3">
+                <div className="flex items-center gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand/15">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-orange-700" aria-hidden="true">
+                      <path d="M12 2l2.9 6.26 6.85.72-5.12 4.62 1.46 6.73L12 16.9l-6.09 3.43 1.46-6.73L2.25 8.98l6.85-.72L12 2z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-orange-700">
+                      You earned{' '}
+                      <span className="font-mono">{receipt.points_earned}</span>{' '}
+                      point{receipt.points_earned === 1 ? '' : 's'}
+                    </p>
+                    <p className="text-[11px] uppercase tracking-wider text-orange-800">
+                      Balance:{' '}
+                      <span className="font-mono">{receipt.points_balance}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
           {/* ── Totals ── */}
           <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 space-y-1.5">
             {!isComposition && (
@@ -325,7 +359,7 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
             )}
 
             {receipt.discount_paise > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
+              <div className="flex justify-between text-sm text-emerald-600">
                 <span>Discount</span>
                 <span className="font-mono">-{formatINR(receipt.discount_paise)}</span>
               </div>
@@ -367,15 +401,15 @@ export function ReceiptLoader({ invoiceId }: ReceiptLoaderProps) {
                 </p>
               </div>
             </div>
-            <div className="bg-green-50 border border-green-200 rounded-full px-3 py-1">
-              <span className="text-green-700 text-xs font-semibold">✓ Paid</span>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+              <span className="text-emerald-700 text-xs font-semibold">✓ Paid</span>
             </div>
           </div>
 
           {/* ── Footer ── */}
           <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 text-center">
             <p className="text-xs text-gray-400">Thank you for your purchase!</p>
-            <p className="text-[10px] text-gray-300 mt-1">
+            <p className="mt-1 text-[10px] text-emerald-600/70">
               Powered by BharatGrowth · This is a computer-generated receipt
             </p>
           </div>

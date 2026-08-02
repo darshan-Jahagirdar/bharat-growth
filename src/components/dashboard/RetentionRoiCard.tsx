@@ -65,7 +65,7 @@ export function RetentionRoiCard({
   // ── State 3: configured before approval, but not live yet ──
   if (isArmed && campaignsApproved !== true) {
     return (
-      <div className="bg-gray-900 border border-white/5 border-l-4 border-l-amber-500 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="bg-gray-900 border border-white/5 border-l-4 border-l-info rounded-xl p-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <WhatsAppBadge />
         <div className="flex-1 min-w-0">
           <div className="text-base font-bold text-gray-100">
@@ -78,7 +78,7 @@ export function RetentionRoiCard({
         </div>
         <Link
           href="/dashboard/campaigns"
-          className="text-xs text-amber-400 hover:text-amber-300 inline-flex items-center gap-1 flex-shrink-0"
+          className="text-xs text-info hover:text-blue-300 inline-flex items-center gap-1 flex-shrink-0"
         >
           Review campaign approval <ArrowRight className="w-3 h-3" />
         </Link>

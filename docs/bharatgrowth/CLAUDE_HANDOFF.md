@@ -7,6 +7,40 @@
 
 ---
 
+## 0a. Design-track scope decisions (2026-08-02, ratified by Darshan)
+
+These are **deliberate decisions, not oversights**. Do not "fix" them in a
+future session without checking with Darshan first.
+
+- **Only the Modern storefront theme is reskinned.** `IndustrialTheme` and
+  `FestiveTheme` keep their original visual language on purpose — they are
+  deliberately different aesthetics, and Modern is the default theme that
+  most shops will see. Modern has diverged from the other two (orange
+  accents, stock badges, WhatsApp contact button); that divergence is
+  intended.
+- **Bottom tab bars from `designs_mobile/` are not built.** The receipt
+  design's bar is operator navigation (Invoices / Inventory / Loyalty /
+  Account) drawn onto a page customers open from a WhatsApp link — shipping
+  it would surface operator pages to customers. The storefront design's bar
+  needs Categories / Orders / Account routes that do not exist. Both read as
+  Stitch artifacts rather than intent.
+- **"OPEN NOW" pill is not built** — `StorefrontShop` has no opening-hours
+  model, and a closed shop advertising "OPEN NOW" is worse than no badge.
+- **Delivery / fitting banner is not built** — there is no such field on the
+  shop, and the copy in the design ("Fitting in 45 mins · Home delivery in
+  Pune") would be an invented promise.
+- **"BEST SELLER" badge is built but dormant.** There is no ranking data yet;
+  `ModernStorefrontProductGrid` reads an optional `is_best_seller` flag
+  defensively and shows nothing until the catalog query supplies it. Whoever
+  builds the backend must also define the window (this month? all time?) —
+  a badge meaning "sold well once, once" is worse than none.
+- **Stock scarcity threshold is a frontend constant.** `LOW_STOCK_BADGE_AT = 5`
+  in `ModernStorefrontProductGrid`, because the storefront payload exposes
+  `stock_quantity` but not each product's own `low_stock_threshold`. Moving
+  to the per-product threshold is a one-field addition to the catalog query.
+
+---
+
 ## 0. Corrections (2026-08-02, verified from disk)
 
 Three things earlier handoff/session state got wrong. Verified against the repo;

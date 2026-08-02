@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { AlertTriangle, FileText } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import {
   type CreditCustomer,
   type LowStockProduct,
@@ -23,12 +23,12 @@ export function DashboardActionSections({
       <div className="bg-slate-900/50 border border-white/5 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-200">Khata Hitlist</h2>
+            <h2 className="text-base font-bold text-gray-100">Khata Hitlist</h2>
             <p className="text-[11px] text-gray-500 mt-0.5">
               {khataCustomers.length} customer{khataCustomers.length !== 1 ? 's' : ''} with credit
             </p>
           </div>
-          <FileText className="w-4 h-4 text-red-400/60" />
+          <AlertTriangle className="h-4 w-4 text-brand" />
         </div>
 
         {khataCustomers.length === 0 ? (
@@ -39,12 +39,12 @@ export function DashboardActionSections({
             </div>
           </div>
         ) : (
-          <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
+          <div className="max-h-[400px] overflow-y-auto custom-scrollbar divide-y divide-white/5 pr-1">
             {khataCustomers.map((customer) => (
               <div
                 key={customer.id}
-                className="bg-gray-900/60 border border-gray-800/50 rounded-lg px-3 py-2.5
-                           flex items-center justify-between hover:border-gray-700/60 transition-colors"
+                className="flex min-h-[48px] items-center justify-between px-1 py-2.5
+                           transition-colors hover:bg-white/[0.02]"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="relative w-8 h-8 rounded-full bg-gray-800 border border-gray-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -81,11 +81,16 @@ export function DashboardActionSections({
                   <button
                     onClick={() => onReminder(customer)}
                     title={`Send WhatsApp reminder to ${customer.name ?? customer.phone_number}`}
-                    className="w-7 h-7 rounded-full bg-emerald-900/40 border border-emerald-800/50
-                               flex items-center justify-center
-                               hover:bg-emerald-800/60 hover:border-emerald-700 transition-colors"
+                    // The visible label is just "WhatsApp", so every row would
+                    // otherwise expose the same accessible name. The label keeps
+                    // the visible text as its first words to satisfy WCAG 2.5.3.
+                    aria-label={`WhatsApp reminder to ${customer.name ?? customer.phone_number}`}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-money/30
+                               bg-money/10 px-2.5 py-1 text-[11px] font-semibold text-money
+                               transition-colors hover:bg-money/20"
                   >
-                    <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-400" />
+                    <WhatsAppIcon className="h-3.5 w-3.5 text-money" />
+                    WhatsApp
                   </button>
                 </div>
               </div>
@@ -97,12 +102,12 @@ export function DashboardActionSections({
       <div className="bg-slate-900/50 border border-white/5 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-200">Low Stock Alerts</h2>
+            <h2 className="text-base font-bold text-gray-100">Low Stock Alerts</h2>
             <p className="text-[11px] text-gray-500 mt-0.5">
               {lowStockProducts.length} product{lowStockProducts.length !== 1 ? 's' : ''} below threshold
             </p>
           </div>
-          <AlertTriangle className="w-4 h-4 text-amber-400/60" />
+          <AlertTriangle className="h-4 w-4 text-brand" />
         </div>
 
         {lowStockProducts.length === 0 ? (
@@ -113,18 +118,14 @@ export function DashboardActionSections({
             </div>
           </div>
         ) : (
-          <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
+          <div className="max-h-[400px] overflow-y-auto custom-scrollbar divide-y divide-white/5 pr-1">
             {lowStockProducts.map((product) => {
               const isZero = product.quantity_in_stock <= 0;
               return (
                 <div
                   key={product.id}
-                  className={`bg-gray-900/60 border rounded-lg px-3 py-2.5
-                             flex items-center justify-between transition-colors
-                             ${isZero
-                               ? 'border-red-800/40 hover:border-red-700/50'
-                               : 'border-gray-800/50 hover:border-gray-700/60'
-                             }`}
+                  className="flex min-h-[48px] items-center justify-between px-1 py-2.5
+                             transition-colors hover:bg-white/[0.02]"
                 >
                   <div className="min-w-0">
                     <div className="text-xs font-medium text-gray-200 truncate">
@@ -141,10 +142,10 @@ export function DashboardActionSections({
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold
                         ${isZero
-                          ? 'bg-red-500/15 text-red-400'
+                          ? 'bg-dues/15 text-dues'
                           : product.quantity_in_stock <= 3
-                            ? 'bg-amber-500/15 text-amber-400'
-                            : 'bg-yellow-500/10 text-yellow-400'
+                            ? 'bg-brand/20 text-brand'
+                            : 'bg-brand/10 text-brand/80'
                         }`}
                     >
                       {isZero ? 'OUT' : product.quantity_in_stock} {!isZero && product.unit}

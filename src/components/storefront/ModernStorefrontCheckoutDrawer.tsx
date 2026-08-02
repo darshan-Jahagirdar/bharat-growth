@@ -1,3 +1,5 @@
+import Image from 'next/image';
+import { Lock } from 'lucide-react';
 import type { StorefrontShop } from '@/lib/storefront/queries';
 import { formatStorefrontPrice } from '@/lib/storefront/modernStorefrontTransforms';
 import type { ModernStorefrontCartController } from '@/lib/storefront/useModernStorefrontCart';
@@ -68,39 +70,57 @@ export function ModernStorefrontCheckoutDrawer({
           </div>
 
           <div className="bg-gray-50 rounded-2xl p-4 mb-5 space-y-3">
+            {/* Thumbnail and text on the first line, controls beneath — as the
+             * mobile cart design lays it out. Keeping the stepper and line
+             * total on the same row as the name left it nothing usable at
+             * 320-375px once the 48px thumbnail was added. */}
             {cart.cartItems.map((cartItem) => (
-              <div key={cartItem.product.id} className="flex items-center justify-between">
-                <div className="flex-1 min-w-0 mr-3">
-                  <p className="text-sm font-medium text-gray-900 truncate">{cartItem.product.name}</p>
-                  <p className="font-mono text-xs text-gray-400">{formatStorefrontPrice(cartItem.product.selling_price_paise)} each</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white">
-                    <button
-                      onClick={() => cart.removeFromCart(cartItem.product.id)}
-                      className="flex h-8 w-8 items-center justify-center text-sm
-                                 font-bold text-gray-500 active:bg-gray-100"
-                    >
-                      -
-                    </button>
-                    <span className="w-6 text-center font-mono text-sm font-semibold text-gray-900">{cartItem.qty}</span>
-                    <button
-                      onClick={() => cart.addToCart(cartItem.product)}
-                      className="flex h-8 w-8 items-center justify-center text-sm
-                                 font-bold text-brand active:bg-gray-100"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <span className="w-20 text-right font-mono text-sm font-semibold text-gray-900">
-                    {formatStorefrontPrice(cartItem.product.selling_price_paise * cartItem.qty)}
+              <div key={cartItem.product.id} className="flex items-start gap-3">
+                {cartItem.product.image_url ? (
+                  <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                    <Image
+                      src={cartItem.product.image_url}
+                      alt={cartItem.product.name}
+                      fill
+                      sizes="48px"
+                      unoptimized
+                      className="object-cover"
+                    />
                   </span>
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-900">{cartItem.product.name}</p>
+                  <p className="font-mono text-xs text-gray-400">
+                    {formatStorefrontPrice(cartItem.product.selling_price_paise)} each
+                  </p>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <div className="flex shrink-0 items-center overflow-hidden rounded-lg border border-info/20 bg-info/5">
+                      <button
+                        onClick={() => cart.removeFromCart(cartItem.product.id)}
+                        className="flex h-8 w-8 items-center justify-center text-sm
+                                   font-bold text-gray-500 active:bg-gray-100"
+                      >
+                        -
+                      </button>
+                      <span className="w-6 text-center font-mono text-sm font-semibold text-gray-900">{cartItem.qty}</span>
+                      <button
+                        onClick={() => cart.addToCart(cartItem.product)}
+                        className="flex h-8 w-8 items-center justify-center text-sm
+                                   font-bold text-brand active:bg-gray-100"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <span className="text-right font-mono text-sm font-semibold text-gray-900">
+                      {formatStorefrontPrice(cartItem.product.selling_price_paise * cartItem.qty)}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mb-5 flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
+          <div className="mb-5 flex items-center justify-between rounded-2xl border border-info/20 bg-info/5 px-4 py-4">
             <div>
               <p className="text-sm font-bold text-gray-900">Grand Total</p>
               <p className="text-xs text-gray-500">Including taxes</p>
@@ -160,7 +180,7 @@ export function ModernStorefrontCheckoutDrawer({
                 onClick={() => setPaymentMethod('upi')}
                 className={`py-3.5 rounded-xl text-sm font-semibold border-2 transition-all
                   ${paymentMethod === 'upi'
-                    ? 'border-green-600 bg-green-50 text-green-700'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                     : 'border-gray-200 bg-white text-gray-600 active:bg-gray-50'
                   }`}
               >
@@ -238,7 +258,11 @@ export function ModernStorefrontCheckoutDrawer({
             </div>
           )}
 
-          <p className="text-center text-[10px] text-gray-300 mt-3">
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-gray-500">
+            <Lock className="h-3 w-3" aria-hidden="true" />
+            Your details go only to this shop.
+          </p>
+          <p className="mt-1.5 text-center text-[10px] text-gray-300">
             Powered by BharatGrowth
           </p>
         </div>
